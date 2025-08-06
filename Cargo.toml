@@ -1,0 +1,17 @@
+[package]
+name = "qemu-command-builder"
+version = "10.0.3-0"
+edition = "2024"
+authors = ["Adam Flott <adam@adamflott.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/adamflott/qemu-command-builder"
+keywords = ["qemu"]
+description = "Type safe command line builder for qemu"
+homepage = "https://github.com/adamflott/qemu-command-builder"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = "0.4.41"
+bon = "3.7.0"
+ipnet = "2.11.0"
