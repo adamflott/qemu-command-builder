@@ -13,5 +13,5 @@ homepage = "https://github.com/adamflott/qemu-command-builder"
 
 [dependencies]
 chrono = "0.4.41"
-bon = "3.7.0"
+bon = "3.7.1"
 ipnet = "2.11.0"
