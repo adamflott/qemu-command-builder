@@ -38,9 +38,10 @@ impl ToCommand for CpuX86 {
         let mut ct = self.cpu_type.to_command().join("");
 
         if let Some(migratable) = self.migratable
-            && migratable {
-                ct.push_str(",migratable=yes");
-            }
+            && migratable
+        {
+            ct.push_str(",migratable=yes");
+        }
         let flags: Vec<String> = self
             .flags
             .iter()
