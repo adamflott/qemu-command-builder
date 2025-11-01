@@ -37,7 +37,7 @@ use crate::to_command::ToCommand;
 #[derive(Builder)]
 pub struct SMP {
     /// set the number of initial CPUs to 'n' [default=1]
-    cpus: usize,
+    cpus: u64,
     /// maximum number of total CPUs, including offline CPUs for hotplug, etc
     maxcpus: Option<usize>,
     /// number of drawers on the machine board
@@ -65,7 +65,7 @@ impl Default for SMP {
 }
 
 impl SMP {
-    pub fn new(cpus: usize) -> Self {
+    pub fn new(cpus: u64) -> Self {
         Self {
             cpus,
             maxcpus: None,

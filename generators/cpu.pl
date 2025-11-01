@@ -27,17 +27,25 @@ foreach my $arch (qw(aarch64 x86_64)) {
         push @{$cpus_by_arch{$arch}}, {name => $cpu_name, desc => join ' ', @cpu_fields};
     }
 
+if ($arch eq 'x86_64') {
     push @{$cpus_by_arch{$arch}},
       {
-        name => 'Host',
+        name => 'host',
         desc => 'Enables all features supported by the accelerator in the current host'
       };
+      }
 }
+
+say 'use std::str::FromStr;';
 
 say 'use crate::to_command::{ToCommand, ToArg};';
 
+say '#[derive(Debug, Clone)]';
+say 'pub struct CpuNotFound;';
+
 foreach my $arch (keys %cpus_by_arch) {
     my $cpu_type_ns = "CpuType" . ucfirst $arch;
+    say '#[derive(Debug, Clone)]';
     say "pub enum $cpu_type_ns {";
 
     foreach my $cpu (@{$cpus_by_arch{$arch}}) {
@@ -86,7 +94,7 @@ impl ToArg for $cpu_type_ns {
 EOF
 
     foreach my $cpu (@{$cpus_by_arch{$arch}}) {
-        say "            ${cpu_type_ns}::" . ucfirst(clean($cpu->{name})) . ' => "' . $cpu->{name} . '",';
+        say "            ${cpu_type_ns}::" . ucfirst(clean($cpu->{name})) . ' => "' . clean_host($cpu->{name}) . '",';
     }
 
     say << "EOF";
@@ -94,6 +102,25 @@ EOF
     }
 }
 EOF
+
+say << "EOF";
+impl FromStr for $cpu_type_ns {
+    type Err = CpuNotFound;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+EOF
+
+    foreach my $cpu (@{$cpus_by_arch{$arch}}) {
+        say '            "' . $cpu->{name} . '" => Ok(' . ${cpu_type_ns} . '::' . ucfirst(clean($cpu->{name})) . '),';
+    }
+say << "EOF";
+           _ => Err(CpuNotFound)
+        }
+    }
+}
+EOF
+
 }
 
 sub clean {
@@ -103,6 +130,16 @@ sub clean {
     $s =~ s/-v/V/;
     $s =~ s/-//g;
     $s =~ s/_//g;
+
+
+    $s;
+}
+
+sub clean_host {
+my ($s) = @_;
+    if ($s eq 'Host') {
+      $s = ucfirst($s);
+    }
 
     $s;
 }
