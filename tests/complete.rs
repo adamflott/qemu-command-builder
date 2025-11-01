@@ -181,7 +181,7 @@ fn full_command_line() {
         .parallel(vec![SpecialDevice::None])
         .serial(serial)
         .pidfile(PathBuf::from("/run/qemu.pid"))
-        .mon(mon)
+        .mon(vec![mon])
         .d(vec!["unimp".to_string()])
         .enable_kvm(true)
         .big_d(PathBuf::from("/run/qemu-debug.log"))
