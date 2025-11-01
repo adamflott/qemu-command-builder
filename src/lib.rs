@@ -156,7 +156,7 @@ pub struct QemuInstanceForX86_64 {
     pub kernel: Option<PathBuf>,
     pub shim: Option<PathBuf>,
     pub append: Option<String>,
-    pub initrd: Option<String>,
+    pub initrd: Option<PathBuf>,
     pub dtb: Option<PathBuf>,
     pub compact: Option<Compact>,
     pub fw_cfg: Option<FwCfg>,
@@ -434,7 +434,7 @@ impl ToCommand for QemuInstanceForX86_64 {
         }
         if let Some(initrd) = &self.initrd {
             cmd.push("-initrd".to_string());
-            cmd.push(initrd.to_string());
+            cmd.push(initrd.display().to_string());
         }
         if let Some(dtb) = &self.dtb {
             cmd.push("-dtb".to_string());
