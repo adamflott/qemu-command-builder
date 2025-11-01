@@ -1,6 +1,6 @@
 [package]
 name = "qemu-command-builder"
-version = "10.0.3-0"
+version = "10.0.3-1"
 edition = "2024"
 authors = ["Adam Flott <adam@adamflott.com>"]
 license = "MIT OR Apache-2.0"
