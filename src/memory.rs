@@ -2,9 +2,11 @@ use bon::Builder;
 
 use crate::to_command::ToCommand;
 
+#[derive(Debug, Clone)]
 pub enum MemoryUnit {
-    MegaBytes(usize),
-    GigaBytes(usize),
+    Bytes(u64),
+    MegaBytes(u64),
+    GigaBytes(u64),
 }
 
 /// Sets guest startup RAM size to megs megabytes. Default is 128 MiB.
@@ -21,7 +23,7 @@ pub enum MemoryUnit {
 ///
 /// If slots and maxmem are not specified, memory hotplug won't be
 /// enabled and the guest startup RAM will never increase.
-#[derive(Builder)]
+#[derive(Debug, Clone, Builder)]
 pub struct Memory {
     mem: MemoryUnit,
     slots: Option<usize>,
@@ -36,6 +38,9 @@ impl ToCommand for Memory {
 
         let mut arg = String::new();
         match &self.mem {
+            MemoryUnit::Bytes(amount) => {
+                arg.push_str(format!("{}", amount).as_str());
+            }
             MemoryUnit::MegaBytes(amount) => {
                 arg.push_str(format!("{}M", amount).as_str());
             }
@@ -48,6 +53,9 @@ impl ToCommand for Memory {
         }
         if let Some(maxmem) = &self.maxmem {
             match maxmem {
+                MemoryUnit::Bytes(amount) => {
+                    arg.push_str(format!(",maxmem={}", amount).as_str());
+                }
                 MemoryUnit::MegaBytes(amount) => {
                     arg.push_str(format!(",maxmem={}M", amount).as_str());
                 }
