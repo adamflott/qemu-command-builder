@@ -29,6 +29,7 @@ pub mod msg;
 pub mod name;
 pub mod netdev;
 pub mod numa;
+pub mod object;
 pub mod overcommit;
 pub mod plugin;
 pub mod rtc;
@@ -78,6 +79,7 @@ use crate::msg::Msg;
 use crate::name::Name;
 use crate::netdev::NetDev;
 use crate::numa::NUMA;
+use crate::object::Object;
 use crate::overcommit::Overcommit;
 use crate::plugin::Plugin;
 use crate::rtc::Rtc;
@@ -204,6 +206,7 @@ pub struct QemuInstanceForX86_64 {
     pub enable_sync_profile: Option<bool>,
     pub perfmap: Option<PathBuf>,
     pub jitdump: Option<PathBuf>,
+    pub object: Option<Vec<Object>>,
 }
 
 impl ToCommand for QemuInstanceForX86_64 {
@@ -636,6 +639,11 @@ impl ToCommand for QemuInstanceForX86_64 {
         if let Some(jitdump) = &self.jitdump {
             cmd.push("-jitdump".to_string());
             cmd.push(jitdump.display().to_string());
+        }
+        if let Some(objects) = &self.object {
+            for object in objects {
+                cmd.append(&mut object.to_command());
+            }
         }
         cmd
     }
