@@ -33,6 +33,7 @@ pub struct CharSocketTcp {
 
 #[derive(Default, Builder)]
 pub struct CharSocketUds {
+    #[builder(into)]
     id: String,
     path: PathBuf,
     server: Option<OnOff>,
@@ -204,6 +205,33 @@ pub enum CharDev {
     SpicePort(CharSpice),
 }
 
+impl CharDev {
+    pub fn id(&self) -> &str {
+        match self {
+            CharDev::Null(n) => &n.id,
+            CharDev::Socket(s) => match s {
+                CharSocket::Tcp(t) => &t.id,
+                CharSocket::Uds(u) => &u.id,
+            },
+            CharDev::Udp(u) => &u.id,
+            CharDev::MsMouse(m) => &m.id,
+            CharDev::Hub(h) => &h.id,
+            CharDev::Vc(v) => &v.id,
+            CharDev::RingBuf(r) => &r.id,
+            CharDev::File(f) => &f.id,
+            CharDev::Pipe(p) => &p.id,
+            CharDev::Win32Console(w) => &w.id,
+            CharDev::Win32Serial(ws) => &ws.id,
+            CharDev::Pty(p) => &p.id,
+            CharDev::Stdio(s) => &s.id,
+            CharDev::Braille(b) => &b.id,
+            CharDev::Serial(s) => &s.id,
+            CharDev::Parallel(p) => &p.id,
+            CharDev::SpiceVmc(s) => &s.id,
+            CharDev::SpicePort(s) => &s.id,
+        }
+    }
+}
 impl ToCommand for CharDev {
     fn to_command(&self) -> Vec<String> {
         let mut cmd = vec!["-chardev".to_string()];

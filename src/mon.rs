@@ -17,6 +17,7 @@ impl ToArg for ReadlineControl {
 }
 #[derive(Builder)]
 pub struct Mon {
+    #[builder(into)]
     chardev: String,
     mode: Option<ReadlineControl>,
     pretty: Option<OnOff>,
