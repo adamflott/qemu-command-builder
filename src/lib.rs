@@ -165,7 +165,7 @@ pub struct QemuInstanceForX86_64 {
     pub monitor: Option<SpecialDevice>,
     pub qmp: Option<SpecialDevice>,
     pub qmp_pretty: Option<SpecialDevice>,
-    pub mon: Option<Mon>,
+    pub mon: Option<Vec<Mon>>,
     pub debugcon: Option<CharDev>,
     pub pidfile: Option<PathBuf>,
     pub preconfig: Option<bool>,
@@ -468,8 +468,10 @@ impl ToCommand for QemuInstanceForX86_64 {
             cmd.push("-qmp-pretty".to_string());
             cmd.append(&mut qmp_pretty.to_command());
         }
-        if let Some(mon) = &self.mon {
-            cmd.append(&mut mon.to_command());
+        if let Some(mons) = &self.mon {
+            for mon in mons {
+                cmd.append(&mut mon.to_command());
+            }
         }
         if let Some(debugcon) = &self.debugcon {
             cmd.push("-debugcon".to_string());
