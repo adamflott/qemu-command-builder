@@ -155,7 +155,7 @@ impl ToArg for OnOffDefaultOff {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub enum AccelType {
     Kvm,
     Xen,
