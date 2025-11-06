@@ -59,7 +59,6 @@ impl ToCommand for CpuX86 {
     }
 }
 
-
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct CpuAarch64 {
     cpu_type: CpuTypeAarch64,
