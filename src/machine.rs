@@ -164,7 +164,7 @@ pub struct MachineFor<T> {
 pub type MachineForX86 = MachineFor<MachineX86_64>;
 pub type MachineForAarch64 = MachineFor<MachineAarch64>;
 
-impl ToCommand for MachineForX86 {
+impl<M: ToCommand + ToArg> ToCommand for MachineFor<M> {
     fn to_command(&self) -> Vec<String> {
         let mut cmd = vec![];
         cmd.push("-machine".to_string());

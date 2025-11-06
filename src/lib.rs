@@ -104,7 +104,6 @@ pub struct QemuInstanceBase<M, C> {
     pub qemu_binary: PathBuf,
 
     pub machine: Option<M>,
-    #[builder(into)]
     pub cpu: Option<C>,
 
     pub accel: Option<Accel>,

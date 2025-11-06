@@ -224,7 +224,7 @@ dependencies = [
 
 [[package]]
 name = "qemu-command-builder"
-version = "10.0.3-3"
+version = "10.0.3-4"
 dependencies = [
  "bon",
  "chrono",
