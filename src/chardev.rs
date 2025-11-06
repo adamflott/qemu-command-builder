@@ -5,12 +5,12 @@ use bon::Builder;
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharNull {
     id: String,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharSocketTcp {
     id: String,
     host: Option<String>,
@@ -31,7 +31,7 @@ pub struct CharSocketTcp {
     tls_authz: Option<String>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharSocketUds {
     #[builder(into)]
     id: String,
@@ -48,12 +48,13 @@ pub struct CharSocketUds {
     tight: Option<OnOff>,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum CharSocket {
     Tcp(CharSocketTcp),
     Uds(CharSocketUds),
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharUdp {
     id: String,
     host: Option<String>,
@@ -67,7 +68,7 @@ pub struct CharUdp {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharMsMouse {
     id: String,
     mux: Option<OnOff>,
@@ -75,12 +76,12 @@ pub struct CharMsMouse {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharHub {
     id: String,
     chardevs: Option<Vec<(usize, String)>>,
 }
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharVc {
     id: String,
     width: Option<usize>,
@@ -92,14 +93,14 @@ pub struct CharVc {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharRingBuf {
     id: String,
     size: Option<usize>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
 }
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharFile {
     id: String,
     path: PathBuf,
@@ -109,7 +110,7 @@ pub struct CharFile {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharPipe {
     id: String,
     mux: Option<OnOff>,
@@ -117,7 +118,7 @@ pub struct CharPipe {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharWin32Console {
     id: String,
     mux: Option<OnOff>,
@@ -125,7 +126,7 @@ pub struct CharWin32Console {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharWin32Serial {
     id: String,
     path: PathBuf,
@@ -134,7 +135,7 @@ pub struct CharWin32Serial {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharPty {
     id: String,
     mux: Option<OnOff>,
@@ -142,7 +143,7 @@ pub struct CharPty {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharStdio {
     id: String,
     mux: Option<OnOff>,
@@ -151,14 +152,14 @@ pub struct CharStdio {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharBraille {
     id: String,
     mux: Option<OnOff>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
 }
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharSerial {
     id: String,
     path: PathBuf,
@@ -166,7 +167,7 @@ pub struct CharSerial {
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
 }
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharParallel {
     id: String,
     path: PathBuf,
@@ -175,7 +176,7 @@ pub struct CharParallel {
     logappend: Option<OnOff>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CharSpice {
     id: String,
     name: String,
@@ -184,6 +185,7 @@ pub struct CharSpice {
     logappend: Option<OnOff>,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum CharDev {
     Null(CharNull),
     Socket(CharSocket),

@@ -6,7 +6,7 @@ use crate::ToCommand;
 use crate::cpu_flags::CPUFlags;
 use crate::cpu_type::CpuTypeX86_64;
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct CpuX86 {
     cpu_type: CpuTypeX86_64,
     migratable: Option<bool>,

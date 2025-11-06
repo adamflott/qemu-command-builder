@@ -4,6 +4,7 @@ use bon::Builder;
 
 use crate::to_command::ToCommand;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum DataFile {
     File(Vec<PathBuf>),
     Data(Vec<PathBuf>),
@@ -18,7 +19,7 @@ pub enum DataFile {
 /// fields will override the same in the RSDT and the FADT (a.k.a.
 /// FACP), in order to ensure the field matches required by the
 /// Microsoft SLIC spec and the ACPI spec.
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct AcpiTable {
     sig: Option<String>,
     rev: Option<usize>,

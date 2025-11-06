@@ -1,5 +1,6 @@
 use crate::to_command::{ToArg, ToCommand};
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum YesNo {
     Yes,
     No,
@@ -29,6 +30,7 @@ impl ToArg for YesNo {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum OnOff {
     On,
     Off,
@@ -58,7 +60,7 @@ impl ToArg for OnOff {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum OnOffAuto {
     On,
     Off,
@@ -94,7 +96,7 @@ impl ToArg for OnOffAuto {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum OnOffDefaultOn {
     #[default]
     On,
@@ -125,7 +127,7 @@ impl ToArg for OnOffDefaultOn {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum OnOffDefaultOff {
     On,
     #[default]
@@ -155,7 +157,7 @@ impl ToArg for OnOffDefaultOff {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum AccelType {
     Kvm,
     Xen,
@@ -179,6 +181,7 @@ impl ToArg for AccelType {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum IgnoreUnmap {
     Ignore,
     Unmap,
@@ -193,6 +196,7 @@ impl ToArg for IgnoreUnmap {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum OnOffUnmap {
     On,
     Off,
@@ -209,6 +213,7 @@ impl ToArg for OnOffUnmap {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum AutoNeverAlways {
     Auto,
     Never,

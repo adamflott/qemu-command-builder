@@ -2,7 +2,7 @@ use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Msg {
     timestamp: Option<OnOff>,
     guest_name: Option<OnOff>,

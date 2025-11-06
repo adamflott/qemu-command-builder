@@ -2,6 +2,7 @@ use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum AllowDeny {
     Allow,
     Deny,
@@ -15,6 +16,7 @@ impl ToArg for AllowDeny {
         }
     }
 }
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum AllowDenyChildren {
     Allow,
     Deny,
@@ -30,7 +32,7 @@ impl ToArg for AllowDenyChildren {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Sandbox {
     mode: OnOff,
     obsolete: Option<AllowDeny>,

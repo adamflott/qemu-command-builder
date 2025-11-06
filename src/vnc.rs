@@ -4,6 +4,7 @@ use crate::to_command::ToCommand;
 use bon::Builder;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum VNCDisplay {
     To(usize),
     Host(usize),
@@ -11,6 +12,7 @@ pub enum VNCDisplay {
     None,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum AllowExclusiveForceSharedIgnore {
     AllowExclusive,
     ForceShared,
@@ -26,7 +28,7 @@ impl ToArg for AllowExclusiveForceSharedIgnore {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct VNC {
     display: VNCDisplay,
 

@@ -1,6 +1,7 @@
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum OnOffOnfault {
     On,
     Off,
@@ -17,6 +18,7 @@ impl ToArg for OnOffOnfault {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Overcommit {
     MemLock(OnOffOnfault),
     CpuPm(OnOff),

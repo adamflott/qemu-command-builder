@@ -1,4 +1,6 @@
 use crate::to_command::{ToArg, ToCommand};
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum CPUFlags {
     /// 3dnow
     X3dnow,

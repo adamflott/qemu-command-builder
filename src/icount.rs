@@ -5,11 +5,13 @@ use bon::Builder;
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Shift {
     N(usize),
     Auto,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum RecordReplay {
     Record,
     Replay,
@@ -23,7 +25,7 @@ impl ToArg for RecordReplay {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Icount {
     shift: Option<Shift>,
     align: Option<OnOff>,

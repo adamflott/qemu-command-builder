@@ -1,5 +1,6 @@
 use crate::to_command::ToCommand;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum USBDevice {
     Braille,
     Keyboard,

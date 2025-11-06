@@ -3,12 +3,14 @@ use chrono::{DateTime, Utc};
 
 use crate::to_command::{ToArg, ToCommand};
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum RtcBase {
     Utc,
     Localtime,
     Datetime(DateTime<Utc>),
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum RtcClock {
     Host,
     Rt,
@@ -24,6 +26,7 @@ impl ToArg for RtcClock {
         }
     }
 }
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum RtcDriftFix {
     None,
     Slew,
@@ -37,7 +40,7 @@ impl ToArg for RtcDriftFix {
         }
     }
 }
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Rtc {
     base: Option<RtcBase>,
     clock: Option<RtcClock>,

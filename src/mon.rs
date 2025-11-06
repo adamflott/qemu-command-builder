@@ -2,6 +2,7 @@ use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum ReadlineControl {
     Readline,
     Control,
@@ -15,7 +16,7 @@ impl ToArg for ReadlineControl {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Mon {
     #[builder(into)]
     chardev: String,

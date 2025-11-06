@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::to_command::ToCommand;
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Trace {
     enable: Option<String>,
     events: Option<PathBuf>,

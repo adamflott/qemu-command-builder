@@ -1,5 +1,6 @@
 use crate::to_command::ToCommand;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum VGA {
     /// Cirrus Logic GD5446 Video card. All Windows versions starting
     /// from Windows 95 should recognize and use this graphic card. For

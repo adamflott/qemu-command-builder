@@ -3,7 +3,7 @@ use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
 use std::path::PathBuf;
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Tcp {
     host: Option<String>,
     port: u16,
@@ -12,7 +12,7 @@ pub struct Tcp {
     ipv6: Option<OnOff>,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Rdma {
     host: String,
     port: u16,
@@ -20,12 +20,13 @@ pub struct Rdma {
     ipv6: Option<OnOff>,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct File {
     filename: PathBuf,
     offset: Option<String>,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Incoming {
     Tcp(Tcp),
     Rdma(Rdma),

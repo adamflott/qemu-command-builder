@@ -5,14 +5,14 @@ use bon::Builder;
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct VC {
     is_pixel: bool,
     w: usize,
     h: usize,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Udp {
     remote_host: Option<String>,
     remote_port: u16,
@@ -20,7 +20,7 @@ pub struct Udp {
     src_port: Option<u16>,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Tcp {
     host: String,
     port: u16,
@@ -30,7 +30,7 @@ pub struct Tcp {
     reconnect_ms: Option<usize>,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Telnet {
     host: String,
     port: u16,
@@ -39,7 +39,7 @@ pub struct Telnet {
     nodelay: Option<OnOff>,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Websocket {
     host: String,
     port: u16,
@@ -48,7 +48,7 @@ pub struct Websocket {
     nodelay: Option<OnOff>,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Unix {
     path: PathBuf,
     server: Option<OnOff>,
@@ -56,6 +56,7 @@ pub struct Unix {
     reconnect_ms: Option<usize>,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum SpecialDevice {
     VC(Option<VC>),
     Pty(Option<PathBuf>),

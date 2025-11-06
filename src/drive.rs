@@ -5,6 +5,7 @@ use bon::Builder;
 use crate::common::{IgnoreUnmap, OnOff, OnOffUnmap};
 use crate::to_command::{ToArg, ToCommand};
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum DriveInterface {
     Ide,
     Scsi,
@@ -30,6 +31,8 @@ impl ToArg for DriveInterface {
         }
     }
 }
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum DriveMedia {
     Disk,
     Cdrom,
@@ -44,7 +47,7 @@ impl ToArg for DriveMedia {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum DriveCacheType {
     None,
     #[default]
@@ -66,6 +69,7 @@ impl ToArg for DriveCacheType {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum DriveAIOType {
     Threads,
     Native,
@@ -82,6 +86,7 @@ impl ToArg for DriveAIOType {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum DriveErrorAction {
     Ignore,
     Stop,
@@ -105,7 +110,7 @@ impl ToArg for DriveErrorAction {
 /// defining the corresponding ``-blockdev`` and ``-device`` options.
 ///
 /// ``-drive`` accepts all options that are accepted by ``-blockdev``.
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Drive {
     // -blockdev
     /// This defines the name of the block driver node by which it

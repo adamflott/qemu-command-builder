@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap};
 
 use bon::Builder;
 
@@ -22,7 +22,7 @@ use crate::to_command::{ToArg, ToCommand};
 ///
 /// TODO
 /// - constrain driver opts
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct BlockDev {
     /// Specifies the block driver to use for the given node.
     pub driver: String,
@@ -91,7 +91,7 @@ pub struct BlockDev {
     /// write to be converted to an ``unmap`` operation.
     pub detect_zeroes: Option<OnOffUnmap>,
 
-    pub driver_opts: Option<HashMap<String, String>>,
+    pub driver_opts: Option<BTreeMap<String, String>>,
 }
 
 impl ToCommand for BlockDev {

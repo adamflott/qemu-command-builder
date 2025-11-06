@@ -2,7 +2,7 @@ use bon::Builder;
 
 use crate::to_command::ToCommand;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum MemoryUnit {
     Bytes(u64),
     MegaBytes(u64),
@@ -23,7 +23,7 @@ pub enum MemoryUnit {
 ///
 /// If slots and maxmem are not specified, memory hotplug won't be
 /// enabled and the guest startup RAM will never increase.
-#[derive(Debug, Clone, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Memory {
     mem: MemoryUnit,
     slots: Option<usize>,

@@ -3,7 +3,7 @@ use bon::Builder;
 use crate::to_command::ToCommand;
 
 /// Set parameter arg for item id of type group
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Set {
     group: String,
     value: String,

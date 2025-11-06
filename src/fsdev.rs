@@ -3,6 +3,7 @@ use crate::to_command::ToCommand;
 use bon::Builder;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum SecurityModel {
     Passthrough,
     MappedXAttr,
@@ -21,7 +22,7 @@ impl ToArg for SecurityModel {
     }
 }
 /// Accesses to the filesystem are done by QEMU
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct FsDevLocal {
     /// Specifies identifier for this device.
     id: String,
@@ -98,6 +99,7 @@ pub struct FsDevLocal {
 }
 
 /// Synthetic filesystem, only used by QTests.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub struct FsDevSynth {
     /// Specifies identifier for this device.
     id: String,
@@ -107,6 +109,7 @@ pub struct FsDevSynth {
 ///
 /// TODO
 /// - device virtio-9p-type integration
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum FsDev {
     Local(FsDevLocal),
     Synth(FsDevSynth),

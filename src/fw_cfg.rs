@@ -3,12 +3,13 @@ use std::path::PathBuf;
 
 use crate::to_command::ToCommand;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum StringOrPathBuf {
     String(String),
     PathBuf(PathBuf),
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct FwCfg {
     name: Option<String>,
     data: Option<StringOrPathBuf>,

@@ -4,7 +4,7 @@ use crate::common::*;
 use crate::machine_type::MachineX86_64;
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum Granularity {
     #[default]
     G256,
@@ -29,14 +29,14 @@ impl ToArg for Granularity {
         }
     }
 }
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct CxlFmw {
     targets: Vec<String>,
     size: String,
     interleave_granularity: Option<Granularity>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmpCache {
     cache: String,
     topology: String,

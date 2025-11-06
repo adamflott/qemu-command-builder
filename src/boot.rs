@@ -33,7 +33,7 @@ use crate::to_command::ToCommand;
 /// Do strict boot via ``strict=on`` as far as firmware/BIOS supports
 /// it. This only effects when boot priority is changed by bootindex
 /// options. The default is non-strict boot.
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Boot {
     order: Option<String>,
     once: Option<String>,

@@ -6,7 +6,7 @@ use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 
 /// Load SMBIOS entry from binary file.
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosFile {
     path: PathBuf,
 }
@@ -21,7 +21,7 @@ impl ToCommand for SmbiosFile {
 }
 
 /// Specify SMBIOS type 0 fields
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosType0 {
     vendor: Option<String>,
     version: Option<String>,
@@ -56,7 +56,7 @@ impl ToCommand for SmbiosType0 {
 }
 
 /// Specify SMBIOS type 1 fields
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosType1 {
     manufacturer: Option<String>,
     product: Option<String>,
@@ -99,7 +99,7 @@ impl ToCommand for SmbiosType1 {
 }
 
 /// Specify SMBIOS type 2 fields
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosType2 {
     manufacturer: Option<String>,
     product: Option<String>,
@@ -138,7 +138,7 @@ impl ToCommand for SmbiosType2 {
 }
 
 /// Specify SMBIOS type 3 fields
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosType3 {
     manufacturer: Option<String>,
     version: Option<String>,
@@ -172,7 +172,7 @@ impl ToCommand for SmbiosType3 {
     }
 }
 /// Specify SMBIOS type 4 fields
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosType4 {
     sock_pfx: Option<String>,
     manufacturer: Option<String>,
@@ -227,7 +227,7 @@ impl ToCommand for SmbiosType4 {
 }
 
 /// Specify SMBIOS type 8 fields
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosType8 {
     external_reference: Option<String>,
     internal_reference: Option<String>,
@@ -258,7 +258,7 @@ impl ToCommand for SmbiosType8 {
 }
 
 /// Specify SMBIOS type 11 fields
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosType11 {
     value: Option<String>,
     path: Option<String>,
@@ -281,7 +281,7 @@ impl ToCommand for SmbiosType11 {
 }
 
 /// Specify SMBIOS type 17 fields
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosType17 {
     loc_pfx: Option<String>,
     bank: Option<String>,
@@ -325,7 +325,7 @@ impl ToCommand for SmbiosType17 {
 }
 
 /// Specify SMBIOS type 41 fields
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct SmbiosType41 {
     designation: Option<String>,
     kind: Option<String>,
@@ -356,6 +356,7 @@ impl ToCommand for SmbiosType41 {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Smbios {
     File(SmbiosFile),
     Type0(SmbiosType0),

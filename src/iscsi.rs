@@ -3,7 +3,7 @@ use bon::Builder;
 use crate::to_command::ToCommand;
 
 /// Configure iSCSI session parameters.
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Iscsi {
     user: Option<String>,
     password: Option<String>,

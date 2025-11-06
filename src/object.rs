@@ -2,7 +2,7 @@ use bon::Builder;
 
 use crate::to_command::ToCommand;
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Object {
     typename: String,
     properties: Vec<(String, String)>,

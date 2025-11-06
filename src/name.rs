@@ -7,7 +7,7 @@ use crate::to_command::{ToArg, ToCommand};
 /// window caption. The name will also be used for the VNC server. Also
 /// optionally set the top visible process name in Linux. Naming of
 /// individual threads can also be enabled on Linux to aid debugging.
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Name {
     name: String,
     process: Option<String>,

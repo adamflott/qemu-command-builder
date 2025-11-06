@@ -8,7 +8,7 @@ use crate::to_command::ToCommand;
 ///
 /// TODO
 /// - constrain
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Device {
     device: String,
     properties: Vec<(String, String)>,

@@ -1,12 +1,12 @@
 use bon::Builder;
-use std::collections::HashMap;
+use std::collections::{BTreeMap};
 
 use crate::to_command::ToCommand;
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct AudioDev {
     driver: String,
-    props: HashMap<String, String>,
+    props: BTreeMap<String, String>,
 }
 
 impl ToCommand for AudioDev {

@@ -2,6 +2,7 @@ use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
 use bon::Builder;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum AcceptRejectCrash {
     Accept,
     Reject,
@@ -17,6 +18,8 @@ impl ToArg for AcceptRejectCrash {
         }
     }
 }
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum AcceptHide {
     Accept,
     Hide,
@@ -29,18 +32,19 @@ impl ToArg for AcceptHide {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct DeprecatedInput {
     deprecated_input: AcceptRejectCrash,
     deprecated_output: AcceptHide,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct UnstableInput {
     unstable_input: AcceptRejectCrash,
     unstable_output: AcceptHide,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Compact {
     DeprecatedInput(DeprecatedInput),
     UnstableInput(UnstableInput),

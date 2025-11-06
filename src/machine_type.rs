@@ -1,4 +1,6 @@
 use crate::to_command::{ToArg, ToCommand};
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum MachineX86_64 {
     /// microvm (i386)
     Microvm,
@@ -414,6 +416,7 @@ impl ToArg for MachineX86_64 {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum MachineAarch64 {
     /// Aspeed AST1030 MiniBMC (Cortex-M4)
     Ast1030evb,

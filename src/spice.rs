@@ -4,6 +4,7 @@ use crate::to_command::ToCommand;
 use bon::Builder;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Channel {
     Main,
     Display,
@@ -25,7 +26,7 @@ impl ToArg for Channel {
         }
     }
 }
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum ImageCompression {
     AutoGlz,
     #[default]
@@ -48,7 +49,7 @@ impl ToArg for ImageCompression {
         }
     }
 }
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum OffAllFilter {
     #[default]
     Off,
@@ -66,7 +67,7 @@ impl ToArg for OffAllFilter {
     }
 }
 /// Enable the spice remote desktop protocol.
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Spice {
     /// Set the TCP port spice is listening on for plaintext channels.
     port: Option<u16>,

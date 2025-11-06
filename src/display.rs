@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use crate::common::{OnOff, YesNo};
 use crate::to_command::{ToArg, ToCommand};
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum OnCoreEsOff {
     On,
     Core,
@@ -21,6 +22,7 @@ impl ToArg for OnCoreEsOff {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum QemuDisplay {
     Spice {
         gl: Option<OnOff>,

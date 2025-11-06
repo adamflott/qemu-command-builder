@@ -3,6 +3,7 @@ use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum RemapForbidWarn {
     Remap,
     Forbid,
@@ -19,7 +20,7 @@ impl ToArg for RemapForbidWarn {
     }
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Local {
     path: PathBuf,
     mount_tag: String,
@@ -32,11 +33,12 @@ pub struct Local {
     multidevs: Option<RemapForbidWarn>,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Synth {
     mount_tag: String,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Virtfs {
     Local(Local),
     Synth(Synth),

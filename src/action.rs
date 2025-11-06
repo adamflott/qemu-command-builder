@@ -1,6 +1,6 @@
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum RebootAction {
     #[default]
     Reset,
@@ -16,7 +16,7 @@ impl ToArg for RebootAction {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum ShutdownAction {
     #[default]
     PowerOff,
@@ -32,7 +32,7 @@ impl ToArg for ShutdownAction {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum PanicAction {
     Pause,
     #[default]
@@ -52,7 +52,7 @@ impl ToArg for PanicAction {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum WatchdogAction {
     #[default]
     Reset,
@@ -76,6 +76,8 @@ impl ToArg for WatchdogAction {
         }
     }
 }
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Action {
     Reboot(RebootAction),
     Shutdown(ShutdownAction),

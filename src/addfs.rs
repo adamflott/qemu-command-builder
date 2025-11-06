@@ -3,7 +3,7 @@ use bon::Builder;
 use crate::to_command::ToCommand;
 
 /// Add a file descriptor to an fd set.
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct AddFd {
     /// This option defines the file descriptor of which a duplicate is
     /// added to fd set. The file descriptor cannot be stdin, stdout, or

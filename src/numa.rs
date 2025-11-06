@@ -2,7 +2,7 @@ use bon::Builder;
 
 use crate::to_command::ToCommand;
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct NUMANodeMem {
     mem_size: Option<usize>,
     cpu_first: Option<usize>,
@@ -11,7 +11,7 @@ pub struct NUMANodeMem {
     initiator: Option<usize>,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct NUMANodeMemDev {
     mem_id: Option<usize>,
     cpu_first: Option<usize>,
@@ -19,14 +19,14 @@ pub struct NUMANodeMemDev {
     node_id: Option<usize>,
     initiator: Option<usize>,
 }
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct NUMADist {
     src: usize,
     dst: usize,
     val: usize,
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct NUMACPU {
     node_id: usize,
     socket_id: Option<usize>,
@@ -34,19 +34,21 @@ pub struct NUMACPU {
     thread_id: Option<usize>,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum NUMAHierarchy {
     Memory,
     FirstLevel,
     SecondLevel,
     ThirdLevel,
 }
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum NUMADataType {
     AccessLatency,
     ReadLatency,
     WriteLatency,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct NUMAHMATLb {
     initiator: usize,
     target: usize,
@@ -56,18 +58,20 @@ pub struct NUMAHMATLb {
     bandwidth: Option<usize>, // TODO add value the possible value and units are NUM[M|G|T] mean that the bandwidth value are NUM byte per second (or MB/s, GB/s or TB/s depending on used suffix). Note that if latency or bandwidth value is 0, means the corresponding latency or bandwidth information is not provided.
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum HMATCacheAssociativity {
     None,
     Direct,
     Complex,
 }
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum HMATCachePolicy {
     None,
     WriteBack,
     WriteThrough,
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct NUMAHMATCache {
     node_id: usize,
     size: usize,
@@ -77,6 +81,7 @@ pub struct NUMAHMATCache {
     line: Option<usize>,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum NUMA {
     NodeMem(NUMANodeMem),
     NodeMemDev(NUMANodeMemDev),

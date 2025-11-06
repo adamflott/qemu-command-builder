@@ -8,19 +8,20 @@ use crate::to_command::ToCommand;
 use bon::Builder;
 use ipnet::{Ipv4Net, Ipv6Net};
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct SMB {
     dir: PathBuf,
     smbserver: Option<String>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum TcpUdp {
     #[default]
     Tcp,
     Udp,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum ScriptOrNot {
     Script(PathBuf),
     None,
@@ -38,7 +39,7 @@ impl ToCommand for ScriptOrNot {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct HostForward {
     protocol: Option<TcpUdp>,
     hostaddr: Option<String>,
@@ -47,17 +48,18 @@ pub struct HostForward {
     guestport: u16,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum GuestForwardTarget {
     Device(CharDev),
     Cmd((String, Vec<String>)),
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct GuestForward {
     server: String,
     port: u16,
     target: GuestForwardTarget,
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct User {
     id: String,
     ipv4: Option<OnOff>,
@@ -184,7 +186,8 @@ impl ToCommand for User {
         vec![args.join(",")]
     }
 }
-#[derive(Builder)]
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Tap {
     id: String,
     fd: Option<String>,
@@ -253,7 +256,7 @@ impl ToCommand for Tap {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Bridge {
     id: String,
     bridge: Option<String>,
@@ -274,17 +277,17 @@ impl ToCommand for Bridge {
     }
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct HostAndPort {
     host: String,
     port: u16,
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct HostAndMaybePort {
     host: String,
     port: Option<u16>,
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct SocketRegular {
     id: String,
     fd: Option<String>,
@@ -313,7 +316,7 @@ impl ToCommand for SocketRegular {
         vec![cmd.join(",")]
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct SocketMulticast {
     id: String,
     fd: Option<String>,
@@ -337,7 +340,7 @@ impl ToCommand for SocketMulticast {
         vec![cmd.join(",")]
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct SocketUdpTunnel {
     id: String,
     fd: Option<String>,
@@ -361,6 +364,8 @@ impl ToCommand for SocketUdpTunnel {
         vec![cmd.join(",")]
     }
 }
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Socket {
     SocketRegular(SocketRegular),
     Multicast(SocketMulticast),
@@ -376,7 +381,7 @@ impl ToCommand for Socket {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct StreamOverTcp {
     id: String,
     server: Option<OnOff>,
@@ -425,7 +430,7 @@ impl ToCommand for StreamOverTcp {
         vec![cmd.join(",")]
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct StreamOverUds {
     id: String,
     server: Option<OnOff>,
@@ -456,7 +461,7 @@ impl ToCommand for StreamOverUds {
         vec![cmd.join(",")]
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct StreamOverFd {
     id: String,
     server: Option<OnOff>,
@@ -479,6 +484,7 @@ impl ToCommand for StreamOverFd {
         vec![cmd.join(",")]
     }
 }
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Stream {
     StreamOverTcp(StreamOverTcp),
     StreamOverUds(StreamOverUds),
@@ -494,7 +500,7 @@ impl ToCommand for Stream {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct DgramMulticast {
     id: String,
     remote_host: String,
@@ -519,7 +525,7 @@ impl ToCommand for DgramMulticast {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct DgramMulticastUdpFd {
     id: String,
     remote_host: String,
@@ -544,7 +550,7 @@ impl ToCommand for DgramMulticastUdpFd {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct DgramSocket {
     id: String,
     local_host: String,
@@ -574,7 +580,7 @@ impl ToCommand for DgramSocket {
     }
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct DgramUds {
     id: String,
     local_path: PathBuf,
@@ -596,7 +602,7 @@ impl ToCommand for DgramUds {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct DgramFd {
     id: String,
     local_str: String,
@@ -612,6 +618,7 @@ impl ToCommand for DgramFd {
         ]
     }
 }
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Dgram {
     DgramMulticast(DgramMulticast),
     DgramMulticastUdpFd(DgramMulticastUdpFd),
@@ -631,7 +638,7 @@ impl ToCommand for Dgram {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Vde {
     id: String,
     sock: Option<PathBuf>,
@@ -659,7 +666,7 @@ impl ToCommand for Vde {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct NetMap {
     id: String,
     ifname: String,
@@ -676,6 +683,7 @@ impl ToCommand for NetMap {
         args
     }
 }
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum NativeSkb {
     Native,
     Skb,
@@ -689,7 +697,7 @@ impl ToArg for NativeSkb {
         }
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct AfXdp {
     id: String,
     ifname: String,
@@ -730,7 +738,7 @@ impl ToCommand for AfXdp {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct VhostUser {
     id: String,
     chardev: String,
@@ -751,7 +759,7 @@ impl ToCommand for VhostUser {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct VhostVdpa {
     id: String,
     vhostdev: Option<PathBuf>,
@@ -773,7 +781,7 @@ impl ToCommand for VhostVdpa {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct VmnetHost {
     id: String,
     isolated: Option<OnOff>,
@@ -809,7 +817,7 @@ impl ToCommand for VmnetHost {
     }
 }
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct VmnetShared {
     id: String,
     isolated: Option<OnOff>,
@@ -844,7 +852,7 @@ impl ToCommand for VmnetShared {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct VmnetBridged {
     id: String,
     ifname: String,
@@ -865,7 +873,7 @@ impl ToCommand for VmnetBridged {
         args
     }
 }
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct Hubport {
     id: String,
     hubid: usize,
@@ -886,6 +894,7 @@ impl ToCommand for Hubport {
         args
     }
 }
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum NetDev {
     User(User),
     // TODO L2tpv3,

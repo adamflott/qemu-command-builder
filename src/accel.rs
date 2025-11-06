@@ -5,7 +5,7 @@ use bon::Builder;
 use crate::common::*;
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
 pub enum OnOffSplit {
     #[default]
     On,
@@ -23,6 +23,7 @@ impl ToArg for OnOffSplit {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum TCGThreadType {
     Single,
     Multi,
@@ -37,6 +38,7 @@ impl ToArg for TCGThreadType {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum NotifyVMExitType {
     Run,
     InternalError,
@@ -49,7 +51,7 @@ pub enum NotifyVMExitType {
 /// default, tcg is used. If there is more than one accelerator
 /// specified, the next one is used if the previous one fails to
 /// initialize.
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Accel {
     accel_type: AccelType,
 

@@ -98,7 +98,7 @@ use crate::vga::VGA;
 use crate::virtfs::Virtfs;
 use crate::vnc::VNC;
 
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct QemuInstanceForX86_64 {
     pub qemu_binary: PathBuf,
 

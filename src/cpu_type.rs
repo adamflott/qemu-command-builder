@@ -1,8 +1,10 @@
 use crate::to_command::{ToArg, ToCommand};
 use std::str::FromStr;
-#[derive(Debug, Clone)]
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub struct CpuNotFound;
-#[derive(Debug, Clone)]
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum CpuTypeAarch64 {
     /// a64fx
     A64fx,
@@ -272,7 +274,7 @@ impl FromStr for CpuTypeAarch64 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum CpuTypeX86_64 {
     /// (alias configured by machine type)
     X486,

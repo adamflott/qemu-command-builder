@@ -34,7 +34,7 @@ use crate::to_command::ToCommand;
 /// core) for a machine that only supports sockets/cores/threads.
 /// Some members of the option can be omitted but their values will be
 /// automatically computed:
-#[derive(Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct SMP {
     /// set the number of initial CPUs to 'n' [default=1]
     cpus: u64,

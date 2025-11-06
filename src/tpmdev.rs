@@ -4,7 +4,7 @@ use bon::Builder;
 
 use crate::to_command::ToCommand;
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Passthrough {
     id: String,
     path: Option<PathBuf>,
@@ -32,7 +32,7 @@ impl ToCommand for Passthrough {
     }
 }
 
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Emulator {
     id: String,
     chardev: String,
@@ -53,6 +53,7 @@ impl ToCommand for Emulator {
     }
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum TpmDev {
     Passthrough(Passthrough),
     Emulator(Emulator),

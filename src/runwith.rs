@@ -3,11 +3,12 @@ use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum UserOrIds {
     User(String),
     Id { uid: usize, gid: usize },
 }
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct RunWith {
     async_teardown: Option<OnOff>,
     chroot: Option<PathBuf>,

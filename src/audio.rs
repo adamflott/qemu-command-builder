@@ -24,7 +24,7 @@ use crate::to_command::ToCommand;
 /// In both cases, the driver option is the same as with the corresponding
 /// ``-audiodev`` option below.  Use ``driver=help`` to list the available
 /// drivers.
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Audio {
     driver: String,
     model: Option<String>,

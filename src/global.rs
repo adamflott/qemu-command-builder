@@ -3,7 +3,7 @@ use bon::Builder;
 use crate::to_command::ToCommand;
 
 /// Set default value of driver's property prop to value
-#[derive(Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
 pub struct Global {
     driver: String,
     property: String,
