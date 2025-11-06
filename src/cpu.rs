@@ -4,7 +4,7 @@ use bon::Builder;
 
 use crate::ToCommand;
 use crate::cpu_flags::CPUFlags;
-use crate::cpu_type::CpuTypeX86_64;
+use crate::cpu_type::{CpuTypeAarch64, CpuTypeX86_64};
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
 pub struct CpuX86 {
@@ -55,6 +55,21 @@ impl ToCommand for CpuX86 {
 
         cmd.push(ct);
 
+        cmd
+    }
+}
+
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+pub struct CpuAarch64 {
+    cpu_type: CpuTypeAarch64,
+}
+
+impl ToCommand for CpuAarch64 {
+    fn to_command(&self) -> Vec<String> {
+        let mut cmd = vec!["-cpu".to_string()];
+        let ct = self.cpu_type.to_command().join("");
+        cmd.push(ct);
         cmd
     }
 }

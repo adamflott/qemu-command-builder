@@ -1,7 +1,7 @@
 use bon::Builder;
 
 use crate::common::*;
-use crate::machine_type::MachineX86_64;
+use crate::machine_type::{MachineAarch64, MachineX86_64};
 use crate::to_command::{ToArg, ToCommand};
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
@@ -55,9 +55,9 @@ pub struct SmpCache {
 /// and "pc-q35-2.8" machines too. To allow users live migrating VMs to
 /// skip multiple intermediate releases when upgrading, new releases of
 /// QEMU will support machine types from many previous versions.
-#[derive(Builder)]
-pub struct MachineForX86 {
-    machine_type: MachineX86_64,
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+pub struct MachineFor<T> {
+    machine_type: T,
 
     /// This is used to enable an accelerator. Depending on the target
     /// architecture, kvm, xen, hvf, nvmm, whpx or tcg can be available.
@@ -160,6 +160,9 @@ pub struct MachineForX86 {
     /// cache is per ``die``.
     smp_cache: Option<Vec<SmpCache>>,
 }
+
+pub type MachineForX86 = MachineFor<MachineX86_64>;
+pub type MachineForAarch64 = MachineFor<MachineAarch64>;
 
 impl ToCommand for MachineForX86 {
     fn to_command(&self) -> Vec<String> {

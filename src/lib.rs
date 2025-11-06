@@ -63,6 +63,7 @@ use crate::boot::Boot;
 use crate::chardev::CharDev;
 use crate::compact::Compact;
 use crate::cpu::CpuX86;
+use crate::cpu_type::CpuTypeAarch64;
 use crate::device::Device;
 use crate::display::QemuDisplay;
 use crate::drive::Drive;
@@ -72,7 +73,7 @@ use crate::global::Global;
 use crate::icount::Icount;
 use crate::incoming::Incoming;
 use crate::iscsi::Iscsi;
-use crate::machine::MachineForX86;
+use crate::machine::{MachineForAarch64, MachineForX86};
 use crate::memory::Memory;
 use crate::mon::Mon;
 use crate::msg::Msg;
@@ -99,11 +100,13 @@ use crate::virtfs::Virtfs;
 use crate::vnc::VNC;
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
-pub struct QemuInstanceForX86_64 {
+pub struct QemuInstanceBase<M, C> {
     pub qemu_binary: PathBuf,
 
-    pub machine: Option<MachineForX86>,
-    pub cpu: Option<CpuX86>,
+    pub machine: Option<M>,
+    #[builder(into)]
+    pub cpu: Option<C>,
+
     pub accel: Option<Accel>,
     pub smp: Option<SMP>,
     pub numa: Option<Vec<NUMA>>,
@@ -209,7 +212,7 @@ pub struct QemuInstanceForX86_64 {
     pub object: Option<Vec<Object>>,
 }
 
-impl ToCommand for QemuInstanceForX86_64 {
+impl<M: ToCommand, C: ToCommand> ToCommand for QemuInstanceBase<M, C> {
     fn to_command(&self) -> Vec<String> {
         let mut cmd = vec![];
 
@@ -650,3 +653,6 @@ impl ToCommand for QemuInstanceForX86_64 {
         cmd
     }
 }
+
+pub type QemuInstanceForX86_64 = QemuInstanceBase<MachineForX86, CpuX86>;
+pub type QemuInstanceForAarch64 = QemuInstanceBase<MachineForAarch64, CpuTypeAarch64>;
