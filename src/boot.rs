@@ -1,8 +1,29 @@
+use crate::parsers::ascii_plus_more;
+use std::str::FromStr;
+
 use bon::Builder;
+use proptest_derive::Arbitrary;
+use winnow::Result;
+use winnow::ascii::{alphanumeric1, dec_uint};
+use winnow::combinator::opt;
+use winnow::prelude::*;
+use winnow::token::literal;
 
 use crate::common::OnOff;
-use crate::to_command::ToArg;
+use crate::parsers::DELIM_COMMA;
+use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::ToCommand;
+use crate::{pco0, ppo0, pso0, qao};
+
+pub(crate) const ARG_BOOT: &str = "-boot";
+
+const KEY_ORDER: &str = "order=";
+const KEY_ONCE: &str = "once=";
+const KEY_MENU: &str = "menu=";
+const KEY_SPLASH: &str = "splash=";
+const KEY_SPLASH_TIME: &str = "splash-time=";
+const KEY_REBOOT_TIMEOUT: &str = "reboot-timeout=";
+const KEY_STRICT: &str = "strict=";
 
 /// Specify boot order drives as a string of drive letters. Valid drive
 /// letters depend on the target architecture. The x86 PC uses: a, b
@@ -33,56 +54,72 @@ use crate::to_command::ToCommand;
 /// Do strict boot via ``strict=on`` as far as firmware/BIOS supports
 /// it. This only effects when boot priority is changed by bootindex
 /// options. The default is non-strict boot.
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Boot {
-    order: Option<String>,
-    once: Option<String>,
+    order: Option<ShellString>,
+    once: Option<ShellString>,
     menu: Option<OnOff>,
-    splash: Option<String>,
+    splash: Option<ShellString>,
     splash_time: Option<usize>,
     reboot_timeout: Option<usize>,
     strict: Option<OnOff>,
 }
 
 impl ToCommand for Boot {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
+    fn has_args(&self) -> bool {
+        self.order.is_some() || self.once.is_some() || self.menu.is_some() || self.splash.is_some() || self.splash_time.is_some() || self.reboot_timeout.is_some() || self.strict.is_some()
+    }
 
-        if self.order.is_some()
-            || self.once.is_some()
-            || self.menu.is_some()
-            || self.splash.is_some()
-            || self.splash_time.is_some()
-            || self.reboot_timeout.is_some()
-            || self.strict.is_some()
-        {
-            cmd.push("-boot".to_string());
-        }
-
+    fn command(&self) -> String {
+        ARG_BOOT.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
 
-        if let Some(order) = &self.order {
-            args.push(format!("order={}", order));
-        }
-        if let Some(once) = &self.once {
-            args.push(format!("once={}", once));
-        }
-        if let Some(menu) = &self.menu {
-            args.push(format!("menu={}", menu.to_arg()));
-        }
-        if let Some(splash) = &self.splash {
-            args.push(format!("splash={}", splash));
-        }
-        if let Some(splash_time) = &self.splash_time {
-            args.push(format!("splash-time={}", splash_time));
-        }
-        if let Some(reboot_timeout) = &self.reboot_timeout {
-            args.push(format!("reboot-timeout={}", reboot_timeout));
-        }
-        if let Some(strict) = &self.strict {
-            args.push(format!("strict={}", strict.to_arg()));
-        }
-        cmd.push(args.join(","));
-        cmd
+        qao!(&self.order, args, KEY_ORDER);
+        qao!(&self.once, args, KEY_ONCE);
+        qao!(&self.menu, args, KEY_MENU);
+        qao!(&self.splash, args, KEY_SPLASH);
+        qao!(&self.splash_time, args, KEY_SPLASH_TIME);
+        qao!(&self.reboot_timeout, args, KEY_REBOOT_TIMEOUT);
+        qao!(&self.strict, args, KEY_STRICT);
+
+        vec![args.join(DELIM_COMMA)]
     }
+}
+
+impl FromStr for Boot {
+    type Err = ShellStringError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        boot.parse(s).map_err(|e| ShellStringError::from_parse(e))
+    }
+}
+
+pso0!(order, KEY_ORDER);
+pso0!(once, KEY_ONCE);
+pco0!(menu, alphanumeric1, OnOff, KEY_MENU);
+pso0!(splash, KEY_SPLASH);
+ppo0!(splash_time, dec_uint, usize, KEY_SPLASH_TIME);
+ppo0!(reboot_timeout, dec_uint, usize, KEY_REBOOT_TIMEOUT);
+pco0!(strict, alphanumeric1, OnOff, KEY_STRICT);
+
+pub fn boot(s: &mut &str) -> ModalResult<Boot> {
+    let order = opt(order).parse_next(s)?;
+    let once = opt(once).parse_next(s)?;
+    let menu = opt(menu).parse_next(s)?;
+    let splash = opt(splash).parse_next(s)?;
+    let splash_time = opt(splash_time).parse_next(s)?;
+    let reboot_timeout = opt(reboot_timeout).parse_next(s)?;
+    let strict = opt(strict).parse_next(s)?;
+
+    Ok(Boot {
+        order,
+        once,
+        menu,
+        splash,
+        splash_time,
+        reboot_timeout,
+        strict,
+    })
 }

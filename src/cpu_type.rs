@@ -1,10 +1,11 @@
 use crate::to_command::{ToArg, ToCommand};
+use proptest_derive::Arbitrary;
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub struct CpuNotFound;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum CpuTypeAarch64 {
     /// a64fx
     A64fx,
@@ -72,29 +73,6 @@ pub enum CpuTypeAarch64 {
     Neoversen2,
     /// neoverse-v1
     NeoverseV1,
-    /// (deprecated)
-    Pxa250,
-    /// (deprecated)
-    Pxa255,
-    /// (deprecated)
-    Pxa260,
-    /// (deprecated)
-    Pxa261,
-    /// (deprecated)
-    Pxa262,
-    /// (deprecated)
-    Pxa270a0,
-    /// (deprecated)
-    Pxa270a1,
-    /// (deprecated)
-    Pxa270,
-    /// (deprecated)
-    Pxa270b0,
-    /// (deprecated)
-    Pxa270b1,
-    /// (deprecated)
-    Pxa270c0,
-    /// (deprecated)
     Pxa270c5,
     /// sa1100
     Sa1100,
@@ -104,7 +82,7 @@ pub enum CpuTypeAarch64 {
     Ti925t,
 }
 impl ToCommand for CpuTypeAarch64 {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
 
         match self {
@@ -141,17 +119,6 @@ impl ToCommand for CpuTypeAarch64 {
             CpuTypeAarch64::Neoversen1 => cmd.push("neoverse-n1".to_string()),
             CpuTypeAarch64::Neoversen2 => cmd.push("neoverse-n2".to_string()),
             CpuTypeAarch64::NeoverseV1 => cmd.push("neoverse-v1".to_string()),
-            CpuTypeAarch64::Pxa250 => cmd.push("pxa250".to_string()),
-            CpuTypeAarch64::Pxa255 => cmd.push("pxa255".to_string()),
-            CpuTypeAarch64::Pxa260 => cmd.push("pxa260".to_string()),
-            CpuTypeAarch64::Pxa261 => cmd.push("pxa261".to_string()),
-            CpuTypeAarch64::Pxa262 => cmd.push("pxa262".to_string()),
-            CpuTypeAarch64::Pxa270a0 => cmd.push("pxa270-a0".to_string()),
-            CpuTypeAarch64::Pxa270a1 => cmd.push("pxa270-a1".to_string()),
-            CpuTypeAarch64::Pxa270 => cmd.push("pxa270".to_string()),
-            CpuTypeAarch64::Pxa270b0 => cmd.push("pxa270-b0".to_string()),
-            CpuTypeAarch64::Pxa270b1 => cmd.push("pxa270-b1".to_string()),
-            CpuTypeAarch64::Pxa270c0 => cmd.push("pxa270-c0".to_string()),
             CpuTypeAarch64::Pxa270c5 => cmd.push("pxa270-c5".to_string()),
             CpuTypeAarch64::Sa1100 => cmd.push("sa1100".to_string()),
             CpuTypeAarch64::Sa1110 => cmd.push("sa1110".to_string()),
@@ -197,17 +164,6 @@ impl ToArg for CpuTypeAarch64 {
             CpuTypeAarch64::Neoversen1 => "neoverse-n1",
             CpuTypeAarch64::Neoversen2 => "neoverse-n2",
             CpuTypeAarch64::NeoverseV1 => "neoverse-v1",
-            CpuTypeAarch64::Pxa250 => "pxa250",
-            CpuTypeAarch64::Pxa255 => "pxa255",
-            CpuTypeAarch64::Pxa260 => "pxa260",
-            CpuTypeAarch64::Pxa261 => "pxa261",
-            CpuTypeAarch64::Pxa262 => "pxa262",
-            CpuTypeAarch64::Pxa270a0 => "pxa270-a0",
-            CpuTypeAarch64::Pxa270a1 => "pxa270-a1",
-            CpuTypeAarch64::Pxa270 => "pxa270",
-            CpuTypeAarch64::Pxa270b0 => "pxa270-b0",
-            CpuTypeAarch64::Pxa270b1 => "pxa270-b1",
-            CpuTypeAarch64::Pxa270c0 => "pxa270-c0",
             CpuTypeAarch64::Pxa270c5 => "pxa270-c5",
             CpuTypeAarch64::Sa1100 => "sa1100",
             CpuTypeAarch64::Sa1110 => "sa1110",
@@ -254,17 +210,6 @@ impl FromStr for CpuTypeAarch64 {
             "neoverse-n1" => Ok(CpuTypeAarch64::Neoversen1),
             "neoverse-n2" => Ok(CpuTypeAarch64::Neoversen2),
             "neoverse-v1" => Ok(CpuTypeAarch64::NeoverseV1),
-            "pxa250" => Ok(CpuTypeAarch64::Pxa250),
-            "pxa255" => Ok(CpuTypeAarch64::Pxa255),
-            "pxa260" => Ok(CpuTypeAarch64::Pxa260),
-            "pxa261" => Ok(CpuTypeAarch64::Pxa261),
-            "pxa262" => Ok(CpuTypeAarch64::Pxa262),
-            "pxa270-a0" => Ok(CpuTypeAarch64::Pxa270a0),
-            "pxa270-a1" => Ok(CpuTypeAarch64::Pxa270a1),
-            "pxa270" => Ok(CpuTypeAarch64::Pxa270),
-            "pxa270-b0" => Ok(CpuTypeAarch64::Pxa270b0),
-            "pxa270-b1" => Ok(CpuTypeAarch64::Pxa270b1),
-            "pxa270-c0" => Ok(CpuTypeAarch64::Pxa270c0),
             "pxa270-c5" => Ok(CpuTypeAarch64::Pxa270c5),
             "sa1100" => Ok(CpuTypeAarch64::Sa1100),
             "sa1110" => Ok(CpuTypeAarch64::Sa1110),
@@ -274,7 +219,7 @@ impl FromStr for CpuTypeAarch64 {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum CpuTypeX86_64 {
     /// (alias configured by machine type)
     X486,
@@ -606,7 +551,7 @@ pub enum CpuTypeX86_64 {
     Host,
 }
 impl ToCommand for CpuTypeX86_64 {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
 
         match self {
@@ -621,9 +566,7 @@ impl ToCommand for CpuTypeX86_64 {
             CpuTypeX86_64::BroadwellV3 => cmd.push("broadwell-v3".to_string()),
             CpuTypeX86_64::BroadwellV4 => cmd.push("broadwell-v4".to_string()),
             CpuTypeX86_64::CascadelakeServer => cmd.push("cascadelake-server".to_string()),
-            CpuTypeX86_64::CascadelakeServernoTSX => {
-                cmd.push("cascadelake-server-notsx".to_string())
-            }
+            CpuTypeX86_64::CascadelakeServernoTSX => cmd.push("cascadelake-server-notsx".to_string()),
             CpuTypeX86_64::CascadelakeServerV1 => cmd.push("cascadelake-server-v1".to_string()),
             CpuTypeX86_64::CascadelakeServerV2 => cmd.push("cascadelake-server-v2".to_string()),
             CpuTypeX86_64::CascadelakeServerV3 => cmd.push("cascadelake-server-v3".to_string()),
@@ -723,18 +666,14 @@ impl ToCommand for CpuTypeX86_64 {
             CpuTypeX86_64::SierraForestV3 => cmd.push("sierraforest-v3".to_string()),
             CpuTypeX86_64::SkylakeClient => cmd.push("skylake-client".to_string()),
             CpuTypeX86_64::SkylakeClientIBRS => cmd.push("skylake-client-ibrs".to_string()),
-            CpuTypeX86_64::SkylakeClientnoTSXIBRS => {
-                cmd.push("skylake-client-notsx-ibrs".to_string())
-            }
+            CpuTypeX86_64::SkylakeClientnoTSXIBRS => cmd.push("skylake-client-notsx-ibrs".to_string()),
             CpuTypeX86_64::SkylakeClientV1 => cmd.push("skylake-client-v1".to_string()),
             CpuTypeX86_64::SkylakeClientV2 => cmd.push("skylake-client-v2".to_string()),
             CpuTypeX86_64::SkylakeClientV3 => cmd.push("skylake-client-v3".to_string()),
             CpuTypeX86_64::SkylakeClientV4 => cmd.push("skylake-client-v4".to_string()),
             CpuTypeX86_64::SkylakeServer => cmd.push("skylake-server".to_string()),
             CpuTypeX86_64::SkylakeServerIBRS => cmd.push("skylake-server-ibrs".to_string()),
-            CpuTypeX86_64::SkylakeServernoTSXIBRS => {
-                cmd.push("skylake-server-notsx-ibrs".to_string())
-            }
+            CpuTypeX86_64::SkylakeServernoTSXIBRS => cmd.push("skylake-server-notsx-ibrs".to_string()),
             CpuTypeX86_64::SkylakeServerV1 => cmd.push("skylake-server-v1".to_string()),
             CpuTypeX86_64::SkylakeServerV2 => cmd.push("skylake-server-v2".to_string()),
             CpuTypeX86_64::SkylakeServerV3 => cmd.push("skylake-server-v3".to_string()),

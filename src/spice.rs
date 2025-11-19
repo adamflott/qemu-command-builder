@@ -2,9 +2,13 @@ use crate::common::{AutoNeverAlways, OnOff, OnOffDefaultOff, OnOffDefaultOn};
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
 use bon::Builder;
+use proptest_derive::Arbitrary;
 use std::path::PathBuf;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_SPICE: &str = "-spice";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Channel {
     Main,
     Display,
@@ -26,7 +30,7 @@ impl ToArg for Channel {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum ImageCompression {
     AutoGlz,
     #[default]
@@ -49,7 +53,7 @@ impl ToArg for ImageCompression {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum OffAllFilter {
     #[default]
     Off,
@@ -67,7 +71,7 @@ impl ToArg for OffAllFilter {
     }
 }
 /// Enable the spice remote desktop protocol.
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Spice {
     /// Set the TCP port spice is listening on for plaintext channels.
     port: Option<u16>,
@@ -164,11 +168,10 @@ pub struct Spice {
 }
 
 impl ToCommand for Spice {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-spice".to_string());
-
+    fn command(&self) -> String {
+        ARG_SPICE.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
         if let Some(port) = &self.port {
             args.push(format!("port={}", port));
@@ -195,16 +198,10 @@ impl ToCommand for Spice {
             args.push(format!("disable-ticketing={}", disable_ticketing.to_arg()));
         }
         if let Some(disable_copy_paste) = &self.disable_copy_paste {
-            args.push(format!(
-                "disable-copy-paste={}",
-                disable_copy_paste.to_arg()
-            ));
+            args.push(format!("disable-copy-paste={}", disable_copy_paste.to_arg()));
         }
         if let Some(disable_agent_file_xfer) = &self.disable_agent_file_xfer {
-            args.push(format!(
-                "disable-agent-file-xfer={}",
-                disable_agent_file_xfer.to_arg()
-            ));
+            args.push(format!("disable-agent-file-xfer={}", disable_agent_file_xfer.to_arg()));
         }
         if let Some(tls_port) = &self.tls_port {
             args.push(format!("tls-port={}", tls_port));
@@ -240,16 +237,10 @@ impl ToCommand for Spice {
             args.push(format!("image-compression={}", image_compression.to_arg()));
         }
         if let Some(jpeg_wan_compression) = &self.jpeg_wan_compression {
-            args.push(format!(
-                "jpeg-wan-compression={}",
-                jpeg_wan_compression.to_arg()
-            ));
+            args.push(format!("jpeg-wan-compression={}", jpeg_wan_compression.to_arg()));
         }
         if let Some(zlib_glz_wan_compression) = &self.zlib_glz_wan_compression {
-            args.push(format!(
-                "zlib-glz-wan-compression={}",
-                zlib_glz_wan_compression.to_arg()
-            ));
+            args.push(format!("zlib-glz-wan-compression={}", zlib_glz_wan_compression.to_arg()));
         }
         if let Some(streaming_video) = &self.streaming_video {
             args.push(format!("streaming-video={}", streaming_video.to_arg()));
@@ -258,16 +249,10 @@ impl ToCommand for Spice {
             args.push(format!("agent-mouse={}", agent_mouse.to_arg()));
         }
         if let Some(playback_compression) = &self.playback_compression {
-            args.push(format!(
-                "playback-compression={}",
-                playback_compression.to_arg()
-            ));
+            args.push(format!("playback-compression={}", playback_compression.to_arg()));
         }
         if let Some(seamless_migration) = &self.seamless_migration {
-            args.push(format!(
-                "seamless-migration={}",
-                seamless_migration.to_arg()
-            ));
+            args.push(format!("seamless-migration={}", seamless_migration.to_arg()));
         }
         if let Some(gl) = &self.gl {
             args.push(format!("gl={}", gl.to_arg()));
@@ -276,8 +261,14 @@ impl ToCommand for Spice {
             args.push(format!("rendernode={}", rendernode.display()));
         }
 
-        cmd.push(args.join(","));
+        args
+    }
+}
 
-        cmd
+impl FromStr for Spice {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

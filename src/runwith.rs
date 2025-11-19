@@ -1,45 +1,95 @@
 use crate::common::OnOff;
-use crate::to_command::{ToArg, ToCommand};
+use crate::parsers::{DELIM_COLON, DELIM_COMMA, ascii_plus_more};
+use crate::shell_path::ShellPath;
+use crate::shell_string::{ShellString, ShellStringError};
+use crate::to_command::ToCommand;
+use crate::{pco0, qao};
 use bon::Builder;
-use std::path::PathBuf;
+use proptest_derive::Arbitrary;
+use std::str::FromStr;
+use winnow::Result;
+use winnow::ascii::{alphanumeric1, dec_uint};
+use winnow::combinator::{alt, opt};
+use winnow::prelude::*;
+use winnow::token::literal;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_RUN_WITH: &str = "-run-with";
+
+const KEY_ASYNC_TEARDOWN: &str = "async-teardown=";
+const KEY_CHROOT: &str = "chroot=";
+const KEY_USER: &str = "user=";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum UserOrIds {
-    User(String),
+    User(ShellString),
     Id { uid: usize, gid: usize },
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct RunWith {
     async_teardown: Option<OnOff>,
-    chroot: Option<PathBuf>,
+    chroot: Option<ShellPath>,
     user: Option<UserOrIds>,
 }
 
 impl ToCommand for RunWith {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-run-with".to_string());
-
+    fn has_args(&self) -> bool {
+        self.async_teardown.is_some() || self.chroot.is_some() || self.user.is_some()
+    }
+    fn command(&self) -> String {
+        ARG_RUN_WITH.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
 
-        if let Some(async_teardown) = &self.async_teardown {
-            args.push(format!("async-teardown={}", async_teardown.to_arg()))
-        }
-        if let Some(chroot) = &self.chroot {
-            args.push(format!("chroot={}", chroot.display()));
-        }
+        qao!(&self.async_teardown, args, KEY_ASYNC_TEARDOWN);
+        qao!(&self.chroot, args, KEY_CHROOT);
+
         if let Some(user) = &self.user {
             match user {
                 UserOrIds::User(id) => {
-                    args.push(format!("user={}", id));
+                    args.push(format!("{}{}", KEY_USER, id));
                 }
                 UserOrIds::Id { uid, gid } => {
-                    args.push(format!("user={}:{}", uid, gid));
+                    args.push(format!("{}{}:{}", KEY_USER, uid, gid));
                 }
             }
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
     }
+}
+
+impl FromStr for RunWith {
+    type Err = ShellStringError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        run_with.parse(s).map_err(|e| ShellStringError::from_parse(e))
+    }
+}
+
+pco0!(async_teardown, alphanumeric1, OnOff, KEY_ASYNC_TEARDOWN);
+pco0!(chroot, ascii_plus_more, ShellPath, KEY_CHROOT);
+
+fn user(s: &mut &str) -> ModalResult<UserOrIds> {
+    let _ = opt(literal(DELIM_COMMA)).parse_next(s)?;
+    let _ = opt(literal(KEY_USER)).parse_next(s)?;
+    alt((user_id, user_name)).parse_next(s)
+}
+
+fn user_name(s: &mut &str) -> ModalResult<UserOrIds> {
+    let name = alphanumeric1.parse_next(s)?;
+    Ok(UserOrIds::User(ShellString { s: name.to_string() }))
+}
+
+fn user_id(s: &mut &str) -> ModalResult<UserOrIds> {
+    let uid = dec_uint.parse_next(s)?;
+    let _ = literal(DELIM_COLON).parse_next(s)?;
+    let gid = dec_uint.parse_next(s)?;
+    Ok(UserOrIds::Id { uid, gid })
+}
+
+pub fn run_with(s: &mut &str) -> ModalResult<RunWith> {
+    let async_teardown = opt(async_teardown).parse_next(s)?;
+    let chroot = opt(chroot).parse_next(s)?;
+    let user = opt(user).parse_next(s)?;
+    Ok(RunWith { async_teardown, chroot, user })
 }

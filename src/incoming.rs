@@ -1,9 +1,15 @@
+use std::path::PathBuf;
+use std::str::FromStr;
+
+use bon::Builder;
+use proptest_derive::Arbitrary;
+
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
-use bon::Builder;
-use std::path::PathBuf;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+pub(crate) const ARG_INCOMING: &str = "-incoming";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Tcp {
     host: Option<String>,
     port: u16,
@@ -12,7 +18,7 @@ pub struct Tcp {
     ipv6: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Rdma {
     host: String,
     port: u16,
@@ -20,13 +26,13 @@ pub struct Rdma {
     ipv6: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct File {
     filename: PathBuf,
     offset: Option<String>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Incoming {
     Tcp(Tcp),
     Rdma(Rdma),
@@ -39,11 +45,10 @@ pub enum Incoming {
 }
 
 impl ToCommand for Incoming {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-incoming".to_string());
-
+    fn command(&self) -> String {
+        ARG_INCOMING.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         match self {
             Incoming::Tcp(tcp) => {
                 let mut args = vec![];
@@ -61,7 +66,7 @@ impl ToCommand for Incoming {
                 if let Some(ipv6) = &tcp.ipv6 {
                     args.push(format!("ipv6={}", ipv6.to_arg()));
                 }
-                cmd.push(args.join(","));
+                args
             }
             Incoming::Rdma(rdma) => {
                 let mut args = vec![];
@@ -72,32 +77,38 @@ impl ToCommand for Incoming {
                 if let Some(ipv6) = &rdma.ipv6 {
                     args.push(format!("ipv6={}", ipv6.to_arg()));
                 }
-                cmd.push(args.join(","));
+                args
             }
             Incoming::Unix(unix) => {
-                cmd.push(format!("unix:{}", unix.display()));
+                vec![format!("unix:{}", unix.display())]
             }
             Incoming::Fd(fd) => {
-                cmd.push(format!("fd:{}", fd));
+                vec![format!("fd:{}", fd)]
             }
             Incoming::File(file) => {
                 let mut args = vec![format!("file:{}", file.filename.display())];
                 if let Some(offset) = &file.offset {
                     args.push(format!("offset={}", offset));
                 }
-                cmd.push(args.join(","));
+                args
             }
             Incoming::Exec(exec) => {
-                cmd.push(format!("exec:{}", exec));
+                vec![format!("exec:{}", exec)]
             }
             Incoming::Channel(chrono) => {
-                cmd.push(format!("channel:{}", chrono));
+                vec![format!("channel:{}", chrono)]
             }
             Incoming::Defer => {
-                cmd.push("defer".to_string());
+                vec!["defer".to_string()]
             }
         }
+    }
+}
 
-        cmd
+impl FromStr for Incoming {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

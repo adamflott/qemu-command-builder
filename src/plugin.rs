@@ -1,16 +1,23 @@
-use bon::Builder;
-use std::path::PathBuf;
-
 use crate::to_command::ToCommand;
+use bon::Builder;
+use proptest_derive::Arbitrary;
+use std::path::PathBuf;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+pub(crate) const ARG_PLUGIN: &str = "-plugin";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Plugin {
     file: Option<PathBuf>,
     args: Option<Vec<(String, String)>>,
 }
 
 impl ToCommand for Plugin {
-    fn to_command(&self) -> Vec<String> {
+    fn command(&self) -> String {
+        ARG_PLUGIN.to_string()
+    }
+
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
 
         cmd.push("-plugin".to_string());
@@ -27,5 +34,13 @@ impl ToCommand for Plugin {
         }
         cmd.push(args.join(","));
         cmd
+    }
+}
+
+impl FromStr for Plugin {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

@@ -1,6 +1,15 @@
-use bon::Builder;
+use std::str::FromStr;
 
+use crate::parsers::DELIM_COMMA;
+use crate::qao;
 use crate::to_command::ToCommand;
+use bon::Builder;
+use proptest_derive::Arbitrary;
+
+pub(crate) const ARG_AUDIO: &str = "-audio";
+
+const KEY_DRIVER: &str = "driver=";
+const KEY_MODEL: &str = "model=";
 
 /// If the ``model`` option is specified, ``-audio`` is a shortcut
 /// for configuring both the guest audio hardware and the host audio
@@ -24,24 +33,41 @@ use crate::to_command::ToCommand;
 /// In both cases, the driver option is the same as with the corresponding
 /// ``-audiodev`` option below.  Use ``driver=help`` to list the available
 /// drivers.
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Audio {
     driver: String,
     model: Option<String>,
-    property: String,
+    properties: Vec<(String, String)>,
+}
+
+impl Audio {
+    pub fn add_prop<S: AsRef<str>>(&mut self, key: S, value: S) -> &mut Self {
+        self.properties.push((key.as_ref().to_string(), value.as_ref().to_string()));
+        self
+    }
 }
 
 impl ToCommand for Audio {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["-audio".to_string()];
+    fn command(&self) -> String {
+        ARG_AUDIO.to_string()
+    }
 
-        let mut args = vec![format!("driver={}", self.driver.to_string())];
-        if let Some(model) = &self.model {
-            args.push(format!(",model={}", model));
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec![format!("{}{}", KEY_DRIVER, self.driver.to_string())];
+
+        qao!(&self.model, args, KEY_MODEL);
+        for (prop_key, prop_value) in &self.properties {
+            args.push(format!("{}={}", prop_key, prop_value));
         }
-        args.push(format!(",prop={}", self.property));
 
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for Audio {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

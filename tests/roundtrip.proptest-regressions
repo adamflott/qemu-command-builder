@@ -1,0 +1,14 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc bd338704bea0dc89ffedc2553446d7ce0b1ba0f83b43d401545f03e7cb73d2b1 # shrinks to addfd = AddFd { fd: 8755120990205888392, set: 11026897111662677399, opaque: Some("i\u{1b}ފ\u{c}") }
+cc f883b1de91275fa0852fac320e1beb77a477cb6ac0ce1bcce5c94e48e78640b6 # shrinks to accel = Accel { accel_type: Nvmm, igd_passthru: Some(On), kernel_irqchip: Some(Off), kvm_shadow_mem: Some(17526293394031127851), one_insn_per_tb: Some(On), split_wx: None, tb_size: None, dirty_ring_size: None, eager_split_size: None, notify_vmexit: None, thread: None }
+cc 3a1aee117770e0cbb4e0e70fb4e33870e228e38d6843731e836dfb656845eabe # shrinks to accel = Accel { accel_type: Kvm, igd_passthru: None, kernel_irqchip: Some(On), kvm_shadow_mem: Some(5908538178697086334), one_insn_per_tb: Some(On), split_wx: None, tb_size: None, dirty_ring_size: Some(15138195302834390987), eager_split_size: Some(6660368366389909173), notify_vmexit: Some(NotifyVMExitTypes([Run])), thread: None }
+cc 3a3894ee34f59868ce19ead4798490e32de38e31d4832e16ab76af23d9e857dc # shrinks to accel = Accel { accel_type: Xen, igd_passthru: None, kernel_irqchip: None, kvm_shadow_mem: Some(6421872406355131180), one_insn_per_tb: None, split_wx: Some(Off), tb_size: None, dirty_ring_size: Some(16429591843370310232), eager_split_size: None, notify_vmexit: Some(NotifyVMExitTypes([InternalError])), thread: None }
+cc 6b1c42290f913101beba5303c9df9adc6a659684dd51db1f0327dfe3a9ed6553 # shrinks to accel = Run(Some(0))
+cc 18c4001310a81b22a7df3db9c8668b3ca9be8440c2e64121d4ffe67931ccee10 # shrinks to v = AcpiTable { sig: None, rev: None, oem_id: None, oem_table_id: None, oem_rev: None, asl_compiler_id: None, asl_compiler_rev: None, data: Some([]) }
+cc 6c8f86d72e3a1c28350e5a2148a13bb7e68e104709fad7555473f8c28793768a # shrinks to v = Watchdog(None)
+cc 0f79f55916c05673f6cec7330ea5674d587de879a5c3f459cef8bd3bc2fc083e # shrinks to v = Drive { file: None, interface: None, bus: None, unit: None, index: None, media: None, snapshot: None, cache: None, aio: Some(IOUring), format: None, rerror: None, werror: None, id: None, read_only: None, copy_on_ready: None, discard: None, detect_zeroes: None, bps: None, bps_rd: None, bps_wr: None, bps_max: None, bps_rd_max: None, bps_wr_max: None, iops: None, iops_rd: None, iops_wr: None, iops_max: None, iops_rd_max: None, iops_wr_max: None, iops_size: None, group: None }

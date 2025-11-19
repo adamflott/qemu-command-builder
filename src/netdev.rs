@@ -1,34 +1,38 @@
-use std::net::{Ipv4Addr, Ipv6Addr};
-use std::path::PathBuf;
-
 use crate::chardev::CharDev;
 use crate::common::OnOff;
+use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
+use crate::{Ipv4Net, Ipv6Net};
 use bon::Builder;
-use ipnet::{Ipv4Net, Ipv6Net};
+use proptest_derive::Arbitrary;
+use std::net::{Ipv4Addr, Ipv6Addr};
+use std::path::PathBuf;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+pub(crate) const ARG_NETDEV: &str = "-netdev";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SMB {
     dir: PathBuf,
     smbserver: Option<String>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum TcpUdp {
     #[default]
     Tcp,
     Udp,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum ScriptOrNot {
     Script(PathBuf),
     None,
 }
 
 impl ToCommand for ScriptOrNot {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         match self {
             ScriptOrNot::Script(path) => {
                 vec![path.display().to_string()]
@@ -39,7 +43,16 @@ impl ToCommand for ScriptOrNot {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for ScriptOrNot {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct HostForward {
     protocol: Option<TcpUdp>,
     hostaddr: Option<String>,
@@ -48,18 +61,18 @@ pub struct HostForward {
     guestport: u16,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum GuestForwardTarget {
     Device(CharDev),
     Cmd((String, Vec<String>)),
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct GuestForward {
     server: String,
     port: u16,
     target: GuestForwardTarget,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct User {
     id: String,
     ipv4: Option<OnOff>,
@@ -84,14 +97,14 @@ pub struct User {
 }
 
 impl ToCommand for User {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["user".to_string(), format!("id={}", self.id.to_string())];
 
         if let Some(ipv4) = &self.ipv4 {
             args.push(format!("ipv4={}", ipv4.to_arg()));
         }
         if let Some(net) = &self.net {
-            args.push(format!("net={}", net));
+            args.push(format!("net={}", net.ip));
         }
         if let Some(host) = &self.host {
             args.push(format!("host={}", host));
@@ -100,7 +113,7 @@ impl ToCommand for User {
             args.push(format!("ipv6={}", ipv6.to_arg()));
         }
         if let Some(ipv6_net) = &self.ipv6_net {
-            args.push(format!("ipv6-net={}", ipv6_net));
+            args.push(format!("ipv6-net={}", ipv6_net.ip));
         }
         if let Some(ipv6_host) = &self.ipv6_host {
             args.push(format!("ipv6-host={}", ipv6_host));
@@ -183,11 +196,19 @@ impl ToCommand for User {
                 args.push(subargs.join(":"));
             }
         }
-        vec![args.join(",")]
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+impl FromStr for User {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Tap {
     id: String,
     fd: Option<String>,
@@ -207,7 +228,7 @@ pub struct Tap {
 }
 
 impl ToCommand for Tap {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["tap".to_string(), format!("id={}", self.id.to_string())];
 
         if let Some(fd) = &self.fd {
@@ -253,10 +274,19 @@ impl ToCommand for Tap {
             args.push(format!("poll_us={}", poll_us));
         }
 
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for Tap {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Bridge {
     id: String,
     bridge: Option<String>,
@@ -264,30 +294,38 @@ pub struct Bridge {
 }
 
 impl ToCommand for Bridge {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["bridge".to_string(), format!("id={}", self.id)];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["bridge".to_string(), format!("id={}", self.id)];
 
         if let Some(br) = &self.bridge {
-            cmd.push(format!("bridge={}", br));
+            args.push(format!("bridge={}", br));
         }
         if let Some(helper) = &self.helper {
-            cmd.push(format!("helper={}", helper));
+            args.push(format!("helper={}", helper));
         }
-        cmd
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+impl FromStr for Bridge {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct HostAndPort {
     host: String,
     port: u16,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct HostAndMaybePort {
     host: String,
     port: Option<u16>,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SocketRegular {
     id: String,
     fd: Option<String>,
@@ -296,27 +334,36 @@ pub struct SocketRegular {
 }
 
 impl ToCommand for SocketRegular {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["socket".to_string(), format!("id={}", self.id)];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["socket".to_string(), format!("id={}", self.id)];
 
         if let Some(fd) = &self.fd {
-            cmd.push(format!("fd={}", fd));
+            args.push(format!("fd={}", fd));
         }
         if let Some(listen) = &self.listen {
             if let Some(port) = &listen.port {
-                cmd.push(format!("listen={}:{}", listen.host, port));
+                args.push(format!("listen={}:{}", listen.host, port));
             } else {
-                cmd.push(format!("listen={}", listen.host));
+                args.push(format!("listen={}", listen.host));
             }
             if let Some(connection) = &self.connection {
-                cmd.push(format!("{}:{}", connection.host, connection.port));
+                args.push(format!("{}:{}", connection.host, connection.port));
             }
         }
 
-        vec![cmd.join(",")]
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for SocketRegular {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SocketMulticast {
     id: String,
     fd: Option<String>,
@@ -325,22 +372,31 @@ pub struct SocketMulticast {
 }
 
 impl ToCommand for SocketMulticast {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["socket".to_string(), format!("id={}", self.id)];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["socket".to_string(), format!("id={}", self.id)];
 
         if let Some(fd) = &self.fd {
-            cmd.push(format!("fd={}", fd));
+            args.push(format!("fd={}", fd));
         }
         if let Some(mcast) = &self.mcast {
-            cmd.push(format!("mcast={}:{}", mcast.host, mcast.port));
+            args.push(format!("mcast={}:{}", mcast.host, mcast.port));
         }
         if let Some(localaddr) = &self.localaddr {
-            cmd.push(format!("localaddr={}", localaddr));
+            args.push(format!("localaddr={}", localaddr));
         }
-        vec![cmd.join(",")]
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for SocketMulticast {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SocketUdpTunnel {
     id: String,
     fd: Option<String>,
@@ -349,23 +405,31 @@ pub struct SocketUdpTunnel {
 }
 
 impl ToCommand for SocketUdpTunnel {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["socket".to_string(), format!("id={}", self.id)];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["socket".to_string(), format!("id={}", self.id)];
 
         if let Some(fd) = &self.fd {
-            cmd.push(format!("fd={}", fd));
+            args.push(format!("fd={}", fd));
         }
         if let Some(udp) = &self.udp {
-            cmd.push(format!("udp={}:{}", udp.host, udp.port));
+            args.push(format!("udp={}:{}", udp.host, udp.port));
         }
         if let Some(localaddr) = &self.localaddr {
-            cmd.push(format!("localaddr={}:{}", localaddr.host, localaddr.port));
+            args.push(format!("localaddr={}:{}", localaddr.host, localaddr.port));
         }
-        vec![cmd.join(",")]
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+impl FromStr for SocketUdpTunnel {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Socket {
     SocketRegular(SocketRegular),
     Multicast(SocketMulticast),
@@ -373,15 +437,24 @@ pub enum Socket {
 }
 
 impl ToCommand for Socket {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         match self {
-            Socket::SocketRegular(s) => s.to_command(),
-            Socket::Multicast(s) => s.to_command(),
-            Socket::UDPTunnel(s) => s.to_command(),
+            Socket::SocketRegular(s) => s.to_args(),
+            Socket::Multicast(s) => s.to_args(),
+            Socket::UDPTunnel(s) => s.to_args(),
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for Socket {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct StreamOverTcp {
     id: String,
     server: Option<OnOff>,
@@ -397,40 +470,49 @@ pub struct StreamOverTcp {
 }
 
 impl ToCommand for StreamOverTcp {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["stream".to_string(), format!("id={}", self.id)];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["stream".to_string(), format!("id={}", self.id)];
 
         if let Some(server) = &self.server {
-            cmd.push(format!("server={}", server.to_arg()));
+            args.push(format!("server={}", server.to_arg()));
         }
-        cmd.push("add.type=inet".to_string());
-        cmd.push(format!("addr.host={}", self.addr_host));
-        cmd.push(format!("addr.port={}", self.addr_port));
+        args.push("add.type=inet".to_string());
+        args.push(format!("addr.host={}", self.addr_host));
+        args.push(format!("addr.port={}", self.addr_port));
         if let Some(to) = &self.to {
-            cmd.push(format!("to={}", to));
+            args.push(format!("to={}", to));
         }
         if let Some(numeric) = &self.numeric {
-            cmd.push(format!("numeric={}", numeric.to_arg()));
+            args.push(format!("numeric={}", numeric.to_arg()));
         }
         if let Some(keep_alive) = &self.keep_alive {
-            cmd.push(format!("keep-alive={}", keep_alive.to_arg()));
+            args.push(format!("keep-alive={}", keep_alive.to_arg()));
         }
         if let Some(mptcp) = &self.mptcp {
-            cmd.push(format!("mptcp={}", mptcp.to_arg()));
+            args.push(format!("mptcp={}", mptcp.to_arg()));
         }
         if let Some(ipv4) = &self.addr_ipv4 {
-            cmd.push(format!("addr.ipv4={}", ipv4.to_arg()));
+            args.push(format!("addr.ipv4={}", ipv4.to_arg()));
         }
         if let Some(ipv6) = &self.addr_ipv6 {
-            cmd.push(format!("addr.ipv6={}", ipv6.to_arg()));
+            args.push(format!("addr.ipv6={}", ipv6.to_arg()));
         }
         if let Some(reconnect_ms) = self.reconnect_ms {
-            cmd.push(format!("reconnect-ms={}", reconnect_ms));
+            args.push(format!("reconnect-ms={}", reconnect_ms));
         }
-        vec![cmd.join(",")]
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for StreamOverTcp {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct StreamOverUds {
     id: String,
     server: Option<OnOff>,
@@ -441,27 +523,36 @@ pub struct StreamOverUds {
 }
 
 impl ToCommand for StreamOverUds {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["stream".to_string(), format!("id={}", self.id)];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["stream".to_string(), format!("id={}", self.id)];
 
         if let Some(server) = &self.server {
-            cmd.push(format!("server={}", server.to_arg()));
+            args.push(format!("server={}", server.to_arg()));
         }
-        cmd.push("add.type=unix".to_string());
-        cmd.push(format!("addr.path={}", self.addr_path));
+        args.push("add.type=unix".to_string());
+        args.push(format!("addr.path={}", self.addr_path));
         if let Some(abstract_arg) = &self.abstract_arg {
-            cmd.push(format!("abstract={}", abstract_arg.to_arg()));
+            args.push(format!("abstract={}", abstract_arg.to_arg()));
         }
         if let Some(tight) = &self.tight {
-            cmd.push(format!("tight={}", tight.to_arg()));
+            args.push(format!("tight={}", tight.to_arg()));
         }
         if let Some(reconnect_ms) = self.reconnect_ms {
-            cmd.push(format!("reconnect-ms={}", reconnect_ms));
+            args.push(format!("reconnect-ms={}", reconnect_ms));
         }
-        vec![cmd.join(",")]
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for StreamOverUds {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct StreamOverFd {
     id: String,
     server: Option<OnOff>,
@@ -470,21 +561,30 @@ pub struct StreamOverFd {
 }
 
 impl ToCommand for StreamOverFd {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["stream".to_string(), format!("id={}", self.id)];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["stream".to_string(), format!("id={}", self.id)];
 
         if let Some(server) = &self.server {
-            cmd.push(format!("server={}", server.to_arg()));
+            args.push(format!("server={}", server.to_arg()));
         }
-        cmd.push("add.type=fd".to_string());
-        cmd.push(format!("addr.str={}", self.addr_str));
+        args.push("add.type=fd".to_string());
+        args.push(format!("addr.str={}", self.addr_str));
         if let Some(reconnect_ms) = self.reconnect_ms {
-            cmd.push(format!("reconnect-ms={}", reconnect_ms));
+            args.push(format!("reconnect-ms={}", reconnect_ms));
         }
-        vec![cmd.join(",")]
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+
+impl FromStr for StreamOverFd {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Stream {
     StreamOverTcp(StreamOverTcp),
     StreamOverUds(StreamOverUds),
@@ -492,15 +592,24 @@ pub enum Stream {
 }
 
 impl ToCommand for Stream {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         match self {
-            Stream::StreamOverTcp(s) => s.to_command(),
-            Stream::StreamOverUds(s) => s.to_command(),
-            Stream::StreamOverFd(s) => s.to_command(),
+            Stream::StreamOverTcp(s) => s.to_args(),
+            Stream::StreamOverUds(s) => s.to_args(),
+            Stream::StreamOverFd(s) => s.to_args(),
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for Stream {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct DgramMulticast {
     id: String,
     remote_host: String,
@@ -509,7 +618,7 @@ pub struct DgramMulticast {
 }
 
 impl ToCommand for DgramMulticast {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![
             "dgram".to_string(),
             format!("id={}", self.id.to_string()),
@@ -522,10 +631,19 @@ impl ToCommand for DgramMulticast {
             args.push("local.type=inet".to_string());
             args.push(format!("local.host={}", local_host));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for DgramMulticast {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct DgramMulticastUdpFd {
     id: String,
     remote_host: String,
@@ -534,7 +652,7 @@ pub struct DgramMulticastUdpFd {
 }
 
 impl ToCommand for DgramMulticastUdpFd {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![
             "dgram".to_string(),
             format!("id={}", self.id.to_string()),
@@ -547,10 +665,19 @@ impl ToCommand for DgramMulticastUdpFd {
             args.push("local.type=fd".to_string());
             args.push(format!("local.str={}", local_str));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for DgramMulticastUdpFd {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct DgramSocket {
     id: String,
     local_host: String,
@@ -560,7 +687,7 @@ pub struct DgramSocket {
 }
 
 impl ToCommand for DgramSocket {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![
             "dgram".to_string(),
             format!("id={}", self.id.to_string()),
@@ -576,11 +703,19 @@ impl ToCommand for DgramSocket {
         if let Some(remote_port) = &self.remote_port {
             args.push(format!("remote.port={}", remote_port));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+impl FromStr for DgramSocket {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct DgramUds {
     id: String,
     local_path: PathBuf,
@@ -588,7 +723,7 @@ pub struct DgramUds {
 }
 
 impl ToCommand for DgramUds {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![
             "dgram".to_string(),
             format!("id={}", self.id.to_string()),
@@ -599,26 +734,47 @@ impl ToCommand for DgramUds {
             args.push("remote.type=unix".to_string());
             args.push(format!("remote.path={}", remote.display()));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for DgramUds {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct DgramFd {
     id: String,
     local_str: String,
 }
 
 impl ToCommand for DgramFd {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         vec![
-            "dgram".to_string(),
-            format!("id={}", self.id.to_string()),
-            "local.type=fd".to_string(),
-            format!("local.str={}", self.local_str),
+            vec![
+                "dgram".to_string(),
+                format!("id={}", self.id.to_string()),
+                "local.type=fd".to_string(),
+                format!("local.str={}", self.local_str),
+            ]
+            .join(DELIM_COMMA),
         ]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+
+impl FromStr for DgramFd {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Dgram {
     DgramMulticast(DgramMulticast),
     DgramMulticastUdpFd(DgramMulticastUdpFd),
@@ -628,17 +784,26 @@ pub enum Dgram {
 }
 
 impl ToCommand for Dgram {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         match self {
-            Dgram::DgramMulticast(args) => args.to_command(),
-            Dgram::DgramMulticastUdpFd(args) => args.to_command(),
-            Dgram::DgramSocket(args) => args.to_command(),
-            Dgram::DgramUds(args) => args.to_command(),
-            Dgram::DgramFd(args) => args.to_command(),
+            Dgram::DgramMulticast(args) => args.to_args(),
+            Dgram::DgramMulticastUdpFd(args) => args.to_args(),
+            Dgram::DgramSocket(args) => args.to_args(),
+            Dgram::DgramUds(args) => args.to_args(),
+            Dgram::DgramFd(args) => args.to_args(),
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for Dgram {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Vde {
     id: String,
     sock: Option<PathBuf>,
@@ -648,7 +813,7 @@ pub struct Vde {
 }
 
 impl ToCommand for Vde {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["vde".to_string(), format!("id={}", self.id.to_string())];
 
         if let Some(sock) = &self.sock {
@@ -663,10 +828,19 @@ impl ToCommand for Vde {
         if let Some(mode) = &self.mode {
             args.push(format!("mode={}", mode));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for Vde {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct NetMap {
     id: String,
     ifname: String,
@@ -674,16 +848,25 @@ pub struct NetMap {
 }
 
 impl ToCommand for NetMap {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["netmap".to_string(), format!("id={}", self.id.to_string())];
         args.push(format!("ifname={}", self.ifname));
         if let Some(devname) = &self.devname {
             args.push(format!("devname={}", devname));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+
+impl FromStr for NetMap {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NativeSkb {
     Native,
     Skb,
@@ -697,7 +880,7 @@ impl ToArg for NativeSkb {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct AfXdp {
     id: String,
     ifname: String,
@@ -710,12 +893,8 @@ pub struct AfXdp {
 }
 
 impl ToCommand for AfXdp {
-    fn to_command(&self) -> Vec<String> {
-        let mut args = vec![
-            "af-xdp".to_string(),
-            format!("id={}", self.id.to_string()),
-            format!("ifname={}", self.ifname),
-        ];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["af-xdp".to_string(), format!("id={}", self.id.to_string()), format!("ifname={}", self.ifname)];
 
         if let Some(mode) = &self.mode {
             args.push(format!("mode={}", mode.to_arg()));
@@ -735,10 +914,19 @@ impl ToCommand for AfXdp {
         if let Some(sock_fds) = &self.sock_fds {
             args.push(format!("sock-fds={}", sock_fds.join(":")));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for AfXdp {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VhostUser {
     id: String,
     chardev: String,
@@ -746,20 +934,25 @@ pub struct VhostUser {
 }
 
 impl ToCommand for VhostUser {
-    fn to_command(&self) -> Vec<String> {
-        let mut args = vec![
-            "vhost-user".to_string(),
-            format!("id={}", self.id.to_string()),
-            format!("chardev={}", self.chardev),
-        ];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["vhost-user".to_string(), format!("id={}", self.id.to_string()), format!("chardev={}", self.chardev)];
 
         if let Some(vhostforce) = &self.vhostforce {
             args.push(format!("vhostforce={}", vhostforce.to_arg()));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for VhostUser {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VhostVdpa {
     id: String,
     vhostdev: Option<PathBuf>,
@@ -767,21 +960,27 @@ pub struct VhostVdpa {
 }
 
 impl ToCommand for VhostVdpa {
-    fn to_command(&self) -> Vec<String> {
-        let mut args = vec![
-            "vhost-vdpa".to_string(),
-            format!("id={}", self.id.to_string()),
-        ];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["vhost-vdpa".to_string(), format!("id={}", self.id.to_string())];
         if let Some(vhostdev) = &self.vhostdev {
             args.push(format!("vhostdev={}", vhostdev.to_str().unwrap()));
         }
         if let Some(vhostfd) = &self.vhostfd {
             args.push(format!("vhostfd={}", vhostfd));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for VhostVdpa {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VmnetHost {
     id: String,
     isolated: Option<OnOff>,
@@ -792,11 +991,8 @@ pub struct VmnetHost {
 }
 
 impl ToCommand for VmnetHost {
-    fn to_command(&self) -> Vec<String> {
-        let mut args = vec![
-            "vmnet-host".to_string(),
-            format!("id={}", self.id.to_string()),
-        ];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["vmnet-host".to_string(), format!("id={}", self.id.to_string())];
 
         if let Some(isolated) = &self.isolated {
             args.push(format!("isolated={}", isolated.to_arg()));
@@ -813,11 +1009,19 @@ impl ToCommand for VmnetHost {
         if let Some(subnet_mask) = &self.subnet_mask {
             args.push(format!("subnet-mask={}", subnet_mask));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+impl FromStr for VmnetHost {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VmnetShared {
     id: String,
     isolated: Option<OnOff>,
@@ -828,11 +1032,8 @@ pub struct VmnetShared {
 }
 
 impl ToCommand for VmnetShared {
-    fn to_command(&self) -> Vec<String> {
-        let mut args = vec![
-            "vmnet-shared".to_string(),
-            format!("id={}", self.id.to_string()),
-        ];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["vmnet-shared".to_string(), format!("id={}", self.id.to_string())];
 
         if let Some(isolated) = &self.isolated {
             args.push(format!("isolated={}", isolated.to_arg()));
@@ -849,10 +1050,19 @@ impl ToCommand for VmnetShared {
         if let Some(subnet_mask) = &self.subnet_mask {
             args.push(format!("subnet-mask={}", subnet_mask));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for VmnetShared {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VmnetBridged {
     id: String,
     ifname: String,
@@ -860,20 +1070,25 @@ pub struct VmnetBridged {
 }
 
 impl ToCommand for VmnetBridged {
-    fn to_command(&self) -> Vec<String> {
-        let mut args = vec![
-            "vmnet-bridged".to_string(),
-            format!("id={}", self.id.to_string()),
-            format!("ifname={}", self.ifname),
-        ];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["vmnet-bridged".to_string(), format!("id={}", self.id.to_string()), format!("ifname={}", self.ifname)];
 
         if let Some(isolated) = &self.isolated {
             args.push(format!("isolated={}", isolated.to_arg()));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+
+impl FromStr for VmnetBridged {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Hubport {
     id: String,
     hubid: usize,
@@ -881,20 +1096,25 @@ pub struct Hubport {
 }
 
 impl ToCommand for Hubport {
-    fn to_command(&self) -> Vec<String> {
-        let mut args = vec![
-            "hubport".to_string(),
-            format!("id={}", self.id.to_string()),
-            format!("hubid={}", self.hubid),
-        ];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["hubport".to_string(), format!("id={}", self.id.to_string()), format!("hubid={}", self.hubid)];
 
         if let Some(netdev) = &self.netdev {
             args.push(format!("netdev={}", netdev));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+
+impl FromStr for Hubport {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NetDev {
     User(User),
     // TODO L2tpv3,
@@ -915,62 +1135,35 @@ pub enum NetDev {
 }
 
 impl ToCommand for NetDev {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-netdev".to_string());
-
-        let mut args: Vec<String> = vec![];
-
+    fn command(&self) -> String {
+        ARG_NETDEV.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         match self {
-            NetDev::User(user) => {
-                args.append(&mut user.to_command());
-            }
+            NetDev::User(user) => user.to_args(),
             //NetDev::L2tpv3 => {}
-            NetDev::Tap(tap) => {
-                args.append(&mut tap.to_command());
-            }
-            NetDev::Bridge(bridge) => {
-                args.append(&mut bridge.to_command());
-            }
-            NetDev::Socket(socket) => {
-                args.append(&mut socket.to_command());
-            }
-            NetDev::Stream(stream) => {
-                args.append(&mut stream.to_command());
-            }
-            NetDev::Dgram(dgram) => {
-                args.append(&mut dgram.to_command());
-            }
-            NetDev::Vde(vde) => {
-                args.append(&mut vde.to_command());
-            }
-            NetDev::Netmap(netmap) => {
-                args.append(&mut netmap.to_command());
-            }
-            NetDev::AfXdp(af_xdp) => {
-                args.append(&mut af_xdp.to_command());
-            }
-            NetDev::VhostUser(vhost_user) => {
-                args.append(&mut vhost_user.to_command());
-            }
-            NetDev::VhostVdpa(vhost_vdpa) => {
-                args.append(&mut vhost_vdpa.to_command());
-            }
-            NetDev::VmnetHost(vmnet_host) => {
-                args.append(&mut vmnet_host.to_command());
-            }
-            NetDev::VmnetShared(vmnet_shared) => {
-                args.append(&mut vmnet_shared.to_command());
-            }
-            NetDev::VmnetBridged(vmnet_bridged) => {
-                args.append(&mut vmnet_bridged.to_command());
-            }
-            NetDev::Hubport(hubport) => {
-                args.append(&mut hubport.to_command());
-            }
+            NetDev::Tap(tap) => tap.to_args(),
+            NetDev::Bridge(bridge) => bridge.to_args(),
+            NetDev::Socket(socket) => socket.to_args(),
+            NetDev::Stream(stream) => stream.to_args(),
+            NetDev::Dgram(dgram) => dgram.to_args(),
+            NetDev::Vde(vde) => vde.to_args(),
+            NetDev::Netmap(netmap) => netmap.to_args(),
+            NetDev::AfXdp(af_xdp) => af_xdp.to_args(),
+            NetDev::VhostUser(vhost_user) => vhost_user.to_args(),
+            NetDev::VhostVdpa(vhost_vdpa) => vhost_vdpa.to_args(),
+            NetDev::VmnetHost(vmnet_host) => vmnet_host.to_args(),
+            NetDev::VmnetShared(vmnet_shared) => vmnet_shared.to_args(),
+            NetDev::VmnetBridged(vmnet_bridged) => vmnet_bridged.to_args(),
+            NetDev::Hubport(hubport) => hubport.to_args(),
         }
-        cmd.push(args.join(","));
-        cmd
+    }
+}
+
+impl FromStr for NetDev {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

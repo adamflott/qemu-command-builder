@@ -1,6 +1,26 @@
-use bon::Builder;
-
+use crate::parsers::DELIM_COMMA;
+use crate::shell_string::ShellStringError;
 use crate::to_command::ToCommand;
+use crate::{pco, qao};
+use bon::Builder;
+use proptest_derive::Arbitrary;
+use std::str::FromStr;
+use winnow::ascii::{dec_uint, digit1};
+use winnow::combinator::opt;
+use winnow::token::literal;
+use winnow::{ModalResult, Parser};
+
+pub(crate) const ARG_SMP: &str = "-smp";
+
+const KEY_MAXCPUS: &str = "maxcpus=";
+const KEY_DRAWERS: &str = "drawers=";
+const KEY_BOOKS: &str = "books=";
+const KEY_SOCKETS: &str = "sockets=";
+const KEY_DIES: &str = "dies=";
+const KEY_CLUSTERS: &str = "clusters=";
+const KEY_MODULES: &str = "modules=";
+const KEY_CORES: &str = "cores=";
+const KEY_THREADS: &str = "threads=";
 
 /// Simulate a SMP system with ``n`` CPUs initially present on
 /// the machine type board. On boards supporting CPU hotplug, the optional
@@ -34,7 +54,7 @@ use crate::to_command::ToCommand;
 /// core) for a machine that only supports sockets/cores/threads.
 /// Some members of the option can be omitted but their values will be
 /// automatically computed:
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SMP {
     /// set the number of initial CPUs to 'n' [default=1]
     cpus: u64,
@@ -82,42 +102,65 @@ impl SMP {
 }
 
 impl ToCommand for SMP {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-smp".to_string());
-
-        let mut arg = vec![self.cpus.to_string()];
-        if let Some(maxcpus) = self.maxcpus {
-            arg.push(format!("maxcpus={}", maxcpus));
-        }
-        if let Some(drawers) = self.drawers {
-            arg.push(format!("drawers={}", drawers));
-        }
-        if let Some(books) = self.books {
-            arg.push(format!("books={}", books));
-        }
-        if let Some(sockets) = self.sockets {
-            arg.push(format!("sockets={}", sockets));
-        }
-        if let Some(dies) = self.dies {
-            arg.push(format!("dies={}", dies));
-        }
-        if let Some(clusters) = self.clusters {
-            arg.push(format!("clusters={}", clusters));
-        }
-        if let Some(modules) = self.modules {
-            arg.push(format!("modules={}", modules));
-        }
-        if let Some(cores) = self.cores {
-            arg.push(format!("cores={}", cores));
-        }
-        if let Some(threads) = self.threads {
-            arg.push(format!("threads={}", threads));
-        }
-
-        cmd.push(arg.join(","));
-
-        cmd
+    fn command(&self) -> String {
+        ARG_SMP.to_string()
     }
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec![self.cpus.to_string()];
+
+        qao!(self.maxcpus, args, KEY_MAXCPUS);
+        qao!(self.drawers, args, KEY_DRAWERS);
+        qao!(self.books, args, KEY_BOOKS);
+        qao!(self.sockets, args, KEY_SOCKETS);
+        qao!(self.dies, args, KEY_DIES);
+        qao!(self.clusters, args, KEY_CLUSTERS);
+        qao!(self.modules, args, KEY_MODULES);
+        qao!(self.cores, args, KEY_CORES);
+        qao!(self.threads, args, KEY_THREADS);
+
+        vec![args.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for SMP {
+    type Err = ShellStringError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        smp.parse(s).map_err(|e| ShellStringError::from_parse(e))
+    }
+}
+
+pco!(maxcpus, digit1, usize, KEY_MAXCPUS);
+pco!(drawers, digit1, usize, KEY_DRAWERS);
+pco!(books, digit1, usize, KEY_BOOKS);
+pco!(sockets, digit1, usize, KEY_SOCKETS);
+pco!(dies, digit1, usize, KEY_DIES);
+pco!(clusters, digit1, usize, KEY_CLUSTERS);
+pco!(modules, digit1, usize, KEY_MODULES);
+pco!(cores, digit1, usize, KEY_CORES);
+pco!(threads, digit1, usize, KEY_THREADS);
+
+fn smp(s: &mut &str) -> ModalResult<SMP> {
+    let cpus = dec_uint.parse_next(s)?;
+    let maxcpus = opt(maxcpus).parse_next(s)?;
+    let drawers = opt(drawers).parse_next(s)?;
+    let books = opt(books).parse_next(s)?;
+    let sockets = opt(sockets).parse_next(s)?;
+    let dies = opt(dies).parse_next(s)?;
+    let clusters = opt(clusters).parse_next(s)?;
+    let modules = opt(modules).parse_next(s)?;
+    let cores = opt(cores).parse_next(s)?;
+    let threads = opt(threads).parse_next(s)?;
+    Ok(SMP {
+        cpus,
+        maxcpus,
+        drawers,
+        books,
+        sockets,
+        dies,
+        clusters,
+        modules,
+        cores,
+        threads,
+    })
 }

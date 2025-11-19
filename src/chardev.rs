@@ -1,16 +1,21 @@
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use bon::Builder;
+use proptest_derive::Arbitrary;
 
 use crate::common::OnOff;
+use crate::parsers::DELIM_COMMA;
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+pub(crate) const ARG_CHARDEV: &str = "-chardev";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharNull {
     id: String,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharSocketTcp {
     id: String,
     host: Option<String>,
@@ -31,7 +36,7 @@ pub struct CharSocketTcp {
     tls_authz: Option<String>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharSocketUds {
     #[builder(into)]
     id: String,
@@ -48,13 +53,13 @@ pub struct CharSocketUds {
     tight: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum CharSocket {
     Tcp(CharSocketTcp),
     Uds(CharSocketUds),
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharUdp {
     id: String,
     host: Option<String>,
@@ -68,7 +73,7 @@ pub struct CharUdp {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharMsMouse {
     id: String,
     mux: Option<OnOff>,
@@ -76,12 +81,12 @@ pub struct CharMsMouse {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharHub {
     id: String,
     chardevs: Option<Vec<(usize, String)>>,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharVc {
     id: String,
     width: Option<usize>,
@@ -93,14 +98,14 @@ pub struct CharVc {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharRingBuf {
     id: String,
     size: Option<usize>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharFile {
     id: String,
     path: PathBuf,
@@ -110,7 +115,7 @@ pub struct CharFile {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharPipe {
     id: String,
     mux: Option<OnOff>,
@@ -118,7 +123,7 @@ pub struct CharPipe {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharWin32Console {
     id: String,
     mux: Option<OnOff>,
@@ -126,7 +131,7 @@ pub struct CharWin32Console {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharWin32Serial {
     id: String,
     path: PathBuf,
@@ -135,7 +140,7 @@ pub struct CharWin32Serial {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharPty {
     id: String,
     mux: Option<OnOff>,
@@ -143,7 +148,7 @@ pub struct CharPty {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharStdio {
     id: String,
     mux: Option<OnOff>,
@@ -152,14 +157,14 @@ pub struct CharStdio {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharBraille {
     id: String,
     mux: Option<OnOff>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharSerial {
     id: String,
     path: PathBuf,
@@ -167,7 +172,7 @@ pub struct CharSerial {
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharParallel {
     id: String,
     path: PathBuf,
@@ -176,7 +181,7 @@ pub struct CharParallel {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharSpice {
     id: String,
     name: String,
@@ -185,7 +190,7 @@ pub struct CharSpice {
     logappend: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum CharDev {
     Null(CharNull),
     Socket(CharSocket),
@@ -234,10 +239,13 @@ impl CharDev {
         }
     }
 }
-impl ToCommand for CharDev {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["-chardev".to_string()];
 
+impl ToCommand for CharDev {
+    fn command(&self) -> String {
+        ARG_CHARDEV.to_string()
+    }
+
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
         match self {
             CharDev::Null(null) => {
@@ -579,8 +587,14 @@ impl ToCommand for CharDev {
             }
         }
 
-        cmd.push(args.join(","));
+        vec![args.join(DELIM_COMMA)]
+    }
+}
 
-        cmd
+impl FromStr for CharDev {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

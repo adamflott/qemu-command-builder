@@ -12,6 +12,19 @@ homepage = "https://github.com/adamflott/qemu-command-builder"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4.41"
+chrono = {  version = "0.4.41", features = [ "arbitrary"] }
 bon = "3.7.1"
 ipnet = "2.11.0"
+winnow = "0.7.13"
+rand = "0.10.0-rc.5"
+newtype-uuid = { version = "*", features = ["proptest1", "v4"]}
+proptest = "1.9.0"
+proptest-arbitrary-interop = "*"
+shellish_parse = "*"
+annotate-snippets = "0.12.9"
+camino = { version = "1.2.1", features = ["proptest1"] }
+proptest-derive = "*"
+uuid = "1.18.1"
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"

@@ -1,27 +1,37 @@
-use std::path::PathBuf;
-
 use bon::Builder;
+use proptest_derive::Arbitrary;
+use std::path::PathBuf;
+use std::str::FromStr;
 
 use crate::common::OnOff;
+use crate::parsers::DELIM_COMMA;
 use crate::to_command::{ToArg, ToCommand};
 
+pub(crate) const ARG_SMBIOS: &str = "-smbios";
+
 /// Load SMBIOS entry from binary file.
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosFile {
     path: PathBuf,
 }
 
 impl ToCommand for SmbiosFile {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
-        cmd.push(format!("file={}", self.path.display()));
-        cmd
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec![];
+        args.push(format!("file={}", self.path.display()));
+        args
     }
 }
 
+impl FromStr for SmbiosFile {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
 /// Specify SMBIOS type 0 fields
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType0 {
     vendor: Option<String>,
     version: Option<String>,
@@ -31,9 +41,7 @@ pub struct SmbiosType0 {
 }
 
 impl ToCommand for SmbiosType0 {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["type=0".to_string()];
         if let Some(vendor) = &self.vendor {
             args.push(format!("vendor={}", vendor));
@@ -50,13 +58,19 @@ impl ToCommand for SmbiosType0 {
         if let Some(uefi) = &self.uefi {
             args.push(format!("uefi={}", uefi.to_arg()));
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
+impl FromStr for SmbiosType0 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
 /// Specify SMBIOS type 1 fields
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType1 {
     manufacturer: Option<String>,
     product: Option<String>,
@@ -68,9 +82,7 @@ pub struct SmbiosType1 {
 }
 
 impl ToCommand for SmbiosType1 {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["type=1".to_string()];
         if let Some(manufacturer) = &self.manufacturer {
             args.push(format!("manufacturer={}", manufacturer));
@@ -93,13 +105,20 @@ impl ToCommand for SmbiosType1 {
         if let Some(family) = &self.family {
             args.push(format!("family={}", family));
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for SmbiosType1 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }
 
 /// Specify SMBIOS type 2 fields
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType2 {
     manufacturer: Option<String>,
     product: Option<String>,
@@ -110,9 +129,7 @@ pub struct SmbiosType2 {
 }
 
 impl ToCommand for SmbiosType2 {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["type=2".to_string()];
         if let Some(manufacturer) = &self.manufacturer {
             args.push(format!("manufacturer={}", manufacturer));
@@ -132,13 +149,20 @@ impl ToCommand for SmbiosType2 {
         if let Some(location) = &self.location {
             args.push(format!("location={}", location));
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for SmbiosType2 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }
 
 /// Specify SMBIOS type 3 fields
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType3 {
     manufacturer: Option<String>,
     version: Option<String>,
@@ -148,9 +172,7 @@ pub struct SmbiosType3 {
 }
 
 impl ToCommand for SmbiosType3 {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["type=3".to_string()];
         if let Some(manufacturer) = &self.manufacturer {
             args.push(format!("manufacturer={}", manufacturer));
@@ -167,12 +189,20 @@ impl ToCommand for SmbiosType3 {
         if let Some(sku) = &self.sku {
             args.push(format!("sku={}", sku));
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
     }
 }
+
+impl FromStr for SmbiosType3 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
 /// Specify SMBIOS type 4 fields
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType4 {
     sock_pfx: Option<String>,
     manufacturer: Option<String>,
@@ -187,9 +217,7 @@ pub struct SmbiosType4 {
 }
 
 impl ToCommand for SmbiosType4 {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["type=4".to_string()];
         if let Some(sock_pfx) = &self.sock_pfx {
             args.push(format!("sock_pfx={}", sock_pfx));
@@ -221,13 +249,20 @@ impl ToCommand for SmbiosType4 {
         if let Some(processor_id) = &self.processor_id {
             args.push(format!("processor-id={}", processor_id));
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for SmbiosType4 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }
 
 /// Specify SMBIOS type 8 fields
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType8 {
     external_reference: Option<String>,
     internal_reference: Option<String>,
@@ -236,9 +271,7 @@ pub struct SmbiosType8 {
 }
 
 impl ToCommand for SmbiosType8 {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["type=8".to_string()];
         if let Some(external_reference) = &self.external_reference {
             args.push(format!("external_reference={}", external_reference));
@@ -252,22 +285,27 @@ impl ToCommand for SmbiosType8 {
         if let Some(port_type) = &self.port_type {
             args.push(format!("port_type={}", port_type));
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for SmbiosType8 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }
 
 /// Specify SMBIOS type 11 fields
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType11 {
     value: Option<String>,
     path: Option<String>,
 }
 
 impl ToCommand for SmbiosType11 {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["type=11".to_string()];
         if let Some(value) = &self.value {
             args.push(format!("value={}", value));
@@ -275,13 +313,20 @@ impl ToCommand for SmbiosType11 {
         if let Some(path) = &self.path {
             args.push(format!("path={}", path));
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for SmbiosType11 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }
 
 /// Specify SMBIOS type 17 fields
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType17 {
     loc_pfx: Option<String>,
     bank: Option<String>,
@@ -293,9 +338,7 @@ pub struct SmbiosType17 {
 }
 
 impl ToCommand for SmbiosType17 {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["type=17".to_string()];
 
         if let Some(loc_pfx) = &self.loc_pfx {
@@ -319,13 +362,20 @@ impl ToCommand for SmbiosType17 {
         if let Some(speed) = &self.speed {
             args.push(format!("speed={}", speed));
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for SmbiosType17 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }
 
 /// Specify SMBIOS type 41 fields
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType41 {
     designation: Option<String>,
     kind: Option<String>,
@@ -334,9 +384,7 @@ pub struct SmbiosType41 {
 }
 
 impl ToCommand for SmbiosType41 {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-smbios".to_string());
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec!["type=41".to_string()];
 
         if let Some(designation) = &self.designation {
@@ -351,12 +399,19 @@ impl ToCommand for SmbiosType41 {
         if let Some(pcidev) = &self.pcidev {
             args.push(format!("pcidev={}", pcidev));
         }
-        cmd.push(args.join(","));
-        cmd
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+impl FromStr for SmbiosType41 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Smbios {
     File(SmbiosFile),
     Type0(SmbiosType0),
@@ -370,37 +425,28 @@ pub enum Smbios {
 }
 
 impl ToCommand for Smbios {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
+    fn command(&self) -> String {
+        ARG_SMBIOS.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         match self {
-            Smbios::File(file) => {
-                cmd.append(file.to_command().as_mut());
-            }
-            Smbios::Type0(type0) => {
-                cmd.append(type0.to_command().as_mut());
-            }
-            Smbios::Type1(type1) => {
-                cmd.append(type1.to_command().as_mut());
-            }
-            Smbios::Type2(type2) => {
-                cmd.append(type2.to_command().as_mut());
-            }
-            Smbios::Type3(type3) => {
-                cmd.append(type3.to_command().as_mut());
-            }
-            Smbios::Type4(type4) => {
-                cmd.append(type4.to_command().as_mut());
-            }
-            Smbios::Type8(type8) => {
-                cmd.append(type8.to_command().as_mut());
-            }
-            Smbios::Type11(type11) => {
-                cmd.append(type11.to_command().as_mut());
-            }
-            Smbios::Type41(type41) => {
-                cmd.append(type41.to_command().as_mut());
-            }
+            Smbios::File(file) => file.to_args(),
+            Smbios::Type0(type0) => type0.to_args(),
+            Smbios::Type1(type1) => type1.to_args(),
+            Smbios::Type2(type2) => type2.to_args(),
+            Smbios::Type3(type3) => type3.to_args(),
+            Smbios::Type4(type4) => type4.to_args(),
+            Smbios::Type8(type8) => type8.to_args(),
+            Smbios::Type11(type11) => type11.to_args(),
+            Smbios::Type41(type41) => type41.to_args(),
         }
-        cmd
+    }
+}
+
+impl FromStr for Smbios {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

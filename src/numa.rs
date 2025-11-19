@@ -1,8 +1,12 @@
 use bon::Builder;
+use proptest_derive::Arbitrary;
+use std::str::FromStr;
 
 use crate::to_command::ToCommand;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+pub(crate) const ARG_NUMA: &str = "-numa";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct NUMANodeMem {
     mem_size: Option<usize>,
     cpu_first: Option<usize>,
@@ -11,7 +15,7 @@ pub struct NUMANodeMem {
     initiator: Option<usize>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct NUMANodeMemDev {
     mem_id: Option<usize>,
     cpu_first: Option<usize>,
@@ -19,14 +23,14 @@ pub struct NUMANodeMemDev {
     node_id: Option<usize>,
     initiator: Option<usize>,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct NUMADist {
     src: usize,
     dst: usize,
     val: usize,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct NUMACPU {
     node_id: usize,
     socket_id: Option<usize>,
@@ -34,21 +38,21 @@ pub struct NUMACPU {
     thread_id: Option<usize>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NUMAHierarchy {
     Memory,
     FirstLevel,
     SecondLevel,
     ThirdLevel,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NUMADataType {
     AccessLatency,
     ReadLatency,
     WriteLatency,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct NUMAHMATLb {
     initiator: usize,
     target: usize,
@@ -58,20 +62,20 @@ pub struct NUMAHMATLb {
     bandwidth: Option<usize>, // TODO add value the possible value and units are NUM[M|G|T] mean that the bandwidth value are NUM byte per second (or MB/s, GB/s or TB/s depending on used suffix). Note that if latency or bandwidth value is 0, means the corresponding latency or bandwidth information is not provided.
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum HMATCacheAssociativity {
     None,
     Direct,
     Complex,
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum HMATCachePolicy {
     None,
     WriteBack,
     WriteThrough,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct NUMAHMATCache {
     node_id: usize,
     size: usize,
@@ -81,7 +85,7 @@ pub struct NUMAHMATCache {
     line: Option<usize>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NUMA {
     NodeMem(NUMANodeMem),
     NodeMemDev(NUMANodeMemDev),
@@ -92,9 +96,10 @@ pub enum NUMA {
 }
 
 impl ToCommand for NUMA {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["-numa".to_string()];
-
+    fn command(&self) -> String {
+        ARG_NUMA.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         match self {
             NUMA::NodeMem(node_mem) => {
                 let mut node_mem_args = "node".to_string();
@@ -113,7 +118,7 @@ impl ToCommand for NUMA {
                 if let Some(initiator) = &node_mem.initiator {
                     node_mem_args.push_str(format!(",initiator={}", initiator).as_str());
                 }
-                cmd.push(node_mem_args.to_string());
+                vec![node_mem_args.to_string()]
             }
             NUMA::NodeMemDev(node_memdev) => {
                 let mut node_memdev_args = "node".to_string();
@@ -132,13 +137,10 @@ impl ToCommand for NUMA {
                 if let Some(initiator) = &node_memdev.initiator {
                     node_memdev_args.push_str(format!(",initiator={}", initiator).as_str());
                 }
-                cmd.push(node_memdev_args.to_string());
+                vec![node_memdev_args.to_string()]
             }
             NUMA::Dist(dist) => {
-                cmd.push(format!(
-                    "dist,src={},dst={},val={}",
-                    dist.src, dist.dst, dist.val
-                ));
+                vec![format!("dist,src={},dst={},val={}", dist.src, dist.dst, dist.val)]
             }
             NUMA::Cpu(cpu) => {
                 let mut cpu_args = "cpu".to_string();
@@ -153,17 +155,11 @@ impl ToCommand for NUMA {
                 if let Some(thread_id) = &cpu.thread_id {
                     cpu_args.push_str(format!(",thread-id={}", thread_id).as_str());
                 }
-                cmd.push(cpu_args.to_string());
+                vec![cpu_args.to_string()]
             }
             NUMA::HMATLB(hmat_lb) => {
                 let mut hmat_lb_args = "hmat-lb".to_string();
-                hmat_lb_args.push_str(
-                    format!(
-                        ",initiator={},target={},hierarchy=",
-                        hmat_lb.initiator, hmat_lb.target
-                    )
-                    .as_str(),
-                );
+                hmat_lb_args.push_str(format!(",initiator={},target={},hierarchy=", hmat_lb.initiator, hmat_lb.target).as_str());
                 match hmat_lb.hierarchy {
                     NUMAHierarchy::Memory => hmat_lb_args.push_str("memory"),
                     NUMAHierarchy::FirstLevel => hmat_lb_args.push_str("first-level"),
@@ -182,17 +178,11 @@ impl ToCommand for NUMA {
                 if let Some(bw) = &hmat_lb.bandwidth {
                     hmat_lb_args.push_str(format!(",bandwidth={}", bw).as_str());
                 }
-                cmd.push(hmat_lb_args);
+                vec![hmat_lb_args]
             }
             NUMA::HMATCache(hmat_cache) => {
                 let mut hmat_cache_args = "hmat-cache".to_string();
-                hmat_cache_args.push_str(
-                    format!(
-                        ",node-id={},size={},level={}",
-                        hmat_cache.node_id, hmat_cache.size, hmat_cache.level
-                    )
-                    .as_str(),
-                );
+                hmat_cache_args.push_str(format!(",node-id={},size={},level={}", hmat_cache.node_id, hmat_cache.size, hmat_cache.level).as_str());
                 if let Some(assoc) = &hmat_cache.associativity {
                     hmat_cache_args.push_str(",associativity=");
                     match assoc {
@@ -212,8 +202,16 @@ impl ToCommand for NUMA {
                 if let Some(line) = &hmat_cache.line {
                     hmat_cache_args.push_str(format!(",line={}", line).as_str());
                 }
+                vec![hmat_cache_args]
             }
         }
-        cmd
+    }
+}
+
+impl FromStr for NUMA {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

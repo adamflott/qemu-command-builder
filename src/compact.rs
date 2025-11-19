@@ -1,8 +1,14 @@
+use std::str::FromStr;
+
+use bon::Builder;
+use proptest_derive::Arbitrary;
+
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
-use bon::Builder;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_COMPAT: &str = "-compat";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum AcceptRejectCrash {
     Accept,
     Reject,
@@ -19,7 +25,7 @@ impl ToArg for AcceptRejectCrash {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum AcceptHide {
     Accept,
     Hide,
@@ -32,56 +38,51 @@ impl ToArg for AcceptHide {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct DeprecatedInput {
     deprecated_input: AcceptRejectCrash,
     deprecated_output: AcceptHide,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct UnstableInput {
     unstable_input: AcceptRejectCrash,
     unstable_output: AcceptHide,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Compact {
     DeprecatedInput(DeprecatedInput),
     UnstableInput(UnstableInput),
 }
 
 impl ToCommand for Compact {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
+    fn command(&self) -> String {
+        ARG_COMPAT.to_string()
+    }
 
-        cmd.push("-compact".to_string());
-
+    fn to_args(&self) -> Vec<String> {
         match self {
             Compact::DeprecatedInput(deprecated_input) => {
                 let mut args = vec![];
-                args.push(format!(
-                    "deprecated-input={}",
-                    deprecated_input.deprecated_input.to_arg()
-                ));
-                args.push(format!(
-                    "deprecated-output={}",
-                    deprecated_input.deprecated_output.to_arg()
-                ));
-                cmd.push(args.join(","));
+                args.push(format!("deprecated-input={}", deprecated_input.deprecated_input.to_arg()));
+                args.push(format!("deprecated-output={}", deprecated_input.deprecated_output.to_arg()));
+                args
             }
             Compact::UnstableInput(unstable_input) => {
                 let mut args = vec![];
-                args.push(format!(
-                    "unstable-input={}",
-                    unstable_input.unstable_input.to_arg()
-                ));
-                args.push(format!(
-                    "unstable-output={}",
-                    unstable_input.unstable_output.to_arg()
-                ));
-                cmd.push(args.join(","));
+                args.push(format!("unstable-input={}", unstable_input.unstable_input.to_arg()));
+                args.push(format!("unstable-output={}", unstable_input.unstable_output.to_arg()));
+                args
             }
         }
-        cmd
+    }
+}
+
+impl FromStr for Compact {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

@@ -1,6 +1,11 @@
 use crate::to_command::ToCommand;
+use proptest_derive::Arbitrary;
+use std::fmt::Display;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_VGA: &str = "-vga";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum VGA {
     /// Cirrus Logic GD5446 Video card. All Windows versions starting
     /// from Windows 95 should recognize and use this graphic card. For
@@ -44,38 +49,72 @@ pub enum VGA {
     None,
 }
 
-impl ToCommand for VGA {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
+impl FromStr for VGA {
+    type Err = String;
 
-        cmd.push("-vga".to_string());
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "cirrus" => Ok(VGA::Cirrus),
+            "std" => Ok(VGA::Std),
+            "vmware" => Ok(VGA::Vmware),
+            "qxl" => Ok(VGA::Qxl),
+            "tcx" => Ok(VGA::Tcx),
+            "cg3" => Ok(VGA::Cg3),
+            "virtio" => Ok(VGA::Virtio),
+            "none" => Ok(VGA::None),
+            other => Err(format!("Unknown vga type: {}", other)),
+        }
+    }
+}
+
+impl Display for VGA {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VGA::Cirrus => write!(f, "cirrus"),
+            VGA::Std => write!(f, "std"),
+            VGA::Vmware => write!(f, "vmware"),
+            VGA::Qxl => write!(f, "qxl"),
+            VGA::Tcx => write!(f, "tcx"),
+            VGA::Cg3 => write!(f, "cg3"),
+            VGA::Virtio => write!(f, "virtio"),
+            VGA::None => write!(f, "none"),
+        }
+    }
+}
+
+impl ToCommand for VGA {
+    fn command(&self) -> String {
+        ARG_VGA.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec![];
 
         match self {
             VGA::Cirrus => {
-                cmd.push("cirrus".to_string());
+                args.push("cirrus".to_string());
             }
             VGA::Std => {
-                cmd.push("std".to_string());
+                args.push("std".to_string());
             }
             VGA::Vmware => {
-                cmd.push("vmware".to_string());
+                args.push("vmware".to_string());
             }
             VGA::Qxl => {
-                cmd.push("qxl".to_string());
+                args.push("qxl".to_string());
             }
             VGA::Tcx => {
-                cmd.push("tcx".to_string());
+                args.push("tcx".to_string());
             }
             VGA::Cg3 => {
-                cmd.push("cg3".to_string());
+                args.push("cg3".to_string());
             }
             VGA::Virtio => {
-                cmd.push("virtio".to_string());
+                args.push("virtio".to_string());
             }
             VGA::None => {
-                cmd.push("none".to_string());
+                args.push("none".to_string());
             }
         }
-        cmd
+        args
     }
 }

@@ -2,9 +2,13 @@ use crate::common::OnOff;
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
 use bon::Builder;
+use proptest_derive::Arbitrary;
 use std::path::PathBuf;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_VNC: &str = "-vnc";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum VNCDisplay {
     To(usize),
     Host(usize),
@@ -12,7 +16,7 @@ pub enum VNCDisplay {
     None,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum AllowExclusiveForceSharedIgnore {
     AllowExclusive,
     ForceShared,
@@ -28,7 +32,7 @@ impl ToArg for AllowExclusiveForceSharedIgnore {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VNC {
     display: VNCDisplay,
 
@@ -178,11 +182,10 @@ pub struct VNC {
 }
 
 impl ToCommand for VNC {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-vnc".to_string());
-
+    fn command(&self) -> String {
+        ARG_VNC.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
         match &self.display {
             VNCDisplay::To(l) => {
@@ -245,8 +248,14 @@ impl ToCommand for VNC {
             args.push(format!("power-control={}", power_control.to_arg()));
         }
 
-        cmd.push(args.join(","));
+        args
+    }
+}
 
-        cmd
+impl FromStr for VNC {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

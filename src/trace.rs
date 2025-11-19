@@ -1,9 +1,12 @@
-use bon::Builder;
-use std::path::PathBuf;
-
 use crate::to_command::ToCommand;
+use bon::Builder;
+use proptest_derive::Arbitrary;
+use std::path::PathBuf;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+pub(crate) const ARG_TRACE: &str = "-trace";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Trace {
     enable: Option<String>,
     events: Option<PathBuf>,
@@ -11,11 +14,10 @@ pub struct Trace {
 }
 
 impl ToCommand for Trace {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-trace".to_string());
-
+    fn command(&self) -> String {
+        ARG_TRACE.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
 
         if let Some(enable) = &self.enable {
@@ -27,7 +29,14 @@ impl ToCommand for Trace {
         if let Some(file) = &self.file {
             args.push(format!("file={}", file.display()));
         }
-        cmd.push(args.join(","));
-        cmd
+        args
+    }
+}
+
+impl FromStr for Trace {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

@@ -1,9 +1,13 @@
 use crate::fsdev::SecurityModel;
 use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
+use proptest_derive::Arbitrary;
 use std::path::PathBuf;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_VIRTFS: &str = "-virtfs";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum RemapForbidWarn {
     Remap,
     Forbid,
@@ -20,7 +24,7 @@ impl ToArg for RemapForbidWarn {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Local {
     path: PathBuf,
     mount_tag: String,
@@ -33,20 +37,21 @@ pub struct Local {
     multidevs: Option<RemapForbidWarn>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Synth {
     mount_tag: String,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Virtfs {
     Local(Local),
     Synth(Synth),
 }
 impl ToCommand for Virtfs {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["-add-fd".to_string()];
-
+    fn command(&self) -> String {
+        ARG_VIRTFS.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
 
         match self {
@@ -82,7 +87,14 @@ impl ToCommand for Virtfs {
             }
         }
 
-        cmd.push(args.join(","));
-        cmd
+        args
+    }
+}
+
+impl FromStr for Virtfs {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

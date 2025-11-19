@@ -1,8 +1,12 @@
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
+use proptest_derive::Arbitrary;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_SANDBOX: &str = "-sandbox";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum AllowDeny {
     Allow,
     Deny,
@@ -16,7 +20,7 @@ impl ToArg for AllowDeny {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum AllowDenyChildren {
     Allow,
     Deny,
@@ -32,7 +36,7 @@ impl ToArg for AllowDenyChildren {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Sandbox {
     mode: OnOff,
     obsolete: Option<AllowDeny>,
@@ -42,9 +46,10 @@ pub struct Sandbox {
 }
 
 impl ToCommand for Sandbox {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["-sandbox".to_string()];
-
+    fn command(&self) -> String {
+        ARG_SANDBOX.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
         match &self.mode {
             OnOff::On => {
@@ -68,7 +73,14 @@ impl ToCommand for Sandbox {
             args.push(format!("resourcecontrol={}", resourcecontrol.to_arg()));
         }
 
-        cmd.push(args.join(","));
-        cmd
+        args
+    }
+}
+
+impl FromStr for Sandbox {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

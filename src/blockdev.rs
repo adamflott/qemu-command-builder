@@ -1,9 +1,13 @@
 use std::collections::BTreeMap;
+use std::str::FromStr;
 
 use bon::Builder;
+use proptest_derive::Arbitrary;
 
 use crate::common::{IgnoreUnmap, OnOff, OnOffUnmap};
 use crate::to_command::{ToArg, ToCommand};
+
+pub(crate) const ARG_BLOCKDEV: &str = "-blockdev";
 
 /// Define a new block driver node. Some of the options apply to all
 /// block drivers, other options are only accepted for a specific block
@@ -22,7 +26,7 @@ use crate::to_command::{ToArg, ToCommand};
 ///
 /// TODO
 /// - constrain driver opts
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct BlockDev {
     /// Specifies the block driver to use for the given node.
     pub driver: String,
@@ -95,11 +99,10 @@ pub struct BlockDev {
 }
 
 impl ToCommand for BlockDev {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-blockdev".to_string());
-
+    fn command(&self) -> String {
+        ARG_BLOCKDEV.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
 
         args.push(format!("driver={}", self.driver));
@@ -133,8 +136,14 @@ impl ToCommand for BlockDev {
             }
         }
 
-        cmd.push(args.join(","));
+        args
+    }
+}
 
-        cmd
+impl FromStr for BlockDev {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

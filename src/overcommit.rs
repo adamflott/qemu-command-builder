@@ -1,7 +1,11 @@
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
+use proptest_derive::Arbitrary;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_OVERCOMMIT: &str = "-overcommit";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum OnOffOnfault {
     On,
     Off,
@@ -18,26 +22,36 @@ impl ToArg for OnOffOnfault {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Overcommit {
     MemLock(OnOffOnfault),
     CpuPm(OnOff),
 }
 
 impl ToCommand for Overcommit {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
+    fn command(&self) -> String {
+        ARG_OVERCOMMIT.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec![];
 
-        cmd.push("-overcommit".to_string());
         match self {
             Overcommit::MemLock(memlock) => {
-                cmd.push(memlock.to_arg().to_string());
+                args.push(memlock.to_arg().to_string());
             }
             Overcommit::CpuPm(cpupm) => {
-                cmd.push(cpupm.to_arg().to_string());
+                args.push(cpupm.to_arg().to_string());
             }
         }
 
-        cmd
+        args
+    }
+}
+
+impl FromStr for Overcommit {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

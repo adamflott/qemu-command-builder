@@ -1,18 +1,22 @@
-use std::path::PathBuf;
-
 use bon::Builder;
+use proptest_derive::Arbitrary;
+use std::path::PathBuf;
+use std::str::FromStr;
 
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+pub(crate) const ARG_SERIAL: &str = "-serial";
+pub(crate) const ARG_PARALLEL: &str = "-parallel";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VC {
     is_pixel: bool,
     w: usize,
     h: usize,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Udp {
     remote_host: Option<String>,
     remote_port: u16,
@@ -20,7 +24,7 @@ pub struct Udp {
     src_port: Option<u16>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Tcp {
     host: String,
     port: u16,
@@ -30,7 +34,7 @@ pub struct Tcp {
     reconnect_ms: Option<usize>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Telnet {
     host: String,
     port: u16,
@@ -39,7 +43,7 @@ pub struct Telnet {
     nodelay: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Websocket {
     host: String,
     port: u16,
@@ -48,7 +52,7 @@ pub struct Websocket {
     nodelay: Option<OnOff>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Unix {
     path: PathBuf,
     server: Option<OnOff>,
@@ -56,7 +60,7 @@ pub struct Unix {
     reconnect_ms: Option<usize>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum SpecialDevice {
     VC(Option<VC>),
     Pty(Option<PathBuf>),
@@ -80,9 +84,7 @@ pub enum SpecialDevice {
 }
 
 impl ToCommand for SpecialDevice {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
 
         match self {
@@ -220,7 +222,14 @@ impl ToCommand for SpecialDevice {
                 args.push("msmouse".to_string());
             }
         }
-        cmd.push(args.join("").to_string());
-        cmd
+        args
+    }
+}
+
+impl FromStr for SpecialDevice {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

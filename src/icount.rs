@@ -1,17 +1,21 @@
 use std::path::PathBuf;
+use std::str::FromStr;
 
 use bon::Builder;
+use proptest_derive::Arbitrary;
 
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_ICOUNT: &str = "-icount";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Shift {
     N(usize),
     Auto,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum RecordReplay {
     Record,
     Replay,
@@ -25,7 +29,7 @@ impl ToArg for RecordReplay {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Icount {
     shift: Option<Shift>,
     align: Option<OnOff>,
@@ -36,11 +40,10 @@ pub struct Icount {
 }
 
 impl ToCommand for Icount {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-icount".to_string());
-
+    fn command(&self) -> String {
+        ARG_ICOUNT.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
 
         if let Some(shift) = &self.shift {
@@ -68,7 +71,15 @@ impl ToCommand for Icount {
         if let Some(rrsnapshot) = &self.rrsnapshot {
             args.push(format!("rrsnapshot={}", rrsnapshot));
         }
-        cmd.push(args.join(","));
-        cmd
+
+        args
+    }
+}
+
+impl FromStr for Icount {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

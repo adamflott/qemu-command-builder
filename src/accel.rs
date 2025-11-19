@@ -1,11 +1,34 @@
-use std::path::PathBuf;
-
 use bon::Builder;
+use proptest_derive::Arbitrary;
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
+use winnow::ascii::{alphanumeric1, dec_uint};
+use winnow::combinator::{alt, opt};
+use winnow::prelude::*;
+use winnow::token::literal;
 
 use crate::common::*;
+use crate::parsers::DELIM_COMMA;
+use crate::shell_path::ShellPath;
+use crate::shell_string::ShellStringError;
 use crate::to_command::{ToArg, ToCommand};
+use crate::{pco, ppo, qao};
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
+pub(crate) const ARG_ACCEL: &str = "-accel";
+
+const KEY_IGD_PASSTHRU: &str = "igd-passthru=";
+const KEY_KERNEL_IRQCHIP: &str = "kernel_irqchip=";
+const KEY_KVM_SHADOW_MEM: &str = "kvm-shadow-mem=";
+const KEY_ONE_INSN_PER_TB: &str = "one-insn-per-tb=";
+const KEY_SPLIT_WX: &str = "split-wx=";
+const KEY_TB_SIZE: &str = "tb_size=";
+const KEY_DIRTY_RING_SIZE: &str = "dirty-ring-size=";
+const KEY_EAGER_SPLIT_SIZE: &str = "eager-split-size=";
+const KEY_NOTIFY_VMEXIT: &str = "notify-vmexit=";
+const KEY_THREAD: &str = "thread=";
+const KEY_DEVICE: &str = "device=";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum OnOffSplit {
     #[default]
     On,
@@ -13,6 +36,24 @@ pub enum OnOffSplit {
     Split,
 }
 
+impl Display for OnOffSplit {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.to_arg())
+    }
+}
+
+impl FromStr for OnOffSplit {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "on" => Ok(OnOffSplit::On),
+            "off" => Ok(OnOffSplit::Off),
+            "split" => Ok(OnOffSplit::Split),
+            _ => Err(()),
+        }
+    }
+}
 impl ToArg for OnOffSplit {
     fn to_arg(&self) -> &str {
         match self {
@@ -23,27 +64,84 @@ impl ToArg for OnOffSplit {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum TCGThreadType {
     Single,
     Multi,
 }
 
-impl ToArg for TCGThreadType {
-    fn to_arg(&self) -> &str {
+impl FromStr for TCGThreadType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "single" => Ok(TCGThreadType::Single),
+            "multi" => Ok(TCGThreadType::Multi),
+            _ => Err(()),
+        }
+    }
+}
+impl Display for TCGThreadType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            TCGThreadType::Single => "single",
-            TCGThreadType::Multi => "multi",
+            TCGThreadType::Single => write!(f, "single"),
+            TCGThreadType::Multi => write!(f, "multi"),
         }
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub enum NotifyVMExitType {
-    Run,
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+pub enum NotifyVMExit {
+    Run(Option<usize>),
     InternalError,
     Disable,
-    NotifyWindow(usize),
+}
+
+fn nvt_run(s: &mut &str) -> ModalResult<NotifyVMExit> {
+    let _ = literal("run").parse_next(s)?;
+    let n = opt(nvt_nw).parse_next(s)?;
+    Ok(NotifyVMExit::Run(n))
+}
+fn nvt_ie(s: &mut &str) -> ModalResult<NotifyVMExit> {
+    literal("internal-error").parse_next(s).map(|_| Ok(NotifyVMExit::InternalError))?
+}
+fn nvt_disable(s: &mut &str) -> ModalResult<NotifyVMExit> {
+    literal("disable").parse_next(s).map(|_| Ok(NotifyVMExit::Disable))?
+}
+fn nvt_nw(s: &mut &str) -> ModalResult<usize> {
+    let _ = literal(DELIM_COMMA).parse_next(s)?;
+    let _ = literal("notify-window=").parse_next(s)?;
+    let n = dec_uint.parse_next(s)?;
+    Ok(n)
+}
+fn notify_vm_exit_type(s: &mut &str) -> ModalResult<NotifyVMExit> {
+    alt((nvt_run, nvt_ie, nvt_disable)).parse_next(s)
+}
+
+impl FromStr for NotifyVMExit {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match notify_vm_exit_type.parse(s) {
+            Ok(v) => Ok(v),
+            Err(_) => Err(()),
+        }
+    }
+}
+impl Display for NotifyVMExit {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NotifyVMExit::Run(n) => {
+                if let Some(n) = n {
+                    write!(f, "run,notify-window={}", n)
+                } else {
+                    write!(f, "run")
+                }
+            }
+            NotifyVMExit::InternalError => write!(f, "internal-error"),
+            NotifyVMExit::Disable => write!(f, "disable"),
+        }
+    }
 }
 
 /// This is used to enable an accelerator. Depending on the target
@@ -51,7 +149,7 @@ pub enum NotifyVMExitType {
 /// default, tcg is used. If there is more than one accelerator
 /// specified, the next one is used if the previous one fails to
 /// initialize.
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Accel {
     accel_type: AccelType,
 
@@ -117,75 +215,90 @@ pub struct Accel {
     /// This feature can mitigate the CPU stuck issue due to event windows don't
     /// open up for a specified of time (i.e. notify-window).
     /// Default: notify-vmexit=run,notify-window=0.
-    notify_vmexit: Option<Vec<NotifyVMExitType>>,
+    notify_vmexit: Option<NotifyVMExit>,
 
     /// Enable single or multi-threaded TCG
     thread: Option<TCGThreadType>,
 
-    /// Sets the path to the KVM device node. Defaults to ``/dev/kvm``. This
-    /// option can be used to pass the KVM device to use via a file descriptor
-    /// by setting the value to ``/dev/fdset/NN``.
-    device: Option<PathBuf>,
+    // Sets the path to the KVM device node. Defaults to ``/dev/kvm``. This
+    // option can be used to pass the KVM device to use via a file descriptor
+    // by setting the value to ``/dev/fdset/NN``.
+    device: Option<ShellPath>,
 }
 
 impl ToCommand for Accel {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-accel".to_string());
+    fn command(&self) -> String {
+        ARG_ACCEL.to_string()
+    }
 
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![self.accel_type.to_arg().to_string()];
 
-        if let Some(igd_passthru) = &self.igd_passthru {
-            args.push(format!("igd-passthru={}", igd_passthru.to_arg()));
-        }
-        if let Some(kernel_irqchip) = &self.kernel_irqchip {
-            args.push(format!("kernel_irqchip={}", kernel_irqchip.to_arg()));
-        }
-        if let Some(kvm_shadow_mem) = &self.kvm_shadow_mem {
-            args.push(format!("kvm-shadow-mem={}", kvm_shadow_mem));
-        }
-        if let Some(one_insn_per_tb) = &self.one_insn_per_tb {
-            args.push(format!("one-insn-per-tb={}", one_insn_per_tb.to_arg()));
-        }
-        if let Some(split_wx) = &self.split_wx {
-            args.push(format!("split-wx={}", split_wx.to_arg()));
-        }
-        if let Some(tb_size) = &self.tb_size {
-            args.push(format!("tb-size={}", tb_size));
-        }
-        if let Some(dirty_ring_size) = &self.dirty_ring_size {
-            args.push(format!("dirty-ring-size={}", dirty_ring_size));
-        }
-        if let Some(eager_split_size) = &self.eager_split_size {
-            args.push(format!("eager-split-size={}", eager_split_size));
-        }
-        if let Some(notify_vmexit) = &self.notify_vmexit {
-            let mut nvm_args = vec![];
-            for opt in notify_vmexit {
-                match opt {
-                    NotifyVMExitType::Run => {
-                        nvm_args.push("run".to_string());
-                    }
-                    NotifyVMExitType::InternalError => {
-                        nvm_args.push("internal-error".to_string());
-                    }
-                    NotifyVMExitType::Disable => {
-                        nvm_args.push("disable".to_string());
-                    }
-                    NotifyVMExitType::NotifyWindow(window) => {
-                        nvm_args.push(format!("notify-window={}", window));
-                    }
-                }
-            }
-            args.push(format!("notify-vmexit=={}", nvm_args.join(",")));
-        }
-        if let Some(thread) = &self.thread {
-            args.push(format!("thread={}", thread.to_arg()));
-        }
-        if let Some(device) = &self.device {
-            args.push(format!("device={}", device.display()));
-        }
-        cmd.push(args.join(","));
-        cmd
+        qao!(&self.igd_passthru, args, KEY_IGD_PASSTHRU);
+        qao!(&self.kernel_irqchip, args, KEY_KERNEL_IRQCHIP);
+        qao!(&self.kvm_shadow_mem, args, KEY_KVM_SHADOW_MEM);
+        qao!(&self.one_insn_per_tb, args, KEY_ONE_INSN_PER_TB);
+        qao!(&self.split_wx, args, KEY_SPLIT_WX);
+        qao!(&self.tb_size, args, KEY_TB_SIZE);
+        qao!(&self.dirty_ring_size, args, KEY_DIRTY_RING_SIZE);
+        qao!(&self.eager_split_size, args, KEY_EAGER_SPLIT_SIZE);
+        qao!(&self.notify_vmexit, args, KEY_NOTIFY_VMEXIT);
+        qao!(&self.thread, args, KEY_THREAD);
+        qao!(&self.device, args, KEY_DEVICE);
+
+        vec![args.join(DELIM_COMMA)]
     }
+}
+
+impl FromStr for Accel {
+    type Err = ShellStringError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        accel.parse(s).map_err(|e| ShellStringError::from_parse(e))
+    }
+}
+
+pco!(igd_passthru, alphanumeric1, OnOffDefaultOff, KEY_IGD_PASSTHRU);
+pco!(kernel_irqchip, alphanumeric1, OnOffSplit, KEY_KERNEL_IRQCHIP);
+ppo!(kvm_shadow_mem, dec_uint, usize, KEY_KVM_SHADOW_MEM);
+pco!(one_insn_per_tb, alphanumeric1, OnOff, KEY_ONE_INSN_PER_TB);
+pco!(split_wx, alphanumeric1, OnOff, KEY_SPLIT_WX);
+ppo!(tb_size, dec_uint, usize, KEY_TB_SIZE);
+ppo!(dirty_ring_size, dec_uint, usize, KEY_DIRTY_RING_SIZE);
+ppo!(eager_split_size, dec_uint, usize, KEY_EAGER_SPLIT_SIZE);
+fn notify_vmexit(s: &mut &str) -> ModalResult<NotifyVMExit> {
+    let _ = literal(DELIM_COMMA).parse_next(s)?;
+    let _ = literal(KEY_NOTIFY_VMEXIT).parse_next(s)?;
+    notify_vm_exit_type.parse_next(s)
+}
+pco!(thread, alphanumeric1, TCGThreadType, KEY_THREAD);
+pco!(device, alphanumeric1, ShellPath, KEY_DEVICE);
+
+fn accel(s: &mut &str) -> ModalResult<Accel> {
+    let accel_type = alphanumeric1.parse_to::<AccelType>().parse_next(s)?;
+    let igd_passthru = opt(igd_passthru).parse_next(s)?;
+    let kernel_irqchip = opt(kernel_irqchip).parse_next(s)?;
+    let kvm_shadow_mem = opt(kvm_shadow_mem).parse_next(s)?;
+    let one_insn_per_tb = opt(one_insn_per_tb).parse_next(s)?;
+    let split_wx = opt(split_wx).parse_next(s)?;
+    let tb_size = opt(tb_size).parse_next(s)?;
+    let dirty_ring_size = opt(dirty_ring_size).parse_next(s)?;
+    let eager_split_size = opt(eager_split_size).parse_next(s)?;
+    let notify_vmexit = opt(notify_vmexit).parse_next(s)?;
+    let thread = opt(thread).parse_next(s)?;
+    let device = opt(device).parse_next(s)?;
+    Ok(Accel {
+        accel_type,
+        igd_passthru,
+        kernel_irqchip,
+        kvm_shadow_mem,
+        one_insn_per_tb,
+        split_wx,
+        tb_size,
+        dirty_ring_size,
+        eager_split_size,
+        notify_vmexit,
+        thread,
+        device,
+    })
 }

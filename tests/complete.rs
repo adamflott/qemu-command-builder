@@ -1,16 +1,15 @@
+use pretty_assertions::assert_eq;
 use qemu_command_builder::chardev::{CharDev, CharSocket, CharSocketUds, CharStdio};
-use qemu_command_builder::common::AccelType;
 use qemu_command_builder::common::OnOff;
+use qemu_command_builder::common::{AccelType, YesNo};
 use qemu_command_builder::cpu::CpuX86;
-use qemu_command_builder::cpu_flags::CPUFlags;
+use qemu_command_builder::cpu_flags::CPUFlag;
 use qemu_command_builder::cpu_type::CpuTypeX86_64;
 use qemu_command_builder::device::Device;
 use qemu_command_builder::display::QemuDisplay;
-use qemu_command_builder::drive::{
-    Drive, DriveAIOType, DriveCacheType, DriveInterface, DriveMedia,
-};
-use qemu_command_builder::machine::MachineForX86;
-use qemu_command_builder::machine_type::MachineX86_64;
+use qemu_command_builder::drive::{Drive, DriveAIOType, DriveCacheType, DriveInterface, DriveMedia};
+use qemu_command_builder::machine::{Machine, MachineX86_64};
+use qemu_command_builder::machine_type::MachineTypeX86_64;
 use qemu_command_builder::memory::Memory;
 use qemu_command_builder::memory::MemoryUnit;
 use qemu_command_builder::mon::{Mon, ReadlineControl};
@@ -21,22 +20,25 @@ use qemu_command_builder::netdev::{NetDev, ScriptOrNot};
 use qemu_command_builder::rtc::{Rtc, RtcClock};
 use qemu_command_builder::runwith::{RunWith, UserOrIds};
 use qemu_command_builder::serial::SpecialDevice;
+use qemu_command_builder::shell_path::ShellPath;
+use qemu_command_builder::shell_string::ShellString;
 use qemu_command_builder::smbios::{Smbios, SmbiosType0, SmbiosType1, SmbiosType2};
 use qemu_command_builder::smp::SMP;
 use qemu_command_builder::to_command::ToCommand;
 use qemu_command_builder::vga::VGA;
 use qemu_command_builder::*;
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 #[test]
 fn full_command_line() {
     let mut cpu = CpuX86::new(CpuTypeX86_64::Host);
-    cpu.migratable(true);
-    cpu.flags(vec![CPUFlags::Vmx, CPUFlags::Svm]);
+    cpu.migratable(YesNo::Yes);
+    cpu.flags(BTreeSet::from([CPUFlag::Vmx, CPUFlag::Svm]));
 
     let m = Memory::builder().mem(MemoryUnit::MegaBytes(1024)).build();
 
-    let name = Name::builder().name("crate_test".to_string()).build();
+    let name = Name::builder().name("crate_test".into()).build();
 
     let mut virio_scsi_pci_device_id0 = Device::new("virtio-scsi-pci");
     virio_scsi_pci_device_id0.add_prop("id", "scsi0");
@@ -73,23 +75,17 @@ fn full_command_line() {
         .add_prop("mq", "on");
 
     let drive_0 = Drive::builder()
-        .file(PathBuf::from("/dev/vg1/drive0-27573"))
+        .file(ShellPath::from("/dev/vg1/drive0-27573"))
         .interface(DriveInterface::None)
         .media(DriveMedia::Disk)
-        .id("drive-scsi-disk-0".to_string())
+        .id("drive-scsi-disk-0".into())
         .aio(DriveAIOType::Native)
         .cache(DriveCacheType::Writeback)
-        .format("raw".to_string())
+        .format("raw".into())
         .read_only(OnOff::Off)
-        .auto_read_only(OnOff::Off)
         .build();
 
-    let smbios_type0 = Smbios::Type0(
-        SmbiosType0::builder()
-            .vendor("some vendor".to_string())
-            .version("unknown version".to_string())
-            .build(),
-    );
+    let smbios_type0 = Smbios::Type0(SmbiosType0::builder().vendor("some vendor".to_string()).version("unknown version".to_string()).build());
     let smbios_type1 = Smbios::Type1(
         SmbiosType1::builder()
             .manufacturer("".to_string())
@@ -112,13 +108,7 @@ fn full_command_line() {
             .build(),
     ));
 
-    let chardev1 = CharDev::Stdio(
-        CharStdio::builder()
-            .id("serial0".to_string())
-            .mux(OnOff::Off)
-            .signal(OnOff::Off)
-            .build(),
-    );
+    let chardev1 = CharDev::Stdio(CharStdio::builder().id("serial0".to_string()).mux(OnOff::Off).signal(OnOff::Off).build());
 
     let display = QemuDisplay::Vnc {
         vnc: "unix:/run/vnc.socket".to_string(),
@@ -137,28 +127,20 @@ fn full_command_line() {
 
     let serial = SpecialDevice::Chardev("serial0".to_string());
 
-    let mon = Mon::builder()
-        .chardev("charmonitor".to_string())
-        .mode(ReadlineControl::Control)
-        .build();
+    let mon = Mon::builder().chardev(ShellString::from("charmonitor")).mode(ReadlineControl::Control).build();
 
     let rtc = Rtc::builder().clock(RtcClock::Vm).build();
 
     let msg = Msg::builder().timestamp(OnOff::On).build();
 
-    let run_with = RunWith::builder()
-        .chroot(PathBuf::from("/chroot"))
-        .user(UserOrIds::User("vmuser".to_string()))
-        .build();
+    let run_with = RunWith::builder().chroot(ShellPath::from("/chroot")).user(UserOrIds::User(ShellString::from("vmuser"))).build();
 
+    let machine = MachineX86_64::builder()
+        .m(Machine::builder().machine_type(MachineTypeX86_64::Q35).accel(vec![AccelType::Kvm]).build())
+        .build();
     let qemu = QemuInstanceForX86_64::builder()
         .qemu_binary(PathBuf::from("/usr/bin/qemu-system-x86_64"))
-        .machine(
-            MachineForX86::builder()
-                .machine_type(MachineX86_64::Q35)
-                .accel(vec![AccelType::Kvm])
-                .build(),
-        )
+        .machine(machine)
         .cpu(cpu)
         .smp(SMP::new(1))
         .m(m)
@@ -169,14 +151,8 @@ fn full_command_line() {
         .drive(vec![drive_0])
         .smbios(vec![smbios_type0, smbios_type1, smbios_type2])
         .kernel(PathBuf::from("/kernel.img"))
-        .append(String::from("console=tty1 ro"))
-        .device(vec![
-            virio_scsi_pci_device_id0,
-            scsi_hd_id0,
-            virio_scsi_pci_device_id1,
-            scsi_hd_id1,
-            virio_net_pci,
-        ])
+        .append(ShellString::from("console=tty1 ro"))
+        .device(vec![virio_scsi_pci_device_id0, scsi_hd_id0, virio_scsi_pci_device_id1, scsi_hd_id1, virio_net_pci])
         .netdev(vec![netdev])
         .parallel(vec![SpecialDevice::None])
         .serial(serial)
@@ -199,7 +175,7 @@ fn full_command_line() {
         "-machine",
         "q35,accel=kvm",
         "-cpu",
-        "host,migratable=yes,-vmx,-svm",
+        "host,migratable=yes,-svm,-vmx",
         "-smp",
         "1",
         "-m",
@@ -207,17 +183,17 @@ fn full_command_line() {
         "-device",
         "virtio-scsi-pci,id=scsi0",
         "-device",
-        "scsi-hd,bus=scsi0.0,scsi-id=0,channel=0,lun=0,drive=drive-scsi-disk-0,id=drive0,bootindex=1,rotation_rate=1",
+        "scsi-hd,bootindex=1,bus=scsi0.0,channel=0,drive=drive-scsi-disk-0,id=drive0,lun=0,rotation_rate=1,scsi-id=0",
         "-device",
         "virtio-scsi-pci,id=scsi1",
         "-device",
-        "scsi-hd,bus=scsi1.0,scsi-id=1,channel=0,lun=2,drive=drive-scsi-disk-1,id=drive1,rotation_rate=1",
+        "scsi-hd,bus=scsi1.0,channel=0,drive=drive-scsi-disk-1,id=drive1,lun=2,rotation_rate=1,scsi-id=1",
         "-device",
-        "virtio-net-pci,netdev=net0,mac=f2:3c:93:6e:bb:d4,vectors=18,mq=on",
+        "virtio-net-pci,mac=f2:3c:93:6e:bb:d4,mq=on,netdev=net0,vectors=18",
         "-name",
         "crate_test",
         "-drive",
-        "file=/dev/vg1/drive0-27573,if=none,media=disk,cache=writeback,id=drive-scsi-disk-0,aio=native,format=raw,read-only=off,auto-read-only=off",
+        "file=/dev/vg1/drive0-27573,if=none,media=disk,cache=writeback,aio=native,format=raw,id=drive-scsi-disk-0,read-only=off",
         "-display",
         "vnc=unix:/run/vnc.socket",
         "-nographic",
@@ -238,7 +214,7 @@ fn full_command_line() {
         "-kernel",
         "/kernel.img",
         "-append",
-        "console=tty1 ro",
+        "\"console=tty1 ro\"",
         "-serial",
         "chardev:serial0",
         "-parallel",

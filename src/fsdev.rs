@@ -1,9 +1,13 @@
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
 use bon::Builder;
+use proptest_derive::Arbitrary;
 use std::path::PathBuf;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_FSDEV: &str = "-fsdev";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum SecurityModel {
     Passthrough,
     MappedXAttr,
@@ -22,7 +26,7 @@ impl ToArg for SecurityModel {
     }
 }
 /// Accesses to the filesystem are done by QEMU
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct FsDevLocal {
     /// Specifies identifier for this device.
     id: String,
@@ -99,7 +103,7 @@ pub struct FsDevLocal {
 }
 
 /// Synthetic filesystem, only used by QTests.
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct FsDevSynth {
     /// Specifies identifier for this device.
     id: String,
@@ -109,109 +113,102 @@ pub struct FsDevSynth {
 ///
 /// TODO
 /// - device virtio-9p-type integration
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum FsDev {
     Local(FsDevLocal),
     Synth(FsDevSynth),
 }
 
 impl ToCommand for FsDev {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-fsdev".to_string());
-
+    fn command(&self) -> String {
+        ARG_FSDEV.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         match self {
             FsDev::Local(local) => {
-                let mut arg = vec![];
+                let mut args = vec![];
 
-                arg.push(format!("local,id={}", local.id));
+                args.push(format!("local,id={}", local.id));
 
-                arg.push(format!(",path={}", local.path.display()));
+                args.push(format!(",path={}", local.path.display()));
 
-                arg.push(format!(",security-model={}", local.security_model.to_arg()));
+                args.push(format!(",security-model={}", local.security_model.to_arg()));
 
                 if local.writeout.is_some() {
-                    arg.push("writeout=immediate".to_string());
+                    args.push("writeout=immediate".to_string());
                 }
 
                 if local.readonly.is_some() {
-                    arg.push("readonly=on".to_string());
+                    args.push("readonly=on".to_string());
                 }
 
                 if let Some(fmode) = &local.fmode {
-                    arg.push(format!("fmode={}", fmode));
+                    args.push(format!("fmode={}", fmode));
                 }
 
                 if let Some(dmode) = &local.dmode {
-                    arg.push(format!("dmode={}", dmode));
+                    args.push(format!("dmode={}", dmode));
                 }
 
                 if let Some(throttling_bps_total) = local.throttling_bps_total {
-                    arg.push(format!("throttling.bps-total={}", throttling_bps_total));
+                    args.push(format!("throttling.bps-total={}", throttling_bps_total));
                 }
                 if let Some(throttling_bps_read) = local.throttling_bps_read {
-                    arg.push(format!("throttling.bps-read={}", throttling_bps_read));
+                    args.push(format!("throttling.bps-read={}", throttling_bps_read));
                 }
                 if let Some(throttling_bps_write) = local.throttling_bps_write {
-                    arg.push(format!("throttling.bps-write={}", throttling_bps_write));
+                    args.push(format!("throttling.bps-write={}", throttling_bps_write));
                 }
 
                 if let Some(throttling_bps_total_max) = local.throttling_bps_total_max {
-                    arg.push(format!(
-                        "throttling.bps-total-max={}",
-                        throttling_bps_total_max
-                    ));
+                    args.push(format!("throttling.bps-total-max={}", throttling_bps_total_max));
                 }
                 if let Some(bps_read_max) = local.bps_read_max {
-                    arg.push(format!("bps-read-max={}", bps_read_max));
+                    args.push(format!("bps-read-max={}", bps_read_max));
                 }
                 if let Some(bps_write_max) = local.bps_write_max {
-                    arg.push(format!("bps-write-max={}", bps_write_max));
+                    args.push(format!("bps-write-max={}", bps_write_max));
                 }
 
                 if let Some(throttling_iops_total) = local.throttling_iops_total {
-                    arg.push(format!("throttling.iops-total={}", throttling_iops_total));
+                    args.push(format!("throttling.iops-total={}", throttling_iops_total));
                 }
                 if let Some(throttling_iops_read) = local.throttling_iops_read {
-                    arg.push(format!("throttling.iops-read={}", throttling_iops_read));
+                    args.push(format!("throttling.iops-read={}", throttling_iops_read));
                 }
                 if let Some(throttling_iops_write) = local.throttling_iops_write {
-                    arg.push(format!("throttling.iops-write={}", throttling_iops_write));
+                    args.push(format!("throttling.iops-write={}", throttling_iops_write));
                 }
 
                 if let Some(throttling_ios_total_max) = local.throttling_iops_total_max {
-                    arg.push(format!(
-                        "throttling.ios-total-max={}",
-                        throttling_ios_total_max
-                    ));
+                    args.push(format!("throttling.ios-total-max={}", throttling_ios_total_max));
                 }
                 if let Some(throttling_iops_read_max) = local.throttling_iops_read_max {
-                    arg.push(format!(
-                        "throttling.iops-read-max={}",
-                        throttling_iops_read_max
-                    ));
+                    args.push(format!("throttling.iops-read-max={}", throttling_iops_read_max));
                 }
                 if let Some(throttling_iops_write_max) = local.throttling_iops_write_max {
-                    arg.push(format!(
-                        "throttling.iops-write-max={}",
-                        throttling_iops_write_max
-                    ));
+                    args.push(format!("throttling.iops-write-max={}", throttling_iops_write_max));
                 }
 
                 if let Some(throttling_iops_size) = local.throttling_iops_size {
-                    arg.push(format!("throttling.iops-size={}", throttling_iops_size));
+                    args.push(format!("throttling.iops-size={}", throttling_iops_size));
                 }
-                cmd.push(arg.join(","));
+                args
             }
             FsDev::Synth(synth) => {
                 let mut arg = String::new();
                 arg.push_str("synth,id=");
                 arg.push_str(synth.id.to_string().as_str());
-                cmd.push(arg);
+                vec![arg]
             }
         }
+    }
+}
 
-        cmd
+impl FromStr for FsDev {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

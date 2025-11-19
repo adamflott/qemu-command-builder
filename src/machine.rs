@@ -1,10 +1,32 @@
+use std::str::FromStr;
+
 use bon::Builder;
+use proptest_derive::Arbitrary;
 
 use crate::common::*;
-use crate::machine_type::{MachineAarch64, MachineX86_64};
+use crate::machine_type::{MachineAarch64, MachineTypeX86_64};
+use crate::parsers::{DELIM_COLON, DELIM_COMMA, ascii_plus_more};
+use crate::qao;
+use crate::shell_string::ShellStringError;
 use crate::to_command::{ToArg, ToCommand};
+use winnow::combinator::{opt, separated};
+use winnow::{ModalResult, Parser};
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
+pub(crate) const ARG_MACHINE: &str = "-machine";
+
+const KEY_ACCEL: &str = "accel=";
+const KEY_VMPORT: &str = "vmport=";
+const KEY_DUMP_GUEST_CORE: &str = "dump-guest-core=";
+const KEY_MEM_MERGE: &str = "mem-merge=";
+const KEY_AES_KEY_WRAP: &str = "aes-key-wrap=";
+const KEY_DEA_KEY_WRAP: &str = "dea-key-wrap=";
+const KEY_NVDIMM: &str = "nvdimm=";
+const KEY_MEMORY_ENCRYPTION: &str = "memory-encryption=";
+const KEY_HMAT: &str = "hmat=";
+const KEY_AUX_RAM_SHARE: &str = "aux-ram-share=";
+const KEY_MEMORY_BACKEND: &str = "memory-backend=";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum Granularity {
     #[default]
     G256,
@@ -29,19 +51,33 @@ impl ToArg for Granularity {
         }
     }
 }
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CxlFmw {
     targets: Vec<String>,
     size: String,
     interleave_granularity: Option<Granularity>,
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmpCache {
     cache: String,
     topology: String,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+pub enum MachineType {
+    X86_64(MachineTypeX86_64),
+    Aarch(MachineAarch64),
+}
+
+impl ToArg for MachineType {
+    fn to_arg(&self) -> &str {
+        match self {
+            MachineType::X86_64(mt) => mt.to_arg(),
+            MachineType::Aarch(mt) => mt.to_arg(),
+        }
+    }
+}
 /// Select the emulated machine by name. Use ``-machine help`` to list
 /// available machines.
 ///
@@ -55,8 +91,8 @@ pub struct SmpCache {
 /// and "pc-q35-2.8" machines too. To allow users live migrating VMs to
 /// skip multiple intermediate releases when upgrading, new releases of
 /// QEMU will support machine types from many previous versions.
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
-pub struct MachineFor<T> {
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
+pub struct Machine<T> {
     machine_type: T,
 
     /// This is used to enable an accelerator. Depending on the target
@@ -161,70 +197,86 @@ pub struct MachineFor<T> {
     smp_cache: Option<Vec<SmpCache>>,
 }
 
-pub type MachineForX86 = MachineFor<MachineX86_64>;
-pub type MachineForAarch64 = MachineFor<MachineAarch64>;
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
+pub struct MachineX86_64 {
+    m: Machine<MachineTypeX86_64>,
+}
 
-impl<M: ToCommand + ToArg> ToCommand for MachineFor<M> {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-        cmd.push("-machine".to_string());
+impl ToCommand for MachineX86_64 {
+    fn command(&self) -> String {
+        ARG_MACHINE.to_string()
+    }
 
-        let mut args = vec![self.machine_type.to_arg().to_string()];
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec![self.m.machine_type.to_arg().to_string()];
 
-        if let Some(accels) = &self.accel {
+        if let Some(accels) = &self.m.accel {
             let accel_strs: Vec<&str> = accels.iter().map(|a| a.to_arg()).collect();
-            args.push(format!("accel={}", accel_strs.join(":")));
+            args.push(format!("{}{}", KEY_ACCEL, accel_strs.join(":")));
         }
-        if let Some(vmport) = &self.vmport {
-            args.push(format!("vmport={}", vmport.to_arg()));
-        }
-        if let Some(dump_guest_core) = &self.dump_guest_core {
-            args.push(format!("dump-guest-core={}", dump_guest_core.to_arg()));
-        }
-        if let Some(mem_merge) = &self.mem_merge {
-            args.push(format!("mem-merge={}", mem_merge.to_arg()));
-        }
-        if let Some(aes_key_wrap) = &self.aes_key_wrap {
-            args.push(format!("aes-key-wrap={}", aes_key_wrap.to_arg()));
-        }
-        if let Some(dea_key_wrap) = &self.dea_key_wrap {
-            args.push(format!("dea-key-wrap={}", dea_key_wrap.to_arg()));
-        }
-        if let Some(nvdimm) = &self.nvdimm {
-            args.push(format!("nvdimm={}", nvdimm.to_arg()));
-        }
-        if let Some(memory_encryption) = &self.memory_encryption {
-            args.push(format!("memory-encryption={}", memory_encryption));
-        }
-        if let Some(hmat) = &self.hmat {
-            args.push(format!("hmat={}", hmat.to_arg()));
-        }
-        if let Some(aux_ram_share) = &self.aux_ram_share {
-            args.push(format!("aux-ram-share={}", aux_ram_share.to_arg()));
-        }
-        if let Some(memory_backend) = &self.memory_backend {
-            args.push(format!("memory-backend={}", memory_backend));
-        }
-        if let Some(cxl_fmw) = &self.cxl_fmw {
+        qao!(&self.m.vmport, args, KEY_VMPORT);
+        qao!(&self.m.dump_guest_core, args, KEY_DUMP_GUEST_CORE);
+        qao!(&self.m.mem_merge, args, KEY_MEM_MERGE);
+        qao!(&self.m.aes_key_wrap, args, KEY_AES_KEY_WRAP);
+        qao!(&self.m.dea_key_wrap, args, KEY_DEA_KEY_WRAP);
+        qao!(&self.m.nvdimm, args, KEY_NVDIMM);
+        qao!(&self.m.memory_encryption, args, KEY_MEMORY_ENCRYPTION);
+        qao!(&self.m.hmat, args, KEY_HMAT);
+        qao!(&self.m.aux_ram_share, args, KEY_AUX_RAM_SHARE);
+        qao!(&self.m.memory_backend, args, KEY_MEMORY_BACKEND);
+
+        if let Some(cxl_fmw) = &self.m.cxl_fmw {
             for (idx, target) in cxl_fmw.targets.iter().enumerate() {
                 args.push(format!("cxl-fmw.0.targets.{}={}", idx, target));
             }
             args.push(format!("cxl-fmw.0.size={}", cxl_fmw.size));
             if let Some(granularity) = &cxl_fmw.interleave_granularity {
-                args.push(format!(
-                    "cxl-fmw.0.interleave-granularity={}",
-                    granularity.to_arg()
-                ));
+                args.push(format!("cxl-fmw.0.interleave-granularity={}", granularity.to_arg()));
             }
         }
-        if let Some(smp_caches) = &self.smp_cache {
+        if let Some(smp_caches) = &self.m.smp_cache {
             for (idx, smp_cache) in smp_caches.iter().enumerate() {
                 args.push(format!("smp-cache.{}.cache={}", idx, smp_cache.cache));
                 args.push(format!("smp-cache.{}.topology={}", idx, smp_cache.topology));
             }
         }
-        cmd.push(args.join(","));
-
-        cmd
+        vec![args.join(DELIM_COMMA)]
     }
+}
+
+impl FromStr for MachineX86_64 {
+    type Err = ShellStringError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        machine_x86_64.parse(s).map_err(|e| ShellStringError::from_parse(e))
+    }
+}
+
+fn accel_type(s: &mut &str) -> ModalResult<AccelType> {
+    ascii_plus_more.parse_to::<AccelType>().parse_next(s)
+}
+
+fn machine_x86_64(s: &mut &str) -> ModalResult<MachineX86_64> {
+    let machine_type = ascii_plus_more.parse_to::<MachineTypeX86_64>().parse_next(s)?;
+    let accel = opt(separated(1.., accel_type, DELIM_COLON)).parse_next(s)?;
+    //let name = ascii_plus_more.parse_to::<ShellString>().parse_next(s)?;
+    //let process = opt(process).parse_next(s)?;
+    //let debug_threads = opt(debug_threads).parse_next(s)?;
+    let m = Machine {
+        machine_type,
+        accel,
+        vmport: None,
+        dump_guest_core: None,
+        mem_merge: None,
+        aes_key_wrap: None,
+        dea_key_wrap: None,
+        nvdimm: None,
+        memory_encryption: None,
+        hmat: None,
+        aux_ram_share: None,
+        memory_backend: None,
+        cxl_fmw: None,
+        smp_cache: None,
+    };
+    Ok(MachineX86_64 { m })
 }

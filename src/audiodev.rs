@@ -1,24 +1,37 @@
-use bon::Builder;
 use std::collections::BTreeMap;
+use std::str::FromStr;
+
+use bon::Builder;
+use proptest_derive::Arbitrary;
 
 use crate::to_command::ToCommand;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder)]
+pub(crate) const ARG_AUDIODEV: &str = "-audiodev";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct AudioDev {
     driver: String,
     props: BTreeMap<String, String>,
 }
 
 impl ToCommand for AudioDev {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec!["-audiodev".to_string()];
-
+    fn command(&self) -> String {
+        ARG_AUDIODEV.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![self.driver.clone()];
 
         for (k, v) in &self.props {
             args.push(format!("{}={}", k, v));
         }
-        cmd.push(args.join(","));
-        cmd
+        args
+    }
+}
+
+impl FromStr for AudioDev {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

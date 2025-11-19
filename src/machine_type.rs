@@ -1,7 +1,9 @@
 use crate::to_command::{ToArg, ToCommand};
+use proptest_derive::Arbitrary;
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub enum MachineX86_64 {
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+pub enum MachineTypeX86_64 {
     /// microvm (i386)
     Microvm,
     /// Standard PC (i440FX + PIIX, 1996)
@@ -20,48 +22,6 @@ pub enum MachineX86_64 {
     Pci440fx7_2,
     /// Standard PC (i440FX + PIIX, 1996)
     Pci440fx7_1,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx7_0,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx6_2,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx6_1,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx6_0,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx5_2,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx5_1,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx5_0,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx4_2,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx4_1,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx4_0,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx3_1,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx3_0,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx2_9,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx2_8,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx2_7,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx2_6,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx2_5,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx2_4,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx2_12,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx2_11,
-    /// Standard PC (i440FX + PIIX, 1996) (deprecated)
-    Pci440fx2_10,
     /// Standard PC (i440FX + PIIX, 1996) (alias of pc-i440fx-10.0)
     Pc,
     /// Standard PC (i440FX + PIIX, 1996) (default)
@@ -82,50 +42,6 @@ pub enum MachineX86_64 {
     Pcq357_2,
     /// Standard PC (Q35 + ICH9, 2009)
     Pcq357_1,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq357_0,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq356_2,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq356_1,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq356_0,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq355_2,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq355_1,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq355_0,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq354_2,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq354_1,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq354_0_1,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq354_0,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq353_1,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq353_0,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq352_9,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq352_8,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq352_7,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq352_6,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq352_5,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq352_4,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq352_12,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq352_11,
-    /// Standard PC (Q35 + ICH9, 2009) (deprecated)
-    Pcq352_10,
     /// Standard PC (Q35 + ICH9, 2009) (alias of pc-q35-10.0)
     Q35,
     /// Standard PC (Q35 + ICH9, 2009)
@@ -135,207 +51,79 @@ pub enum MachineX86_64 {
     /// empty machine
     None,
 }
-impl ToCommand for MachineX86_64 {
-    fn to_command(&self) -> Vec<String> {
+
+impl ToCommand for MachineTypeX86_64 {
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
 
         match self {
-            MachineX86_64::Microvm => {
+            MachineTypeX86_64::Microvm => {
                 cmd.push("microvm".to_string());
             }
-            MachineX86_64::Pci440fx9_2 => {
+            MachineTypeX86_64::Pci440fx9_2 => {
                 cmd.push("pc-i440fx-9.2".to_string());
             }
-            MachineX86_64::Pci440fx9_1 => {
+            MachineTypeX86_64::Pci440fx9_1 => {
                 cmd.push("pc-i440fx-9.1".to_string());
             }
-            MachineX86_64::Pci440fx9_0 => {
+            MachineTypeX86_64::Pci440fx9_0 => {
                 cmd.push("pc-i440fx-9.0".to_string());
             }
-            MachineX86_64::Pci440fx8_2 => {
+            MachineTypeX86_64::Pci440fx8_2 => {
                 cmd.push("pc-i440fx-8.2".to_string());
             }
-            MachineX86_64::Pci440fx8_1 => {
+            MachineTypeX86_64::Pci440fx8_1 => {
                 cmd.push("pc-i440fx-8.1".to_string());
             }
-            MachineX86_64::Pci440fx8_0 => {
+            MachineTypeX86_64::Pci440fx8_0 => {
                 cmd.push("pc-i440fx-8.0".to_string());
             }
-            MachineX86_64::Pci440fx7_2 => {
+            MachineTypeX86_64::Pci440fx7_2 => {
                 cmd.push("pc-i440fx-7.2".to_string());
             }
-            MachineX86_64::Pci440fx7_1 => {
+            MachineTypeX86_64::Pci440fx7_1 => {
                 cmd.push("pc-i440fx-7.1".to_string());
             }
-            MachineX86_64::Pci440fx7_0 => {
-                cmd.push("pc-i440fx-7.0".to_string());
-            }
-            MachineX86_64::Pci440fx6_2 => {
-                cmd.push("pc-i440fx-6.2".to_string());
-            }
-            MachineX86_64::Pci440fx6_1 => {
-                cmd.push("pc-i440fx-6.1".to_string());
-            }
-            MachineX86_64::Pci440fx6_0 => {
-                cmd.push("pc-i440fx-6.0".to_string());
-            }
-            MachineX86_64::Pci440fx5_2 => {
-                cmd.push("pc-i440fx-5.2".to_string());
-            }
-            MachineX86_64::Pci440fx5_1 => {
-                cmd.push("pc-i440fx-5.1".to_string());
-            }
-            MachineX86_64::Pci440fx5_0 => {
-                cmd.push("pc-i440fx-5.0".to_string());
-            }
-            MachineX86_64::Pci440fx4_2 => {
-                cmd.push("pc-i440fx-4.2".to_string());
-            }
-            MachineX86_64::Pci440fx4_1 => {
-                cmd.push("pc-i440fx-4.1".to_string());
-            }
-            MachineX86_64::Pci440fx4_0 => {
-                cmd.push("pc-i440fx-4.0".to_string());
-            }
-            MachineX86_64::Pci440fx3_1 => {
-                cmd.push("pc-i440fx-3.1".to_string());
-            }
-            MachineX86_64::Pci440fx3_0 => {
-                cmd.push("pc-i440fx-3.0".to_string());
-            }
-            MachineX86_64::Pci440fx2_9 => {
-                cmd.push("pc-i440fx-2.9".to_string());
-            }
-            MachineX86_64::Pci440fx2_8 => {
-                cmd.push("pc-i440fx-2.8".to_string());
-            }
-            MachineX86_64::Pci440fx2_7 => {
-                cmd.push("pc-i440fx-2.7".to_string());
-            }
-            MachineX86_64::Pci440fx2_6 => {
-                cmd.push("pc-i440fx-2.6".to_string());
-            }
-            MachineX86_64::Pci440fx2_5 => {
-                cmd.push("pc-i440fx-2.5".to_string());
-            }
-            MachineX86_64::Pci440fx2_4 => {
-                cmd.push("pc-i440fx-2.4".to_string());
-            }
-            MachineX86_64::Pci440fx2_12 => {
-                cmd.push("pc-i440fx-2.12".to_string());
-            }
-            MachineX86_64::Pci440fx2_11 => {
-                cmd.push("pc-i440fx-2.11".to_string());
-            }
-            MachineX86_64::Pci440fx2_10 => {
-                cmd.push("pc-i440fx-2.10".to_string());
-            }
-            MachineX86_64::Pc => {
+            MachineTypeX86_64::Pc => {
                 cmd.push("pc".to_string());
             }
-            MachineX86_64::Pci440fx10_0 => {
+            MachineTypeX86_64::Pci440fx10_0 => {
                 cmd.push("pc-i440fx-10.0".to_string());
             }
-            MachineX86_64::Pcq359_2 => {
+            MachineTypeX86_64::Pcq359_2 => {
                 cmd.push("pc-q35-9.2".to_string());
             }
-            MachineX86_64::Pcq359_1 => {
+            MachineTypeX86_64::Pcq359_1 => {
                 cmd.push("pc-q35-9.1".to_string());
             }
-            MachineX86_64::Pcq359_0 => {
+            MachineTypeX86_64::Pcq359_0 => {
                 cmd.push("pc-q35-9.0".to_string());
             }
-            MachineX86_64::Pcq358_2 => {
+            MachineTypeX86_64::Pcq358_2 => {
                 cmd.push("pc-q35-8.2".to_string());
             }
-            MachineX86_64::Pcq358_1 => {
+            MachineTypeX86_64::Pcq358_1 => {
                 cmd.push("pc-q35-8.1".to_string());
             }
-            MachineX86_64::Pcq358_0 => {
+            MachineTypeX86_64::Pcq358_0 => {
                 cmd.push("pc-q35-8.0".to_string());
             }
-            MachineX86_64::Pcq357_2 => {
+            MachineTypeX86_64::Pcq357_2 => {
                 cmd.push("pc-q35-7.2".to_string());
             }
-            MachineX86_64::Pcq357_1 => {
+            MachineTypeX86_64::Pcq357_1 => {
                 cmd.push("pc-q35-7.1".to_string());
             }
-            MachineX86_64::Pcq357_0 => {
-                cmd.push("pc-q35-7.0".to_string());
-            }
-            MachineX86_64::Pcq356_2 => {
-                cmd.push("pc-q35-6.2".to_string());
-            }
-            MachineX86_64::Pcq356_1 => {
-                cmd.push("pc-q35-6.1".to_string());
-            }
-            MachineX86_64::Pcq356_0 => {
-                cmd.push("pc-q35-6.0".to_string());
-            }
-            MachineX86_64::Pcq355_2 => {
-                cmd.push("pc-q35-5.2".to_string());
-            }
-            MachineX86_64::Pcq355_1 => {
-                cmd.push("pc-q35-5.1".to_string());
-            }
-            MachineX86_64::Pcq355_0 => {
-                cmd.push("pc-q35-5.0".to_string());
-            }
-            MachineX86_64::Pcq354_2 => {
-                cmd.push("pc-q35-4.2".to_string());
-            }
-            MachineX86_64::Pcq354_1 => {
-                cmd.push("pc-q35-4.1".to_string());
-            }
-            MachineX86_64::Pcq354_0_1 => {
-                cmd.push("pc-q35-4.0.1".to_string());
-            }
-            MachineX86_64::Pcq354_0 => {
-                cmd.push("pc-q35-4.0".to_string());
-            }
-            MachineX86_64::Pcq353_1 => {
-                cmd.push("pc-q35-3.1".to_string());
-            }
-            MachineX86_64::Pcq353_0 => {
-                cmd.push("pc-q35-3.0".to_string());
-            }
-            MachineX86_64::Pcq352_9 => {
-                cmd.push("pc-q35-2.9".to_string());
-            }
-            MachineX86_64::Pcq352_8 => {
-                cmd.push("pc-q35-2.8".to_string());
-            }
-            MachineX86_64::Pcq352_7 => {
-                cmd.push("pc-q35-2.7".to_string());
-            }
-            MachineX86_64::Pcq352_6 => {
-                cmd.push("pc-q35-2.6".to_string());
-            }
-            MachineX86_64::Pcq352_5 => {
-                cmd.push("pc-q35-2.5".to_string());
-            }
-            MachineX86_64::Pcq352_4 => {
-                cmd.push("pc-q35-2.4".to_string());
-            }
-            MachineX86_64::Pcq352_12 => {
-                cmd.push("pc-q35-2.12".to_string());
-            }
-            MachineX86_64::Pcq352_11 => {
-                cmd.push("pc-q35-2.11".to_string());
-            }
-            MachineX86_64::Pcq352_10 => {
-                cmd.push("pc-q35-2.10".to_string());
-            }
-            MachineX86_64::Q35 => {
+            MachineTypeX86_64::Q35 => {
                 cmd.push("q35".to_string());
             }
-            MachineX86_64::Pcq3510_0 => {
+            MachineTypeX86_64::Pcq3510_0 => {
                 cmd.push("pc-q35-10.0".to_string());
             }
-            MachineX86_64::Isapc => {
+            MachineTypeX86_64::Isapc => {
                 cmd.push("isapc".to_string());
             }
-            MachineX86_64::None => {
+            MachineTypeX86_64::None => {
                 cmd.push("none".to_string());
             }
         }
@@ -343,80 +131,70 @@ impl ToCommand for MachineX86_64 {
     }
 }
 
-impl ToArg for MachineX86_64 {
+impl ToArg for MachineTypeX86_64 {
     fn to_arg(&self) -> &str {
         match self {
-            MachineX86_64::Microvm => "microvm",
-            MachineX86_64::Pci440fx9_2 => "pc-i440fx-9.2",
-            MachineX86_64::Pci440fx9_1 => "pc-i440fx-9.1",
-            MachineX86_64::Pci440fx9_0 => "pc-i440fx-9.0",
-            MachineX86_64::Pci440fx8_2 => "pc-i440fx-8.2",
-            MachineX86_64::Pci440fx8_1 => "pc-i440fx-8.1",
-            MachineX86_64::Pci440fx8_0 => "pc-i440fx-8.0",
-            MachineX86_64::Pci440fx7_2 => "pc-i440fx-7.2",
-            MachineX86_64::Pci440fx7_1 => "pc-i440fx-7.1",
-            MachineX86_64::Pci440fx7_0 => "pc-i440fx-7.0",
-            MachineX86_64::Pci440fx6_2 => "pc-i440fx-6.2",
-            MachineX86_64::Pci440fx6_1 => "pc-i440fx-6.1",
-            MachineX86_64::Pci440fx6_0 => "pc-i440fx-6.0",
-            MachineX86_64::Pci440fx5_2 => "pc-i440fx-5.2",
-            MachineX86_64::Pci440fx5_1 => "pc-i440fx-5.1",
-            MachineX86_64::Pci440fx5_0 => "pc-i440fx-5.0",
-            MachineX86_64::Pci440fx4_2 => "pc-i440fx-4.2",
-            MachineX86_64::Pci440fx4_1 => "pc-i440fx-4.1",
-            MachineX86_64::Pci440fx4_0 => "pc-i440fx-4.0",
-            MachineX86_64::Pci440fx3_1 => "pc-i440fx-3.1",
-            MachineX86_64::Pci440fx3_0 => "pc-i440fx-3.0",
-            MachineX86_64::Pci440fx2_9 => "pc-i440fx-2.9",
-            MachineX86_64::Pci440fx2_8 => "pc-i440fx-2.8",
-            MachineX86_64::Pci440fx2_7 => "pc-i440fx-2.7",
-            MachineX86_64::Pci440fx2_6 => "pc-i440fx-2.6",
-            MachineX86_64::Pci440fx2_5 => "pc-i440fx-2.5",
-            MachineX86_64::Pci440fx2_4 => "pc-i440fx-2.4",
-            MachineX86_64::Pci440fx2_12 => "pc-i440fx-2.12",
-            MachineX86_64::Pci440fx2_11 => "pc-i440fx-2.11",
-            MachineX86_64::Pci440fx2_10 => "pc-i440fx-2.10",
-            MachineX86_64::Pc => "pc",
-            MachineX86_64::Pci440fx10_0 => "pc-i440fx-10.0",
-            MachineX86_64::Pcq359_2 => "pc-q35-9.2",
-            MachineX86_64::Pcq359_1 => "pc-q35-9.1",
-            MachineX86_64::Pcq359_0 => "pc-q35-9.0",
-            MachineX86_64::Pcq358_2 => "pc-q35-8.2",
-            MachineX86_64::Pcq358_1 => "pc-q35-8.1",
-            MachineX86_64::Pcq358_0 => "pc-q35-8.0",
-            MachineX86_64::Pcq357_2 => "pc-q35-7.2",
-            MachineX86_64::Pcq357_1 => "pc-q35-7.1",
-            MachineX86_64::Pcq357_0 => "pc-q35-7.0",
-            MachineX86_64::Pcq356_2 => "pc-q35-6.2",
-            MachineX86_64::Pcq356_1 => "pc-q35-6.1",
-            MachineX86_64::Pcq356_0 => "pc-q35-6.0",
-            MachineX86_64::Pcq355_2 => "pc-q35-5.2",
-            MachineX86_64::Pcq355_1 => "pc-q35-5.1",
-            MachineX86_64::Pcq355_0 => "pc-q35-5.0",
-            MachineX86_64::Pcq354_2 => "pc-q35-4.2",
-            MachineX86_64::Pcq354_1 => "pc-q35-4.1",
-            MachineX86_64::Pcq354_0_1 => "pc-q35-4.0.1",
-            MachineX86_64::Pcq354_0 => "pc-q35-4.0",
-            MachineX86_64::Pcq353_1 => "pc-q35-3.1",
-            MachineX86_64::Pcq353_0 => "pc-q35-3.0",
-            MachineX86_64::Pcq352_9 => "pc-q35-2.9",
-            MachineX86_64::Pcq352_8 => "pc-q35-2.8",
-            MachineX86_64::Pcq352_7 => "pc-q35-2.7",
-            MachineX86_64::Pcq352_6 => "pc-q35-2.6",
-            MachineX86_64::Pcq352_5 => "pc-q35-2.5",
-            MachineX86_64::Pcq352_4 => "pc-q35-2.4",
-            MachineX86_64::Pcq352_12 => "pc-q35-2.12",
-            MachineX86_64::Pcq352_11 => "pc-q35-2.11",
-            MachineX86_64::Pcq352_10 => "pc-q35-2.10",
-            MachineX86_64::Q35 => "q35",
-            MachineX86_64::Pcq3510_0 => "pc-q35-10.0",
-            MachineX86_64::Isapc => "isapc",
-            MachineX86_64::None => "none",
+            MachineTypeX86_64::Microvm => "microvm",
+            MachineTypeX86_64::Pci440fx9_2 => "pc-i440fx-9.2",
+            MachineTypeX86_64::Pci440fx9_1 => "pc-i440fx-9.1",
+            MachineTypeX86_64::Pci440fx9_0 => "pc-i440fx-9.0",
+            MachineTypeX86_64::Pci440fx8_2 => "pc-i440fx-8.2",
+            MachineTypeX86_64::Pci440fx8_1 => "pc-i440fx-8.1",
+            MachineTypeX86_64::Pci440fx8_0 => "pc-i440fx-8.0",
+            MachineTypeX86_64::Pci440fx7_2 => "pc-i440fx-7.2",
+            MachineTypeX86_64::Pci440fx7_1 => "pc-i440fx-7.1",
+            MachineTypeX86_64::Pc => "pc",
+            MachineTypeX86_64::Pci440fx10_0 => "pc-i440fx-10.0",
+            MachineTypeX86_64::Pcq359_2 => "pc-q35-9.2",
+            MachineTypeX86_64::Pcq359_1 => "pc-q35-9.1",
+            MachineTypeX86_64::Pcq359_0 => "pc-q35-9.0",
+            MachineTypeX86_64::Pcq358_2 => "pc-q35-8.2",
+            MachineTypeX86_64::Pcq358_1 => "pc-q35-8.1",
+            MachineTypeX86_64::Pcq358_0 => "pc-q35-8.0",
+            MachineTypeX86_64::Pcq357_2 => "pc-q35-7.2",
+            MachineTypeX86_64::Pcq357_1 => "pc-q35-7.1",
+            MachineTypeX86_64::Q35 => "q35",
+            MachineTypeX86_64::Pcq3510_0 => "pc-q35-10.0",
+            MachineTypeX86_64::Isapc => "isapc",
+            MachineTypeX86_64::None => "none",
         }
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+impl FromStr for MachineTypeX86_64 {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "microvm" => Ok(MachineTypeX86_64::Microvm),
+            "pc-i440fx-9.2" => Ok(MachineTypeX86_64::Pci440fx9_2),
+            "pc-i440fx-9.1" => Ok(MachineTypeX86_64::Pci440fx9_1),
+            "pc-i440fx-9.0" => Ok(MachineTypeX86_64::Pci440fx9_0),
+            "pc-i440fx-8.2" => Ok(MachineTypeX86_64::Pci440fx8_2),
+            "pc-i440fx-8.1" => Ok(MachineTypeX86_64::Pci440fx8_1),
+            "pc-i440fx-8.0" => Ok(MachineTypeX86_64::Pci440fx8_0),
+            "pc-i440fx-7.2" => Ok(MachineTypeX86_64::Pci440fx7_2),
+            "pc-i440fx-7.1" => Ok(MachineTypeX86_64::Pci440fx7_1),
+            "pc" => Ok(MachineTypeX86_64::Pc),
+            "pc-i440fx-10.0" => Ok(MachineTypeX86_64::Pci440fx10_0),
+            "pc-q35-9.2" => Ok(MachineTypeX86_64::Pcq359_2),
+            "pc-q35-9.1" => Ok(MachineTypeX86_64::Pcq359_1),
+            "pc-q35-9.0" => Ok(MachineTypeX86_64::Pcq359_0),
+            "pc-q35-8.2" => Ok(MachineTypeX86_64::Pcq358_2),
+            "pc-q35-8.1" => Ok(MachineTypeX86_64::Pcq358_1),
+            "pc-q35-8.0" => Ok(MachineTypeX86_64::Pcq358_0),
+            "pc-q35-7.2" => Ok(MachineTypeX86_64::Pcq357_2),
+            "pc-q35-7.1" => Ok(MachineTypeX86_64::Pcq357_1),
+            "q35" => Ok(MachineTypeX86_64::Q35),
+            "pc-q35-10.0" => Ok(MachineTypeX86_64::Pcq3510_0),
+            "isapc" => Ok(MachineTypeX86_64::Isapc),
+            "none" => Ok(MachineTypeX86_64::None),
+            other => Err(format!("{} is not a supported machine type", other)),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum MachineAarch64 {
     /// Aspeed AST1030 MiniBMC (Cortex-M4)
     Ast1030evb,
@@ -588,44 +366,6 @@ pub enum MachineAarch64 {
     Virt,
     /// QEMU 10.0 ARM Virtual Machine
     Virt10_0,
-    /// QEMU 2.10 ARM Virtual Machine (deprecated)
-    Virt2_10,
-    /// QEMU 2.11 ARM Virtual Machine (deprecated)
-    Virt2_11,
-    /// QEMU 2.12 ARM Virtual Machine (deprecated)
-    Virt2_12,
-    /// QEMU 2.6 ARM Virtual Machine (deprecated)
-    Virt2_6,
-    /// QEMU 2.7 ARM Virtual Machine (deprecated)
-    Virt2_7,
-    /// QEMU 2.8 ARM Virtual Machine (deprecated)
-    Virt2_8,
-    /// QEMU 2.9 ARM Virtual Machine (deprecated)
-    Virt2_9,
-    /// QEMU 3.0 ARM Virtual Machine (deprecated)
-    Virt3_0,
-    /// QEMU 3.1 ARM Virtual Machine (deprecated)
-    Virt3_1,
-    /// QEMU 4.0 ARM Virtual Machine (deprecated)
-    Virt4_0,
-    /// QEMU 4.1 ARM Virtual Machine (deprecated)
-    Virt4_1,
-    /// QEMU 4.2 ARM Virtual Machine (deprecated)
-    Virt4_2,
-    /// QEMU 5.0 ARM Virtual Machine (deprecated)
-    Virt5_0,
-    /// QEMU 5.1 ARM Virtual Machine (deprecated)
-    Virt5_1,
-    /// QEMU 5.2 ARM Virtual Machine (deprecated)
-    Virt5_2,
-    /// QEMU 6.0 ARM Virtual Machine (deprecated)
-    Virt6_0,
-    /// QEMU 6.1 ARM Virtual Machine (deprecated)
-    Virt6_1,
-    /// QEMU 6.2 ARM Virtual Machine (deprecated)
-    Virt6_2,
-    /// QEMU 7.0 ARM Virtual Machine (deprecated)
-    Virt7_0,
     /// QEMU 7.1 ARM Virtual Machine
     Virt7_1,
     /// QEMU 7.2 ARM Virtual Machine
@@ -653,8 +393,9 @@ pub enum MachineAarch64 {
     /// Facebook YosemiteV2 BMC (ARM1176)
     Yosemitev2bmc,
 }
+
 impl ToCommand for MachineAarch64 {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
 
         match self {
@@ -913,63 +654,6 @@ impl ToCommand for MachineAarch64 {
             MachineAarch64::Virt10_0 => {
                 cmd.push("virt-10.0".to_string());
             }
-            MachineAarch64::Virt2_10 => {
-                cmd.push("virt-2.10".to_string());
-            }
-            MachineAarch64::Virt2_11 => {
-                cmd.push("virt-2.11".to_string());
-            }
-            MachineAarch64::Virt2_12 => {
-                cmd.push("virt-2.12".to_string());
-            }
-            MachineAarch64::Virt2_6 => {
-                cmd.push("virt-2.6".to_string());
-            }
-            MachineAarch64::Virt2_7 => {
-                cmd.push("virt-2.7".to_string());
-            }
-            MachineAarch64::Virt2_8 => {
-                cmd.push("virt-2.8".to_string());
-            }
-            MachineAarch64::Virt2_9 => {
-                cmd.push("virt-2.9".to_string());
-            }
-            MachineAarch64::Virt3_0 => {
-                cmd.push("virt-3.0".to_string());
-            }
-            MachineAarch64::Virt3_1 => {
-                cmd.push("virt-3.1".to_string());
-            }
-            MachineAarch64::Virt4_0 => {
-                cmd.push("virt-4.0".to_string());
-            }
-            MachineAarch64::Virt4_1 => {
-                cmd.push("virt-4.1".to_string());
-            }
-            MachineAarch64::Virt4_2 => {
-                cmd.push("virt-4.2".to_string());
-            }
-            MachineAarch64::Virt5_0 => {
-                cmd.push("virt-5.0".to_string());
-            }
-            MachineAarch64::Virt5_1 => {
-                cmd.push("virt-5.1".to_string());
-            }
-            MachineAarch64::Virt5_2 => {
-                cmd.push("virt-5.2".to_string());
-            }
-            MachineAarch64::Virt6_0 => {
-                cmd.push("virt-6.0".to_string());
-            }
-            MachineAarch64::Virt6_1 => {
-                cmd.push("virt-6.1".to_string());
-            }
-            MachineAarch64::Virt6_2 => {
-                cmd.push("virt-6.2".to_string());
-            }
-            MachineAarch64::Virt7_0 => {
-                cmd.push("virt-7.0".to_string());
-            }
             MachineAarch64::Virt7_1 => {
                 cmd.push("virt-7.1".to_string());
             }
@@ -1102,25 +786,6 @@ impl ToArg for MachineAarch64 {
             MachineAarch64::Vexpressa9 => "vexpress-a9",
             MachineAarch64::Virt => "virt",
             MachineAarch64::Virt10_0 => "virt-10.0",
-            MachineAarch64::Virt2_10 => "virt-2.10",
-            MachineAarch64::Virt2_11 => "virt-2.11",
-            MachineAarch64::Virt2_12 => "virt-2.12",
-            MachineAarch64::Virt2_6 => "virt-2.6",
-            MachineAarch64::Virt2_7 => "virt-2.7",
-            MachineAarch64::Virt2_8 => "virt-2.8",
-            MachineAarch64::Virt2_9 => "virt-2.9",
-            MachineAarch64::Virt3_0 => "virt-3.0",
-            MachineAarch64::Virt3_1 => "virt-3.1",
-            MachineAarch64::Virt4_0 => "virt-4.0",
-            MachineAarch64::Virt4_1 => "virt-4.1",
-            MachineAarch64::Virt4_2 => "virt-4.2",
-            MachineAarch64::Virt5_0 => "virt-5.0",
-            MachineAarch64::Virt5_1 => "virt-5.1",
-            MachineAarch64::Virt5_2 => "virt-5.2",
-            MachineAarch64::Virt6_0 => "virt-6.0",
-            MachineAarch64::Virt6_1 => "virt-6.1",
-            MachineAarch64::Virt6_2 => "virt-6.2",
-            MachineAarch64::Virt7_0 => "virt-7.0",
             MachineAarch64::Virt7_1 => "virt-7.1",
             MachineAarch64::Virt7_2 => "virt-7.2",
             MachineAarch64::Virt8_0 => "virt-8.0",
@@ -1135,5 +800,13 @@ impl ToArg for MachineAarch64 {
             MachineAarch64::Xlnxzcu102 => "xlnx-zcu102",
             MachineAarch64::Yosemitev2bmc => "yosemitev2-bmc",
         }
+    }
+}
+
+impl FromStr for MachineAarch64 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

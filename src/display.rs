@@ -1,9 +1,14 @@
 use std::path::PathBuf;
+use std::str::FromStr;
+
+use proptest_derive::Arbitrary;
 
 use crate::common::{OnOff, YesNo};
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+pub(crate) const ARG_DISPLAY: &str = "-display";
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum OnCoreEsOff {
     On,
     Core,
@@ -22,7 +27,7 @@ impl ToArg for OnCoreEsOff {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum QemuDisplay {
     Spice {
         gl: Option<OnOff>,
@@ -71,11 +76,10 @@ pub enum QemuDisplay {
 }
 
 impl ToCommand for QemuDisplay {
-    fn to_command(&self) -> Vec<String> {
-        let mut cmd = vec![];
-
-        cmd.push("-display".to_string());
-
+    fn command(&self) -> String {
+        ARG_DISPLAY.to_string()
+    }
+    fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
         match self {
             QemuDisplay::Spice { gl } => {
@@ -186,12 +190,7 @@ impl ToCommand for QemuDisplay {
                     args.push(format!("rendernode={}", rendernode.display()));
                 }
             }
-            QemuDisplay::Dbus {
-                addr,
-                p2p,
-                gl,
-                rendernode,
-            } => {
+            QemuDisplay::Dbus { addr, p2p, gl, rendernode } => {
                 args.push("dbus".to_string());
                 if let Some(addr) = addr {
                     args.push(format!("addr={}", addr));
@@ -210,7 +209,15 @@ impl ToCommand for QemuDisplay {
                 args.push("none".to_string());
             }
         }
-        cmd.push(args.join(","));
-        cmd
+
+        args
+    }
+}
+
+impl FromStr for QemuDisplay {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
     }
 }

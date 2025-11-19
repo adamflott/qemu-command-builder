@@ -1,13 +1,38 @@
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
+
+use proptest_derive::Arbitrary;
+
 use crate::to_command::{ToArg, ToCommand};
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum YesNo {
     Yes,
     No,
 }
 
+impl Display for YesNo {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            YesNo::Yes => write!(f, "yes"),
+            YesNo::No => write!(f, "no"),
+        }
+    }
+}
+impl FromStr for YesNo {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "yes" => Ok(YesNo::Yes),
+            "no" => Ok(YesNo::No),
+            _ => Err(()),
+        }
+    }
+}
+
 impl ToCommand for YesNo {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
         match self {
             YesNo::Yes => {
@@ -30,14 +55,35 @@ impl ToArg for YesNo {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum OnOff {
     On,
     Off,
 }
 
+impl Display for OnOff {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OnOff::On => write!(f, "on"),
+            OnOff::Off => write!(f, "off"),
+        }
+    }
+}
+
+impl FromStr for OnOff {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "on" => Ok(OnOff::On),
+            "off" => Ok(OnOff::Off),
+            _ => Err(()),
+        }
+    }
+}
+
 impl ToCommand for OnOff {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
         match self {
             OnOff::On => {
@@ -60,7 +106,7 @@ impl ToArg for OnOff {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum OnOffAuto {
     On,
     Off,
@@ -68,8 +114,30 @@ pub enum OnOffAuto {
     Auto,
 }
 
+impl FromStr for OnOffAuto {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "on" => Ok(OnOffAuto::On),
+            "off" => Ok(OnOffAuto::Off),
+            "auto" => Ok(OnOffAuto::Auto),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Display for OnOffAuto {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OnOffAuto::On => write!(f, "on"),
+            OnOffAuto::Off => write!(f, "off"),
+            OnOffAuto::Auto => write!(f, "auto"),
+        }
+    }
+}
 impl ToCommand for OnOffAuto {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
         match self {
             OnOffAuto::On => {
@@ -96,15 +164,35 @@ impl ToArg for OnOffAuto {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum OnOffDefaultOn {
     #[default]
     On,
     Off,
 }
 
+impl FromStr for OnOffDefaultOn {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "on" => Ok(OnOffDefaultOn::On),
+            "off" => Ok(OnOffDefaultOn::Off),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Display for OnOffDefaultOn {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OnOffDefaultOn::On => write!(f, "on"),
+            OnOffDefaultOn::Off => write!(f, "off"),
+        }
+    }
+}
 impl ToCommand for OnOffDefaultOn {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
         match self {
             OnOffDefaultOn::On => {
@@ -127,14 +215,36 @@ impl ToArg for OnOffDefaultOn {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum OnOffDefaultOff {
     On,
     #[default]
     Off,
 }
+
+impl Display for OnOffDefaultOff {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OnOffDefaultOff::On => write!(f, "on"),
+            OnOffDefaultOff::Off => write!(f, "off"),
+        }
+    }
+}
+
+impl FromStr for OnOffDefaultOff {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "on" => Ok(OnOffDefaultOff::On),
+            "off" => Ok(OnOffDefaultOff::Off),
+            _ => Err(()),
+        }
+    }
+}
+
 impl ToCommand for OnOffDefaultOff {
-    fn to_command(&self) -> Vec<String> {
+    fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
         match self {
             OnOffDefaultOff::On => {
@@ -157,7 +267,7 @@ impl ToArg for OnOffDefaultOff {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum AccelType {
     Kvm,
     Xen,
@@ -181,12 +291,47 @@ impl ToArg for AccelType {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+impl FromStr for AccelType {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "kvm" => Ok(AccelType::Kvm),
+            "xen" => Ok(AccelType::Xen),
+            "hvf" => Ok(AccelType::Hvf),
+            "nvmm" => Ok(AccelType::Nvmm),
+            "whpx" => Ok(AccelType::Whpx),
+            "tcg" => Ok(AccelType::Tcg),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum IgnoreUnmap {
     Ignore,
     Unmap,
 }
 
+impl Display for IgnoreUnmap {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IgnoreUnmap::Ignore => write!(f, "ignore"),
+            IgnoreUnmap::Unmap => write!(f, "unmap"),
+        }
+    }
+}
+impl FromStr for IgnoreUnmap {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ignore" => Ok(IgnoreUnmap::Ignore),
+            "unmap" => Ok(IgnoreUnmap::Unmap),
+            _ => Err(()),
+        }
+    }
+}
 impl ToArg for IgnoreUnmap {
     fn to_arg(&self) -> &str {
         match self {
@@ -196,13 +341,35 @@ impl ToArg for IgnoreUnmap {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum OnOffUnmap {
     On,
     Off,
     Unmap,
 }
 
+impl Display for OnOffUnmap {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OnOffUnmap::On => write!(f, "on"),
+            OnOffUnmap::Off => write!(f, "off"),
+            OnOffUnmap::Unmap => write!(f, "unmap"),
+        }
+    }
+}
+
+impl FromStr for OnOffUnmap {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "on" => Ok(OnOffUnmap::On),
+            "off" => Ok(OnOffUnmap::Off),
+            "unmap" => Ok(OnOffUnmap::Unmap),
+            _ => Err(()),
+        }
+    }
+}
 impl ToArg for OnOffUnmap {
     fn to_arg(&self) -> &str {
         match self {
@@ -213,7 +380,7 @@ impl ToArg for OnOffUnmap {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum AutoNeverAlways {
     Auto,
     Never,
