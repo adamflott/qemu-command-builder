@@ -23,9 +23,6 @@ pub(crate) const ARG_BLOCKDEV: &str = "-blockdev";
 /// A block driver node created with ``-blockdev`` can be used for a
 /// guest device by specifying its node name for the ``drive`` property
 /// in a ``-device`` argument that defines a block device.
-///
-/// TODO
-/// - constrain driver opts
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct BlockDev {
     /// Specifies the block driver to use for the given node.

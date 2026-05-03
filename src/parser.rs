@@ -2,9 +2,11 @@ use crate::accel::{ARG_ACCEL, Accel};
 use crate::acpitable::{ARG_ACPITABLE, AcpiTable};
 use crate::action::{ARG_ACTION, Action};
 use crate::addfs::{ARG_ADD_FD, AddFd};
+use crate::audiodev::{ARG_AUDIODEV, AudioDev};
 use crate::blockdev::{ARG_BLOCKDEV, BlockDev};
 use crate::boot::{ARG_BOOT, Boot};
 use crate::chardev::{ARG_CHARDEV, CharDev};
+use crate::compact::{ARG_COMPAT, Compact};
 use crate::cpu::{ARG_CPU, CpuX86};
 use crate::device::{ARG_DEVICE, Device};
 use crate::display::{ARG_DISPLAY, QemuDisplay};
@@ -105,6 +107,7 @@ impl FromStr for QemuInstanceForX86_64 {
                 ARG_ACPITABLE => ff!(tokens, ARG_ACPITABLE, AcpiTable, q.acpitable),
                 ARG_ACTION => ff!(tokens, ARG_ACTION, Action, q.action),
                 ARG_ADD_FD => ff!(tokens, ARG_ADD_FD, AddFd, q.add_fd),
+                ARG_AUDIODEV => ff!(tokens, ARG_AUDIODEV, AudioDev, q.audiodev),
                 ARG_BIG_S => q.big_s = Some(true),
                 ARG_RTC => ff!(tokens, ARG_RTC, Rtc, q.rtc),
                 ARG_MEM_PATH => ff!(tokens, ARG_MEM_PATH, PathBuf, q.mem_path),
@@ -145,6 +148,7 @@ impl FromStr for QemuInstanceForX86_64 {
                 ARG_ECHR => ff!(tokens, ARG_ECHR, String, q.echr),
                 ARG_READCONFIG => ff!(tokens, ARG_READCONFIG, PathBuf, q.readconfig),
                 ARG_BOOT => ff!(tokens, ARG_BOOT, Boot, q.boot),
+                ARG_COMPAT => ff!(tokens, ARG_COMPAT, Compact, q.compact),
                 ARG_CPU => ff!(tokens, ARG_CPU, CpuX86, q.cpu),
                 ARG_DAEMONIZE => q.daemonize = Some(true),
                 ARG_DEVICE => ffs!(tokens, ARG_DEVICE, Device, q.device),
