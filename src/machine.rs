@@ -1,22 +1,19 @@
 use std::str::FromStr;
-use winnow::token::literal;
 
 use bon::Builder;
 use proptest_derive::Arbitrary;
 
 use crate::common::*;
 use crate::machine_type::{MachineTypeAarch64, MachineTypeX86_64};
-use crate::parsers::{DELIM_COLON, DELIM_COMMA, ascii_plus_more};
+use crate::parsers::{DELIM_COLON, DELIM_COMMA};
 use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::{ToArg, ToCommand};
-use crate::{pco, pso, qao};
-use winnow::ascii::alphanumeric1;
-use winnow::combinator::{opt, separated};
-use winnow::{ModalResult, Parser};
+use crate::qao;
 
 pub(crate) const ARG_MACHINE: &str = "-machine";
 
 const KEY_ACCEL: &str = "accel=";
+const KEY_TYPE: &str = "type=";
 const KEY_VMPORT: &str = "vmport=";
 const KEY_DUMP_GUEST_CORE: &str = "dump-guest-core=";
 const KEY_MEM_MERGE: &str = "mem-merge=";
@@ -28,6 +25,7 @@ const KEY_HMAT: &str = "hmat=";
 const KEY_AUX_RAM_SHARE: &str = "aux-ram-share=";
 const KEY_MEMORY_BACKEND: &str = "memory-backend=";
 
+/// Supported `interleave-granularity=` values for `cxl-fmw`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum Granularity {
     #[default]
@@ -53,6 +51,7 @@ impl ToArg for Granularity {
         }
     }
 }
+/// A CXL fixed memory window definition for `-machine`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CxlFmw {
     targets: Vec<String>,
@@ -60,12 +59,14 @@ pub struct CxlFmw {
     interleave_granularity: Option<Granularity>,
 }
 
+/// Cache topology properties for `-machine smp-cache.*`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmpCache {
     cache: String,
     topology: String,
 }
 
+/// Architecture-specific machine types accepted by this crate.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum MachineType {
     X86_64(MachineTypeX86_64),
@@ -95,6 +96,7 @@ impl ToArg for MachineType {
 /// QEMU will support machine types from many previous versions.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Machine<T> {
+    /// The QEMU machine type name.
     machine_type: T,
 
     /// This is used to enable an accelerator. Depending on the target
@@ -202,6 +204,7 @@ pub struct Machine<T> {
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct MachineX86_64 {
+    /// The x86_64-specific `-machine` payload.
     pub m: Machine<MachineTypeX86_64>,
 }
 
@@ -257,56 +260,173 @@ impl FromStr for MachineX86_64 {
     type Err = ShellStringError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        machine_x86_64.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        parse_machine_x86_64(s).map_err(ShellStringError::new)
     }
 }
 
-fn accel_type(s: &mut &str) -> ModalResult<AccelType> {
-    ascii_plus_more.parse_to::<AccelType>().parse_next(s)
+fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
+    let mut parts = s.split(DELIM_COMMA);
+    let first = parts.next().ok_or_else(|| "empty machine argument".to_string())?;
+
+    let mut machine_type = None;
+    let mut accel = None;
+    let mut vmport = None;
+    let mut dump_guest_core = None;
+    let mut mem_merge = None;
+    let mut aes_key_wrap = None;
+    let mut dea_key_wrap = None;
+    let mut nvdimm = None;
+    let mut memory_encryption = None;
+    let mut hmat = None;
+    let mut aux_ram_share = None;
+    let mut memory_backend = None;
+
+    if let Some(value) = first.strip_prefix(KEY_TYPE) {
+        machine_type = Some(parse_machine_type(value)?);
+    } else if first.contains('=') {
+        parse_machine_option(
+            first,
+            &mut machine_type,
+            &mut accel,
+            &mut vmport,
+            &mut dump_guest_core,
+            &mut mem_merge,
+            &mut aes_key_wrap,
+            &mut dea_key_wrap,
+            &mut nvdimm,
+            &mut memory_encryption,
+            &mut hmat,
+            &mut aux_ram_share,
+            &mut memory_backend,
+        )?;
+    } else {
+        machine_type = Some(parse_machine_type(first)?);
+    }
+
+    for part in parts {
+        parse_machine_option(
+            part,
+            &mut machine_type,
+            &mut accel,
+            &mut vmport,
+            &mut dump_guest_core,
+            &mut mem_merge,
+            &mut aes_key_wrap,
+            &mut dea_key_wrap,
+            &mut nvdimm,
+            &mut memory_encryption,
+            &mut hmat,
+            &mut aux_ram_share,
+            &mut memory_backend,
+        )?;
+    }
+
+    let machine_type = machine_type.ok_or_else(|| "machine type is required".to_string())?;
+
+    Ok(MachineX86_64 {
+        m: Machine {
+            machine_type,
+            accel,
+            vmport,
+            dump_guest_core,
+            mem_merge,
+            aes_key_wrap,
+            dea_key_wrap,
+            nvdimm,
+            memory_encryption,
+            hmat,
+            aux_ram_share,
+            memory_backend,
+        },
+    })
 }
 
-pco!(vmport, alphanumeric1, OnOffAuto, KEY_VMPORT);
-pco!(dump_guest_core, alphanumeric1, OnOffDefaultOn, KEY_DUMP_GUEST_CORE);
-pco!(mem_merge, alphanumeric1, OnOffDefaultOn, KEY_MEM_MERGE);
-pco!(aes_key_wrap, alphanumeric1, OnOffDefaultOn, KEY_AES_KEY_WRAP);
-pco!(dea_key_wrap, alphanumeric1, OnOffDefaultOn, KEY_DEA_KEY_WRAP);
-pco!(nvdimm, alphanumeric1, OnOffDefaultOff, KEY_NVDIMM);
-pso!(memory_encryption, KEY_MEMORY_ENCRYPTION);
-pco!(hmat, alphanumeric1, OnOffDefaultOff, KEY_HMAT);
-pco!(aux_ram_share, alphanumeric1, OnOffDefaultOff, KEY_AUX_RAM_SHARE);
-pso!(memory_backend, KEY_MEMORY_BACKEND);
-fn machine_x86_64(s: &mut &str) -> ModalResult<MachineX86_64> {
-    let machine_type = ascii_plus_more.parse_to::<MachineTypeX86_64>().parse_next(s)?;
-    let _ = literal(DELIM_COMMA).parse_next(s)?;
-    let _ = literal(KEY_ACCEL).parse_next(s)?;
-    let accel = opt(separated(1.., accel_type, DELIM_COLON)).parse_next(s)?;
-    let vmport = opt(vmport).parse_next(s)?;
-    let dump_guest_core = opt(dump_guest_core).parse_next(s)?;
-    let mem_merge = opt(mem_merge).parse_next(s)?;
-    let aes_key_wrap = opt(aes_key_wrap).parse_next(s)?;
-    let dea_key_wrap = opt(dea_key_wrap).parse_next(s)?;
-    let nvdimm = opt(nvdimm).parse_next(s)?;
-    let memory_encryption = opt(memory_encryption).parse_next(s)?;
-    let hmat = opt(hmat).parse_next(s)?;
-    let aux_ram_share = opt(aux_ram_share).parse_next(s)?;
-    let memory_backend = opt(memory_backend).parse_next(s)?;
-    let m = Machine {
-        machine_type,
-        accel,
-        vmport,
-        dump_guest_core,
-        mem_merge,
-        aes_key_wrap,
-        dea_key_wrap,
-        nvdimm,
-        memory_encryption,
-        hmat,
-        aux_ram_share,
-        memory_backend,
-        //  cxl_fmw: None,
-        //        smp_cache: None,
-    };
-    Ok(MachineX86_64 { m })
+#[allow(clippy::too_many_arguments)]
+fn parse_machine_option(
+    part: &str,
+    machine_type: &mut Option<MachineTypeX86_64>,
+    accel: &mut Option<Vec<AccelType>>,
+    vmport: &mut Option<OnOffAuto>,
+    dump_guest_core: &mut Option<OnOffDefaultOn>,
+    mem_merge: &mut Option<OnOffDefaultOn>,
+    aes_key_wrap: &mut Option<OnOffDefaultOn>,
+    dea_key_wrap: &mut Option<OnOffDefaultOn>,
+    nvdimm: &mut Option<OnOffDefaultOff>,
+    memory_encryption: &mut Option<ShellString>,
+    hmat: &mut Option<OnOffDefaultOff>,
+    aux_ram_share: &mut Option<OnOffDefaultOff>,
+    memory_backend: &mut Option<ShellString>,
+) -> Result<(), String> {
+    let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid machine option: {part}"))?;
+    match key {
+        "type" => *machine_type = Some(parse_machine_type(value)?),
+        "accel" => {
+            let accels = value
+                .split(DELIM_COLON)
+                .map(|v| v.parse::<AccelType>().map_err(|_| format!("invalid accel value: {v}")))
+                .collect::<Result<Vec<_>, _>>()?;
+            *accel = Some(accels);
+        }
+        "vmport" => *vmport = Some(value.parse::<OnOffAuto>().map_err(|_| format!("invalid vmport value: {value}"))?),
+        "dump-guest-core" => {
+            *dump_guest_core = Some(
+                value
+                    .parse::<OnOffDefaultOn>()
+                    .map_err(|_| format!("invalid dump-guest-core value: {value}"))?,
+            )
+        }
+        "mem-merge" => {
+            *mem_merge = Some(
+                value
+                    .parse::<OnOffDefaultOn>()
+                    .map_err(|_| format!("invalid mem-merge value: {value}"))?,
+            )
+        }
+        "aes-key-wrap" => {
+            *aes_key_wrap = Some(
+                value
+                    .parse::<OnOffDefaultOn>()
+                    .map_err(|_| format!("invalid aes-key-wrap value: {value}"))?,
+            )
+        }
+        "dea-key-wrap" => {
+            *dea_key_wrap = Some(
+                value
+                    .parse::<OnOffDefaultOn>()
+                    .map_err(|_| format!("invalid dea-key-wrap value: {value}"))?,
+            )
+        }
+        "nvdimm" => {
+            *nvdimm = Some(
+                value
+                    .parse::<OnOffDefaultOff>()
+                    .map_err(|_| format!("invalid nvdimm value: {value}"))?,
+            )
+        }
+        "memory-encryption" => *memory_encryption = Some(ShellString::new(value)),
+        "hmat" => {
+            *hmat = Some(
+                value
+                    .parse::<OnOffDefaultOff>()
+                    .map_err(|_| format!("invalid hmat value: {value}"))?,
+            )
+        }
+        "aux-ram-share" => {
+            *aux_ram_share = Some(
+                value
+                    .parse::<OnOffDefaultOff>()
+                    .map_err(|_| format!("invalid aux-ram-share value: {value}"))?,
+            )
+        }
+        "memory-backend" => *memory_backend = Some(ShellString::new(value)),
+        other => return Err(format!("unsupported machine option: {other}")),
+    }
+
+    Ok(())
+}
+
+fn parse_machine_type(value: &str) -> Result<MachineTypeX86_64, String> {
+    value.parse::<MachineTypeX86_64>()
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]

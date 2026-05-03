@@ -95,6 +95,10 @@ pub struct ShellStringError {
 }
 
 impl ShellStringError {
+    pub(crate) fn new(message: impl Into<String>) -> Self {
+        Self { message: message.into(), span: 0..0, input: String::new() }
+    }
+
     pub(crate) fn from_parse(error: ParseError<&str, ContextError>) -> Self {
         let message = error.inner().to_string();
         let input = (*error.input()).to_owned();
