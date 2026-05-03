@@ -6,8 +6,11 @@ use proptest_derive::Arbitrary;
 use crate::to_command::{ToArg, ToCommand};
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+/// A QEMU boolean-like value encoded as `"yes"` or `"no"`.
 pub enum YesNo {
+    /// Emits `"yes"`.
     Yes,
+    /// Emits `"no"`.
     No,
 }
 
@@ -56,8 +59,11 @@ impl ToArg for YesNo {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+/// A QEMU boolean-like value encoded as `"on"` or `"off"`.
 pub enum OnOff {
+    /// Emits `"on"`.
     On,
+    /// Emits `"off"`.
     Off,
 }
 
@@ -107,9 +113,15 @@ impl ToArg for OnOff {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
+/// A QEMU tri-state value encoded as `"on"`, `"off"`, or `"auto"`.
+///
+/// The default is [`OnOffAuto::Auto`].
 pub enum OnOffAuto {
+    /// Emits `"on"`.
     On,
+    /// Emits `"off"`.
     Off,
+    /// Emits `"auto"`.
     #[default]
     Auto,
 }
@@ -165,9 +177,14 @@ impl ToArg for OnOffAuto {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
+/// A QEMU on/off value whose Rust default is `"on"`.
+///
+/// The default is [`OnOffDefaultOn::On`].
 pub enum OnOffDefaultOn {
+    /// Emits `"on"`.
     #[default]
     On,
+    /// Emits `"off"`.
     Off,
 }
 
@@ -216,8 +233,13 @@ impl ToArg for OnOffDefaultOn {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
+/// A QEMU on/off value whose Rust default is `"off"`.
+///
+/// The default is [`OnOffDefaultOff::Off`].
 pub enum OnOffDefaultOff {
+    /// Emits `"on"`.
     On,
+    /// Emits `"off"`.
     #[default]
     Off,
 }
@@ -268,12 +290,21 @@ impl ToArg for OnOffDefaultOff {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
+/// Supported QEMU accelerator backends.
+///
+/// The default is [`AccelType::Tcg`].
 pub enum AccelType {
+    /// Kernel-based Virtual Machine acceleration.
     Kvm,
+    /// Xen acceleration.
     Xen,
+    /// Hypervisor.framework acceleration.
     Hvf,
+    /// NetBSD NVMM acceleration.
     Nvmm,
+    /// Windows Hypervisor Platform acceleration.
     Whpx,
+    /// Tiny Code Generator emulation.
     #[default]
     Tcg,
 }
@@ -308,8 +339,11 @@ impl FromStr for AccelType {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+/// A QEMU setting encoded as `"ignore"` or `"unmap"`.
 pub enum IgnoreUnmap {
+    /// Emits `"ignore"`.
     Ignore,
+    /// Emits `"unmap"`.
     Unmap,
 }
 
@@ -342,9 +376,13 @@ impl ToArg for IgnoreUnmap {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+/// A QEMU value encoded as `"on"`, `"off"`, or `"unmap"`.
 pub enum OnOffUnmap {
+    /// Emits `"on"`.
     On,
+    /// Emits `"off"`.
     Off,
+    /// Emits `"unmap"`.
     Unmap,
 }
 
@@ -381,9 +419,13 @@ impl ToArg for OnOffUnmap {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+/// A QEMU policy value encoded as `"auto"`, `"never"`, or `"always"`.
 pub enum AutoNeverAlways {
+    /// Emits `"auto"`.
     Auto,
+    /// Emits `"never"`.
     Never,
+    /// Emits `"always"`.
     Always,
 }
 
