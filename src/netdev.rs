@@ -15,8 +15,9 @@ pub(crate) const ARG_NETDEV: &str = "-netdev";
 /// A QEMU `-netdev` backend.
 ///
 /// The parser supports the same canonical comma-separated forms that the
-/// formatter emits for the implemented backend variants. The current round-trip
-/// coverage focuses on `tap`.
+/// formatter emits for the implemented backend variants in this crate,
+/// including `tap`, `bridge`, `socket`, `vhost-user`, `vhost-vdpa`, and
+/// `hubport`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SMB {
     dir: PathBuf,
@@ -351,6 +352,7 @@ impl FromStr for Tap {
     }
 }
 
+/// A `-netdev bridge,...` backend.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Bridge {
     id: String,
@@ -363,7 +365,7 @@ impl ToCommand for Bridge {
         let mut args = vec!["bridge".to_string(), format!("id={}", self.id)];
 
         if let Some(br) = &self.bridge {
-            args.push(format!("bridge={}", br));
+            args.push(format!("br={}", br));
         }
         if let Some(helper) = &self.helper {
             args.push(format!("helper={}", helper));
@@ -373,23 +375,46 @@ impl ToCommand for Bridge {
 }
 
 impl FromStr for Bridge {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(',');
+        let backend = parts.next().ok_or_else(|| "empty netdev argument".to_string())?;
+        if backend != "bridge" {
+            return Err(format!("expected bridge backend, got {backend}"));
+        }
+
+        let mut id = None;
+        let mut bridge = None;
+        let mut helper = None;
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid bridge option: {part}"))?;
+            match key {
+                "id" => id = Some(value.to_string()),
+                "br" => bridge = Some(value.to_string()),
+                "helper" => helper = Some(value.to_string()),
+                other => return Err(format!("unsupported bridge option: {other}")),
+            }
+        }
+
+        Ok(Self { id: id.ok_or_else(|| "bridge netdev requires id=".to_string())?, bridge, helper })
     }
 }
 
+/// A host and port pair used by socket-based `-netdev` backends.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct HostAndPort {
     host: String,
     port: u16,
 }
+/// A host and optional port used by `listen=` socket endpoints.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct HostAndMaybePort {
     host: String,
     port: Option<u16>,
 }
+/// A `-netdev socket,...` backend using `listen=` and/or `connect=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SocketRegular {
     id: String,
@@ -411,9 +436,9 @@ impl ToCommand for SocketRegular {
             } else {
                 args.push(format!("listen={}", listen.host));
             }
-            if let Some(connection) = &self.connection {
-                args.push(format!("{}:{}", connection.host, connection.port));
-            }
+        }
+        if let Some(connection) = &self.connection {
+            args.push(format!("connect={}:{}", connection.host, connection.port));
         }
 
         vec![args.join(DELIM_COMMA)]
@@ -421,13 +446,37 @@ impl ToCommand for SocketRegular {
 }
 
 impl FromStr for SocketRegular {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(',');
+        let backend = parts.next().ok_or_else(|| "empty netdev argument".to_string())?;
+        if backend != "socket" {
+            return Err(format!("expected socket backend, got {backend}"));
+        }
+
+        let mut id = None;
+        let mut fd = None;
+        let mut listen = None;
+        let mut connection = None;
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid socket option: {part}"))?;
+            match key {
+                "id" => id = Some(value.to_string()),
+                "fd" => fd = Some(value.to_string()),
+                "listen" => listen = Some(parse_host_and_maybe_port(value)?),
+                "connect" => connection = Some(parse_host_and_port(value)?),
+                "mcast" | "udp" | "localaddr" => return Err(format!("socket variant is not regular: {part}")),
+                other => return Err(format!("unsupported socket option: {other}")),
+            }
+        }
+
+        Ok(Self { id: id.ok_or_else(|| "socket netdev requires id=".to_string())?, fd, listen, connection })
     }
 }
 
+/// A `-netdev socket,...` multicast backend using `mcast=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SocketMulticast {
     id: String,
@@ -454,13 +503,37 @@ impl ToCommand for SocketMulticast {
 }
 
 impl FromStr for SocketMulticast {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(',');
+        let backend = parts.next().ok_or_else(|| "empty netdev argument".to_string())?;
+        if backend != "socket" {
+            return Err(format!("expected socket backend, got {backend}"));
+        }
+
+        let mut id = None;
+        let mut fd = None;
+        let mut mcast = None;
+        let mut localaddr = None;
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid socket option: {part}"))?;
+            match key {
+                "id" => id = Some(value.to_string()),
+                "fd" => fd = Some(value.to_string()),
+                "mcast" => mcast = Some(parse_host_and_port(value)?),
+                "localaddr" => localaddr = Some(value.to_string()),
+                "listen" | "connect" | "udp" => return Err(format!("socket variant is not multicast: {part}")),
+                other => return Err(format!("unsupported socket option: {other}")),
+            }
+        }
+
+        Ok(Self { id: id.ok_or_else(|| "socket netdev requires id=".to_string())?, fd, mcast, localaddr })
     }
 }
 
+/// A `-netdev socket,...` UDP tunnel backend using `udp=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SocketUdpTunnel {
     id: String,
@@ -487,13 +560,37 @@ impl ToCommand for SocketUdpTunnel {
 }
 
 impl FromStr for SocketUdpTunnel {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(',');
+        let backend = parts.next().ok_or_else(|| "empty netdev argument".to_string())?;
+        if backend != "socket" {
+            return Err(format!("expected socket backend, got {backend}"));
+        }
+
+        let mut id = None;
+        let mut fd = None;
+        let mut udp = None;
+        let mut localaddr = None;
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid socket option: {part}"))?;
+            match key {
+                "id" => id = Some(value.to_string()),
+                "fd" => fd = Some(value.to_string()),
+                "udp" => udp = Some(parse_host_and_port(value)?),
+                "localaddr" => localaddr = Some(parse_host_and_port(value)?),
+                "listen" | "connect" | "mcast" => return Err(format!("socket variant is not udp tunnel: {part}")),
+                other => return Err(format!("unsupported socket option: {other}")),
+            }
+        }
+
+        Ok(Self { id: id.ok_or_else(|| "socket netdev requires id=".to_string())?, fd, udp, localaddr })
     }
 }
 
+/// The `socket` backend variants supported by this crate.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Socket {
     SocketRegular(SocketRegular),
@@ -512,10 +609,16 @@ impl ToCommand for Socket {
 }
 
 impl FromStr for Socket {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.contains(",mcast=") || s.starts_with("socket,mcast=") {
+            return Ok(Self::Multicast(s.parse::<SocketMulticast>()?));
+        }
+        if s.contains(",udp=") || s.starts_with("socket,udp=") {
+            return Ok(Self::UDPTunnel(s.parse::<SocketUdpTunnel>()?));
+        }
+        Ok(Self::SocketRegular(s.parse::<SocketRegular>()?))
     }
 }
 
@@ -989,11 +1092,13 @@ impl FromStr for AfXdp {
     }
 }
 
+/// A `-netdev vhost-user,...` backend.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VhostUser {
     id: String,
     chardev: String,
     vhostforce: Option<OnOff>,
+    queues: Option<usize>,
 }
 
 impl ToCommand for VhostUser {
@@ -1003,18 +1108,49 @@ impl ToCommand for VhostUser {
         if let Some(vhostforce) = &self.vhostforce {
             args.push(format!("vhostforce={}", vhostforce.to_arg()));
         }
+        if let Some(queues) = self.queues {
+            args.push(format!("queues={}", queues));
+        }
         vec![args.join(DELIM_COMMA)]
     }
 }
 
 impl FromStr for VhostUser {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(',');
+        let backend = parts.next().ok_or_else(|| "empty netdev argument".to_string())?;
+        if backend != "vhost-user" && backend != "type=vhost-user" {
+            return Err(format!("expected vhost-user backend, got {backend}"));
+        }
+
+        let mut id = None;
+        let mut chardev = None;
+        let mut vhostforce = None;
+        let mut queues = None;
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid vhost-user option: {part}"))?;
+            match key {
+                "id" => id = Some(value.to_string()),
+                "chardev" => chardev = Some(value.to_string()),
+                "vhostforce" => vhostforce = Some(value.parse::<OnOff>().map_err(|_| format!("invalid vhostforce value: {value}"))?),
+                "queues" => queues = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                other => return Err(format!("unsupported vhost-user option: {other}")),
+            }
+        }
+
+        Ok(Self {
+            id: id.ok_or_else(|| "vhost-user netdev requires id=".to_string())?,
+            chardev: chardev.ok_or_else(|| "vhost-user netdev requires chardev=".to_string())?,
+            vhostforce,
+            queues,
+        })
     }
 }
 
+/// A `-netdev vhost-vdpa,...` backend.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VhostVdpa {
     id: String,
@@ -1036,10 +1172,30 @@ impl ToCommand for VhostVdpa {
 }
 
 impl FromStr for VhostVdpa {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(',');
+        let backend = parts.next().ok_or_else(|| "empty netdev argument".to_string())?;
+        if backend != "vhost-vdpa" {
+            return Err(format!("expected vhost-vdpa backend, got {backend}"));
+        }
+
+        let mut id = None;
+        let mut vhostdev = None;
+        let mut vhostfd = None;
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid vhost-vdpa option: {part}"))?;
+            match key {
+                "id" => id = Some(value.to_string()),
+                "vhostdev" => vhostdev = Some(PathBuf::from(value)),
+                "vhostfd" => vhostfd = Some(value.to_string()),
+                other => return Err(format!("unsupported vhost-vdpa option: {other}")),
+            }
+        }
+
+        Ok(Self { id: id.ok_or_else(|| "vhost-vdpa netdev requires id=".to_string())?, vhostdev, vhostfd })
     }
 }
 
@@ -1151,6 +1307,7 @@ impl FromStr for VmnetBridged {
     }
 }
 
+/// A `-netdev hubport,...` backend.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Hubport {
     id: String,
@@ -1170,10 +1327,34 @@ impl ToCommand for Hubport {
 }
 
 impl FromStr for Hubport {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(',');
+        let backend = parts.next().ok_or_else(|| "empty netdev argument".to_string())?;
+        if backend != "hubport" {
+            return Err(format!("expected hubport backend, got {backend}"));
+        }
+
+        let mut id = None;
+        let mut hubid = None;
+        let mut netdev = None;
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid hubport option: {part}"))?;
+            match key {
+                "id" => id = Some(value.to_string()),
+                "hubid" => hubid = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "netdev" => netdev = Some(value.to_string()),
+                other => return Err(format!("unsupported hubport option: {other}")),
+            }
+        }
+
+        Ok(Self {
+            id: id.ok_or_else(|| "hubport netdev requires id=".to_string())?,
+            hubid: hubid.ok_or_else(|| "hubport netdev requires hubid=".to_string())?,
+            netdev,
+        })
     }
 }
 
@@ -1230,7 +1411,43 @@ impl FromStr for NetDev {
         if s.starts_with("tap,") || s == "tap" {
             return Ok(Self::Tap(s.parse::<Tap>()?));
         }
+        if s.starts_with("bridge,") || s == "bridge" {
+            return Ok(Self::Bridge(s.parse::<Bridge>()?));
+        }
+        if s.starts_with("socket,") || s == "socket" {
+            return Ok(Self::Socket(s.parse::<Socket>()?));
+        }
+        if s.starts_with("vhost-user,") || s.starts_with("type=vhost-user,") || s == "vhost-user" || s == "type=vhost-user" {
+            return Ok(Self::VhostUser(s.parse::<VhostUser>()?));
+        }
+        if s.starts_with("vhost-vdpa,") || s == "vhost-vdpa" {
+            return Ok(Self::VhostVdpa(s.parse::<VhostVdpa>()?));
+        }
+        if s.starts_with("hubport,") || s == "hubport" {
+            return Ok(Self::Hubport(s.parse::<Hubport>()?));
+        }
 
         Err(format!("unsupported netdev backend: {s}"))
     }
+}
+
+fn parse_host_and_port(value: &str) -> Result<HostAndPort, String> {
+    let (host, port) = value.rsplit_once(':').ok_or_else(|| format!("expected host:port, got {value}"))?;
+    Ok(HostAndPort {
+        host: host.to_string(),
+        port: port.parse::<u16>().map_err(|e| e.to_string())?,
+    })
+}
+
+fn parse_host_and_maybe_port(value: &str) -> Result<HostAndMaybePort, String> {
+    if let Some((host, port)) = value.rsplit_once(':') {
+        if !port.is_empty() {
+            return Ok(HostAndMaybePort {
+                host: host.to_string(),
+                port: Some(port.parse::<u16>().map_err(|e| e.to_string())?),
+            });
+        }
+    }
+
+    Ok(HostAndMaybePort { host: value.to_string(), port: None })
 }
