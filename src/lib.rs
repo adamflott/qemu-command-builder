@@ -54,6 +54,15 @@ pub mod vga;
 pub mod virtfs;
 pub mod vnc;
 
+use std::path::PathBuf;
+use std::str::FromStr;
+
+use bon::Builder;
+use chrono::{DateTime, TimeZone, Utc};
+use newtype_uuid::{TypedUuidKind, TypedUuidTag};
+use proptest::prelude::{Arbitrary, Just};
+use proptest_derive::Arbitrary;
+
 use crate::accel::Accel;
 use crate::acpitable::AcpiTable;
 use crate::action::{Action, WatchdogAction};
@@ -74,6 +83,7 @@ use crate::global::Global;
 use crate::icount::Icount;
 use crate::incoming::Incoming;
 use crate::iscsi::Iscsi;
+use crate::machine::{MachineAarch64, MachineX86_64};
 use crate::memory::Memory;
 use crate::mon::Mon;
 use crate::msg::Msg;
@@ -86,7 +96,7 @@ use crate::parsers::{
     ARG_APPEND, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_CDROM, ARG_DAEMONIZE, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM, ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB, ARG_FULL_SCREEN, ARG_G,
     ARG_GDB, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_INITRD, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC, ARG_MTDBLOCK,
     ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT, ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_PERFMAP, ARG_PFLASH, ARG_PIDFILE, ARG_PRECONFIG,
-    ARG_READCONFIG, ARG_SD, ARG_SEED, ARG_SHIM, ARG_SNAPSHOT, ARG_USB, ARG_UUID, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID_RESTRICT, ARG_XEN_ID,
+    ARG_READCONFIG, ARG_SD, ARG_SEED, ARG_SHIM, ARG_SNAPSHOT, ARG_USB, ARG_UUID, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID_RESTRICT, ARG_XEN_ID, DELIM_COMMA,
 };
 use crate::plugin::Plugin;
 use crate::rtc::Rtc;
@@ -94,6 +104,7 @@ use crate::runwith::RunWith;
 use crate::sandbox::Sandbox;
 use crate::serial::{ARG_PARALLEL, ARG_SERIAL, SpecialDevice};
 use crate::set::Set;
+use crate::shell_string::ShellString;
 use crate::smbios::Smbios;
 use crate::smp::SMP;
 use crate::spice::Spice;
@@ -105,17 +116,6 @@ use crate::vga::VGA;
 use crate::virtfs::Virtfs;
 use crate::vnc::VNC;
 
-use crate::machine::MachineX86_64;
-use crate::machine_type::MachineAarch64;
-use crate::shell_string::ShellString;
-use bon::Builder;
-use chrono::{DateTime, TimeZone, Utc};
-use newtype_uuid::{TypedUuidKind, TypedUuidTag};
-use proptest::prelude::{Arbitrary, Just};
-use proptest_derive::Arbitrary;
-use std::path::PathBuf;
-use std::str::FromStr;
-
 /// QEMU binary name for x86_64
 const QEMU_BIN_X86_64: &'static str = "qemu-system-x86_64";
 
@@ -123,11 +123,11 @@ const QEMU_BIN_X86_64: &'static str = "qemu-system-x86_64";
 const QEMU_BIN_AARCH64: &'static str = "qemu-system-aarch64";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
-pub struct QemuInstanceBase<M, C> {
+pub struct QemuInstanceBase<Machine, Cpu> {
     pub qemu_binary: PathBuf,
 
-    pub machine: Option<M>,
-    pub cpu: Option<C>,
+    pub machine: Option<Machine>,
+    pub cpu: Option<Cpu>,
 
     pub accel: Option<Accel>,
     pub smp: Option<SMP>,
@@ -144,7 +144,7 @@ pub struct QemuInstanceBase<M, C> {
     pub audiodev: Option<AudioDev>,
     pub device: Option<Vec<Device>>,
     pub name: Option<Name>,
-    pub uuid: Option<newtype_uuid::TypedUuid<Xuuid>>,
+    pub uuid: Option<newtype_uuid::TypedUuid<QUuid>>,
     pub fda: Option<PathBuf>,
     pub fdb: Option<PathBuf>,
     pub hda: Option<PathBuf>,
@@ -234,9 +234,9 @@ pub struct QemuInstanceBase<M, C> {
     pub object: Option<Vec<Object>>,
 }
 
-impl<M: ToCommand, C: ToCommand> ToCommand for QemuInstanceBase<M, C>
+impl<Machine: ToCommand, Cpu: ToCommand> ToCommand for QemuInstanceBase<Machine, Cpu>
 where
-    QemuInstanceBase<M, C>: FromStr,
+    QemuInstanceBase<Machine, Cpu>: FromStr,
 {
     fn command(&self) -> String {
         self.qemu_binary.display().to_string()
@@ -460,7 +460,7 @@ where
         }
         if let Some(append) = &self.append {
             cmd.push(ARG_APPEND.to_string());
-            cmd.push(append.to_string());
+            cmd.push(append.as_ref().to_string());
         }
         if let Some(initrd) = &self.initrd {
             cmd.push(ARG_INITRD.to_string());
@@ -535,7 +535,7 @@ where
         }
         if let Some(d) = &self.d {
             cmd.push(ARG_LITTLE_D.to_string());
-            cmd.push(d.join(","));
+            cmd.push(d.join(DELIM_COMMA));
         }
         if let Some(big_d) = &self.big_d {
             cmd.push(ARG_BIG_D.to_string());
@@ -543,7 +543,7 @@ where
         }
         if let Some(dfilter) = &self.dfilter {
             cmd.push("-dfilter".to_string());
-            cmd.push(dfilter.join(","));
+            cmd.push(dfilter.join(DELIM_COMMA));
         }
         if let Some(seed) = &self.seed {
             cmd.push(ARG_SEED.to_string());
@@ -680,9 +680,9 @@ where
 pub type QemuInstanceForX86_64 = QemuInstanceBase<MachineX86_64, CpuX86>;
 pub type QemuInstanceForAarch64 = QemuInstanceBase<MachineAarch64, CpuAarch64>;
 
-pub struct Xuuid {}
+pub struct QUuid {}
 
-impl TypedUuidKind for Xuuid {
+impl TypedUuidKind for QUuid {
     fn tag() -> TypedUuidTag {
         // Tags are required to be ASCII identifiers, with underscores
         // and dashes also supported. The validity of a tag can be checked
@@ -693,24 +693,24 @@ impl TypedUuidKind for Xuuid {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub struct XDateTime(DateTime<Utc>);
+pub struct QDateTime(DateTime<Utc>);
 
-impl Arbitrary for XDateTime {
+impl Arbitrary for QDateTime {
     type Parameters = ();
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         let dt = Utc.with_ymd_and_hms(1984, 10, 22, 0, 1, 5).unwrap();
-        Just(XDateTime(dt))
+        Just(QDateTime(dt))
     }
 
     type Strategy = proptest::strategy::Just<Self>;
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
-pub struct Ipv4Net {
+pub struct QIpv4Net {
     ip: ipnet::Ipv4Net,
 }
 
-impl Arbitrary for Ipv4Net {
+impl Arbitrary for QIpv4Net {
     type Parameters = ();
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         todo!()
@@ -720,11 +720,11 @@ impl Arbitrary for Ipv4Net {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder)]
-pub struct Ipv6Net {
+pub struct QIpv6Net {
     ip: ipnet::Ipv6Net,
 }
 
-impl Arbitrary for Ipv6Net {
+impl Arbitrary for QIpv6Net {
     type Parameters = ();
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
         todo!()

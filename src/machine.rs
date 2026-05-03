@@ -1,14 +1,16 @@
 use std::str::FromStr;
+use winnow::token::literal;
 
 use bon::Builder;
 use proptest_derive::Arbitrary;
 
 use crate::common::*;
-use crate::machine_type::{MachineAarch64, MachineTypeX86_64};
+use crate::machine_type::{MachineTypeAarch64, MachineTypeX86_64};
 use crate::parsers::{DELIM_COLON, DELIM_COMMA, ascii_plus_more};
-use crate::qao;
-use crate::shell_string::ShellStringError;
+use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::{ToArg, ToCommand};
+use crate::{pco, pco0, pso, pso0, qao};
+use winnow::ascii::alphanumeric1;
 use winnow::combinator::{opt, separated};
 use winnow::{ModalResult, Parser};
 
@@ -67,7 +69,7 @@ pub struct SmpCache {
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum MachineType {
     X86_64(MachineTypeX86_64),
-    Aarch(MachineAarch64),
+    Aarch(MachineTypeAarch64),
 }
 
 impl ToArg for MachineType {
@@ -131,7 +133,7 @@ pub struct Machine<T> {
     nvdimm: Option<OnOffDefaultOff>,
 
     /// Memory encryption object to use. The default is none.
-    memory_encryption: Option<String>, // TODO find out actual values
+    memory_encryption: Option<ShellString>, // TODO find out actual values
 
     /// Enables or disables ACPI Heterogeneous Memory Attribute Table
     /// (HMAT) support. The default is off.

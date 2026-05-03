@@ -3,7 +3,7 @@ use crate::common::OnOff;
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
-use crate::{Ipv4Net, Ipv6Net};
+use crate::{QIpv4Net, QIpv6Net};
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::net::{Ipv4Addr, Ipv6Addr};
@@ -76,10 +76,10 @@ pub struct GuestForward {
 pub struct User {
     id: String,
     ipv4: Option<OnOff>,
-    net: Option<Ipv4Net>,
+    net: Option<QIpv4Net>,
     host: Option<Ipv4Addr>,
     ipv6: Option<OnOff>,
-    ipv6_net: Option<Ipv6Net>,
+    ipv6_net: Option<QIpv6Net>,
     ipv6_host: Option<Ipv6Addr>,
     restrict: Option<OnOff>,
     hostname: Option<String>,

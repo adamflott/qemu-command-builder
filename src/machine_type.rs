@@ -195,7 +195,7 @@ impl FromStr for MachineTypeX86_64 {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
-pub enum MachineAarch64 {
+pub enum MachineTypeAarch64 {
     /// Aspeed AST1030 MiniBMC (Cortex-M4)
     Ast1030evb,
     /// Aspeed AST2500 EVB (ARM1176)
@@ -394,303 +394,303 @@ pub enum MachineAarch64 {
     Yosemitev2bmc,
 }
 
-impl ToCommand for MachineAarch64 {
+impl ToCommand for MachineTypeAarch64 {
     fn to_args(&self) -> Vec<String> {
         let mut cmd = vec![];
 
         match self {
-            MachineAarch64::Ast1030evb => {
+            MachineTypeAarch64::Ast1030evb => {
                 cmd.push("ast1030-evb".to_string());
             }
-            MachineAarch64::Ast2500evb => {
+            MachineTypeAarch64::Ast2500evb => {
                 cmd.push("ast2500-evb".to_string());
             }
-            MachineAarch64::Ast2600evb => {
+            MachineTypeAarch64::Ast2600evb => {
                 cmd.push("ast2600-evb".to_string());
             }
-            MachineAarch64::Ast2700evb => {
+            MachineTypeAarch64::Ast2700evb => {
                 cmd.push("ast2700-evb".to_string());
             }
-            MachineAarch64::Ast2700a0evb => {
+            MachineTypeAarch64::Ast2700a0evb => {
                 cmd.push("ast2700a0-evb".to_string());
             }
-            MachineAarch64::Ast2700a1evb => {
+            MachineTypeAarch64::Ast2700a1evb => {
                 cmd.push("ast2700a1-evb".to_string());
             }
-            MachineAarch64::Bl475eiot01a => {
+            MachineTypeAarch64::Bl475eiot01a => {
                 cmd.push("b-l475e-iot01a".to_string());
             }
-            MachineAarch64::Bletchleybmc => {
+            MachineTypeAarch64::Bletchleybmc => {
                 cmd.push("bletchley-bmc".to_string());
             }
-            MachineAarch64::Bpim2u => {
+            MachineTypeAarch64::Bpim2u => {
                 cmd.push("bpim2u".to_string());
             }
-            MachineAarch64::Canona1100 => {
+            MachineTypeAarch64::Canona1100 => {
                 cmd.push("canon-a1100".to_string());
             }
-            MachineAarch64::Collie => {
+            MachineTypeAarch64::Collie => {
                 cmd.push("collie".to_string());
             }
-            MachineAarch64::Cubieboard => {
+            MachineTypeAarch64::Cubieboard => {
                 cmd.push("cubieboard".to_string());
             }
-            MachineAarch64::Emcraftsf2 => {
+            MachineTypeAarch64::Emcraftsf2 => {
                 cmd.push("emcraft-sf2".to_string());
             }
-            MachineAarch64::Fby35bmc => {
+            MachineTypeAarch64::Fby35bmc => {
                 cmd.push("fby35-bmc".to_string());
             }
-            MachineAarch64::Fby35 => {
+            MachineTypeAarch64::Fby35 => {
                 cmd.push("fby35".to_string());
             }
-            MachineAarch64::Fp5280g2bmc => {
+            MachineTypeAarch64::Fp5280g2bmc => {
                 cmd.push("fp5280g2-bmc".to_string());
             }
-            MachineAarch64::Fujibmc => {
+            MachineTypeAarch64::Fujibmc => {
                 cmd.push("fuji-bmc".to_string());
             }
-            MachineAarch64::G220abmc => {
+            MachineTypeAarch64::G220abmc => {
                 cmd.push("g220a-bmc".to_string());
             }
-            MachineAarch64::Highbank => {
+            MachineTypeAarch64::Highbank => {
                 cmd.push("highbank".to_string());
             }
-            MachineAarch64::Imx25pdk => {
+            MachineTypeAarch64::Imx25pdk => {
                 cmd.push("imx25-pdk".to_string());
             }
-            MachineAarch64::Imx8mpevk => {
+            MachineTypeAarch64::Imx8mpevk => {
                 cmd.push("imx8mp-evk".to_string());
             }
-            MachineAarch64::Integratorcp => {
+            MachineTypeAarch64::Integratorcp => {
                 cmd.push("integratorcp".to_string());
             }
-            MachineAarch64::Kudobmc => {
+            MachineTypeAarch64::Kudobmc => {
                 cmd.push("kudo-bmc".to_string());
             }
-            MachineAarch64::Kzm => {
+            MachineTypeAarch64::Kzm => {
                 cmd.push("kzm".to_string());
             }
-            MachineAarch64::Lm3s6965evb => {
+            MachineTypeAarch64::Lm3s6965evb => {
                 cmd.push("lm3s6965evb".to_string());
             }
-            MachineAarch64::Lm3s811evb => {
+            MachineTypeAarch64::Lm3s811evb => {
                 cmd.push("lm3s811evb".to_string());
             }
-            MachineAarch64::Mcimx6ulevk => {
+            MachineTypeAarch64::Mcimx6ulevk => {
                 cmd.push("mcimx6ul-evk".to_string());
             }
-            MachineAarch64::Mcimx7dsabre => {
+            MachineTypeAarch64::Mcimx7dsabre => {
                 cmd.push("mcimx7d-sabre".to_string());
             }
-            MachineAarch64::Microbit => {
+            MachineTypeAarch64::Microbit => {
                 cmd.push("microbit".to_string());
             }
-            MachineAarch64::Midway => {
+            MachineTypeAarch64::Midway => {
                 cmd.push("midway".to_string());
             }
-            MachineAarch64::Moribmc => {
+            MachineTypeAarch64::Moribmc => {
                 cmd.push("mori-bmc".to_string());
             }
-            MachineAarch64::Mps2an385 => {
+            MachineTypeAarch64::Mps2an385 => {
                 cmd.push("mps2-an385".to_string());
             }
-            MachineAarch64::Mps2an386 => {
+            MachineTypeAarch64::Mps2an386 => {
                 cmd.push("mps2-an386".to_string());
             }
-            MachineAarch64::Mps2an500 => {
+            MachineTypeAarch64::Mps2an500 => {
                 cmd.push("mps2-an500".to_string());
             }
-            MachineAarch64::Mps2an505 => {
+            MachineTypeAarch64::Mps2an505 => {
                 cmd.push("mps2-an505".to_string());
             }
-            MachineAarch64::Mps2an511 => {
+            MachineTypeAarch64::Mps2an511 => {
                 cmd.push("mps2-an511".to_string());
             }
-            MachineAarch64::Mps2an521 => {
+            MachineTypeAarch64::Mps2an521 => {
                 cmd.push("mps2-an521".to_string());
             }
-            MachineAarch64::Mps3an524 => {
+            MachineTypeAarch64::Mps3an524 => {
                 cmd.push("mps3-an524".to_string());
             }
-            MachineAarch64::Mps3an536 => {
+            MachineTypeAarch64::Mps3an536 => {
                 cmd.push("mps3-an536".to_string());
             }
-            MachineAarch64::Mps3an547 => {
+            MachineTypeAarch64::Mps3an547 => {
                 cmd.push("mps3-an547".to_string());
             }
-            MachineAarch64::Muscaa => {
+            MachineTypeAarch64::Muscaa => {
                 cmd.push("musca-a".to_string());
             }
-            MachineAarch64::Muscab1 => {
+            MachineTypeAarch64::Muscab1 => {
                 cmd.push("musca-b1".to_string());
             }
-            MachineAarch64::Musicpal => {
+            MachineTypeAarch64::Musicpal => {
                 cmd.push("musicpal".to_string());
             }
-            MachineAarch64::Netduino2 => {
+            MachineTypeAarch64::Netduino2 => {
                 cmd.push("netduino2".to_string());
             }
-            MachineAarch64::Netduinoplus2 => {
+            MachineTypeAarch64::Netduinoplus2 => {
                 cmd.push("netduinoplus2".to_string());
             }
-            MachineAarch64::None => {
+            MachineTypeAarch64::None => {
                 cmd.push("none".to_string());
             }
-            MachineAarch64::Npcm750evb => {
+            MachineTypeAarch64::Npcm750evb => {
                 cmd.push("npcm750-evb".to_string());
             }
-            MachineAarch64::Npcm845evb => {
+            MachineTypeAarch64::Npcm845evb => {
                 cmd.push("npcm845-evb".to_string());
             }
-            MachineAarch64::Nuri => {
+            MachineTypeAarch64::Nuri => {
                 cmd.push("nuri".to_string());
             }
-            MachineAarch64::Olimexstm32h405 => {
+            MachineTypeAarch64::Olimexstm32h405 => {
                 cmd.push("olimex-stm32-h405".to_string());
             }
-            MachineAarch64::Orangepipc => {
+            MachineTypeAarch64::Orangepipc => {
                 cmd.push("orangepi-pc".to_string());
             }
-            MachineAarch64::Palmettobmc => {
+            MachineTypeAarch64::Palmettobmc => {
                 cmd.push("palmetto-bmc".to_string());
             }
-            MachineAarch64::QcomdcscmV1bmc => {
+            MachineTypeAarch64::QcomdcscmV1bmc => {
                 cmd.push("qcom-dc-scm-v1-bmc".to_string());
             }
-            MachineAarch64::Qcomfireworkbmc => {
+            MachineTypeAarch64::Qcomfireworkbmc => {
                 cmd.push("qcom-firework-bmc".to_string());
             }
-            MachineAarch64::Quantagbsbmc => {
+            MachineTypeAarch64::Quantagbsbmc => {
                 cmd.push("quanta-gbs-bmc".to_string());
             }
-            MachineAarch64::Quantagsj => {
+            MachineTypeAarch64::Quantagsj => {
                 cmd.push("quanta-gsj".to_string());
             }
-            MachineAarch64::Quantaq71lbmc => {
+            MachineTypeAarch64::Quantaq71lbmc => {
                 cmd.push("quanta-q71l-bmc".to_string());
             }
-            MachineAarch64::Rainierbmc => {
+            MachineTypeAarch64::Rainierbmc => {
                 cmd.push("rainier-bmc".to_string());
             }
-            MachineAarch64::Raspi0 => {
+            MachineTypeAarch64::Raspi0 => {
                 cmd.push("raspi0".to_string());
             }
-            MachineAarch64::Raspi1ap => {
+            MachineTypeAarch64::Raspi1ap => {
                 cmd.push("raspi1ap".to_string());
             }
-            MachineAarch64::Raspi2b => {
+            MachineTypeAarch64::Raspi2b => {
                 cmd.push("raspi2b".to_string());
             }
-            MachineAarch64::Raspi3ap => {
+            MachineTypeAarch64::Raspi3ap => {
                 cmd.push("raspi3ap".to_string());
             }
-            MachineAarch64::Raspi3b => {
+            MachineTypeAarch64::Raspi3b => {
                 cmd.push("raspi3b".to_string());
             }
-            MachineAarch64::Raspi4b => {
+            MachineTypeAarch64::Raspi4b => {
                 cmd.push("raspi4b".to_string());
             }
-            MachineAarch64::Realvieweb => {
+            MachineTypeAarch64::Realvieweb => {
                 cmd.push("realview-eb".to_string());
             }
-            MachineAarch64::Realviewebmpcore => {
+            MachineTypeAarch64::Realviewebmpcore => {
                 cmd.push("realview-eb-mpcore".to_string());
             }
-            MachineAarch64::Realviewpba8 => {
+            MachineTypeAarch64::Realviewpba8 => {
                 cmd.push("realview-pb-a8".to_string());
             }
-            MachineAarch64::Realviewpbxa9 => {
+            MachineTypeAarch64::Realviewpbxa9 => {
                 cmd.push("realview-pbx-a9".to_string());
             }
-            MachineAarch64::Romulusbmc => {
+            MachineTypeAarch64::Romulusbmc => {
                 cmd.push("romulus-bmc".to_string());
             }
-            MachineAarch64::Sabrelite => {
+            MachineTypeAarch64::Sabrelite => {
                 cmd.push("sabrelite".to_string());
             }
-            MachineAarch64::Sbsaref => {
+            MachineTypeAarch64::Sbsaref => {
                 cmd.push("sbsa-ref".to_string());
             }
-            MachineAarch64::Smdkc210 => {
+            MachineTypeAarch64::Smdkc210 => {
                 cmd.push("smdkc210".to_string());
             }
-            MachineAarch64::Sonorapassbmc => {
+            MachineTypeAarch64::Sonorapassbmc => {
                 cmd.push("sonorapass-bmc".to_string());
             }
-            MachineAarch64::Stm32vldiscovery => {
+            MachineTypeAarch64::Stm32vldiscovery => {
                 cmd.push("stm32vldiscovery".to_string());
             }
-            MachineAarch64::Supermicrox11spibmc => {
+            MachineTypeAarch64::Supermicrox11spibmc => {
                 cmd.push("supermicro-x11spi-bmc".to_string());
             }
-            MachineAarch64::Supermicrox11bmc => {
+            MachineTypeAarch64::Supermicrox11bmc => {
                 cmd.push("supermicrox11-bmc".to_string());
             }
-            MachineAarch64::Sx1 => {
+            MachineTypeAarch64::Sx1 => {
                 cmd.push("sx1".to_string());
             }
-            MachineAarch64::Sx1V1 => {
+            MachineTypeAarch64::Sx1V1 => {
                 cmd.push("sx1-v1".to_string());
             }
-            MachineAarch64::Tiogapassbmc => {
+            MachineTypeAarch64::Tiogapassbmc => {
                 cmd.push("tiogapass-bmc".to_string());
             }
-            MachineAarch64::Versatileab => {
+            MachineTypeAarch64::Versatileab => {
                 cmd.push("versatileab".to_string());
             }
-            MachineAarch64::Versatilepb => {
+            MachineTypeAarch64::Versatilepb => {
                 cmd.push("versatilepb".to_string());
             }
-            MachineAarch64::Vexpressa15 => {
+            MachineTypeAarch64::Vexpressa15 => {
                 cmd.push("vexpress-a15".to_string());
             }
-            MachineAarch64::Vexpressa9 => {
+            MachineTypeAarch64::Vexpressa9 => {
                 cmd.push("vexpress-a9".to_string());
             }
-            MachineAarch64::Virt => {
+            MachineTypeAarch64::Virt => {
                 cmd.push("virt".to_string());
             }
-            MachineAarch64::Virt10_0 => {
+            MachineTypeAarch64::Virt10_0 => {
                 cmd.push("virt-10.0".to_string());
             }
-            MachineAarch64::Virt7_1 => {
+            MachineTypeAarch64::Virt7_1 => {
                 cmd.push("virt-7.1".to_string());
             }
-            MachineAarch64::Virt7_2 => {
+            MachineTypeAarch64::Virt7_2 => {
                 cmd.push("virt-7.2".to_string());
             }
-            MachineAarch64::Virt8_0 => {
+            MachineTypeAarch64::Virt8_0 => {
                 cmd.push("virt-8.0".to_string());
             }
-            MachineAarch64::Virt8_1 => {
+            MachineTypeAarch64::Virt8_1 => {
                 cmd.push("virt-8.1".to_string());
             }
-            MachineAarch64::Virt8_2 => {
+            MachineTypeAarch64::Virt8_2 => {
                 cmd.push("virt-8.2".to_string());
             }
-            MachineAarch64::Virt9_0 => {
+            MachineTypeAarch64::Virt9_0 => {
                 cmd.push("virt-9.0".to_string());
             }
-            MachineAarch64::Virt9_1 => {
+            MachineTypeAarch64::Virt9_1 => {
                 cmd.push("virt-9.1".to_string());
             }
-            MachineAarch64::Virt9_2 => {
+            MachineTypeAarch64::Virt9_2 => {
                 cmd.push("virt-9.2".to_string());
             }
-            MachineAarch64::Witherspoonbmc => {
+            MachineTypeAarch64::Witherspoonbmc => {
                 cmd.push("witherspoon-bmc".to_string());
             }
-            MachineAarch64::Xilinxzynqa9 => {
+            MachineTypeAarch64::Xilinxzynqa9 => {
                 cmd.push("xilinx-zynq-a9".to_string());
             }
-            MachineAarch64::XlnxVersalvirt => {
+            MachineTypeAarch64::XlnxVersalvirt => {
                 cmd.push("xlnx-versal-virt".to_string());
             }
-            MachineAarch64::Xlnxzcu102 => {
+            MachineTypeAarch64::Xlnxzcu102 => {
                 cmd.push("xlnx-zcu102".to_string());
             }
-            MachineAarch64::Yosemitev2bmc => {
+            MachineTypeAarch64::Yosemitev2bmc => {
                 cmd.push("yosemitev2-bmc".to_string());
             }
         }
@@ -698,112 +698,112 @@ impl ToCommand for MachineAarch64 {
     }
 }
 
-impl ToArg for MachineAarch64 {
+impl ToArg for MachineTypeAarch64 {
     fn to_arg(&self) -> &str {
         match self {
-            MachineAarch64::Ast1030evb => "ast1030-evb",
-            MachineAarch64::Ast2500evb => "ast2500-evb",
-            MachineAarch64::Ast2600evb => "ast2600-evb",
-            MachineAarch64::Ast2700evb => "ast2700-evb",
-            MachineAarch64::Ast2700a0evb => "ast2700a0-evb",
-            MachineAarch64::Ast2700a1evb => "ast2700a1-evb",
-            MachineAarch64::Bl475eiot01a => "b-l475e-iot01a",
-            MachineAarch64::Bletchleybmc => "bletchley-bmc",
-            MachineAarch64::Bpim2u => "bpim2u",
-            MachineAarch64::Canona1100 => "canon-a1100",
-            MachineAarch64::Collie => "collie",
-            MachineAarch64::Cubieboard => "cubieboard",
-            MachineAarch64::Emcraftsf2 => "emcraft-sf2",
-            MachineAarch64::Fby35bmc => "fby35-bmc",
-            MachineAarch64::Fby35 => "fby35",
-            MachineAarch64::Fp5280g2bmc => "fp5280g2-bmc",
-            MachineAarch64::Fujibmc => "fuji-bmc",
-            MachineAarch64::G220abmc => "g220a-bmc",
-            MachineAarch64::Highbank => "highbank",
-            MachineAarch64::Imx25pdk => "imx25-pdk",
-            MachineAarch64::Imx8mpevk => "imx8mp-evk",
-            MachineAarch64::Integratorcp => "integratorcp",
-            MachineAarch64::Kudobmc => "kudo-bmc",
-            MachineAarch64::Kzm => "kzm",
-            MachineAarch64::Lm3s6965evb => "lm3s6965evb",
-            MachineAarch64::Lm3s811evb => "lm3s811evb",
-            MachineAarch64::Mcimx6ulevk => "mcimx6ul-evk",
-            MachineAarch64::Mcimx7dsabre => "mcimx7d-sabre",
-            MachineAarch64::Microbit => "microbit",
-            MachineAarch64::Midway => "midway",
-            MachineAarch64::Moribmc => "mori-bmc",
-            MachineAarch64::Mps2an385 => "mps2-an385",
-            MachineAarch64::Mps2an386 => "mps2-an386",
-            MachineAarch64::Mps2an500 => "mps2-an500",
-            MachineAarch64::Mps2an505 => "mps2-an505",
-            MachineAarch64::Mps2an511 => "mps2-an511",
-            MachineAarch64::Mps2an521 => "mps2-an521",
-            MachineAarch64::Mps3an524 => "mps3-an524",
-            MachineAarch64::Mps3an536 => "mps3-an536",
-            MachineAarch64::Mps3an547 => "mps3-an547",
-            MachineAarch64::Muscaa => "musca-a",
-            MachineAarch64::Muscab1 => "musca-b1",
-            MachineAarch64::Musicpal => "musicpal",
-            MachineAarch64::Netduino2 => "netduino2",
-            MachineAarch64::Netduinoplus2 => "netduinoplus2",
-            MachineAarch64::None => "none",
-            MachineAarch64::Npcm750evb => "npcm750-evb",
-            MachineAarch64::Npcm845evb => "npcm845-evb",
-            MachineAarch64::Nuri => "nuri",
-            MachineAarch64::Olimexstm32h405 => "olimex-stm32-h405",
-            MachineAarch64::Orangepipc => "orangepi-pc",
-            MachineAarch64::Palmettobmc => "palmetto-bmc",
-            MachineAarch64::QcomdcscmV1bmc => "qcom-dc-scm-v1-bmc",
-            MachineAarch64::Qcomfireworkbmc => "qcom-firework-bmc",
-            MachineAarch64::Quantagbsbmc => "quanta-gbs-bmc",
-            MachineAarch64::Quantagsj => "quanta-gsj",
-            MachineAarch64::Quantaq71lbmc => "quanta-q71l-bmc",
-            MachineAarch64::Rainierbmc => "rainier-bmc",
-            MachineAarch64::Raspi0 => "raspi0",
-            MachineAarch64::Raspi1ap => "raspi1ap",
-            MachineAarch64::Raspi2b => "raspi2b",
-            MachineAarch64::Raspi3ap => "raspi3ap",
-            MachineAarch64::Raspi3b => "raspi3b",
-            MachineAarch64::Raspi4b => "raspi4b",
-            MachineAarch64::Realvieweb => "realview-eb",
-            MachineAarch64::Realviewebmpcore => "realview-eb-mpcore",
-            MachineAarch64::Realviewpba8 => "realview-pb-a8",
-            MachineAarch64::Realviewpbxa9 => "realview-pbx-a9",
-            MachineAarch64::Romulusbmc => "romulus-bmc",
-            MachineAarch64::Sabrelite => "sabrelite",
-            MachineAarch64::Sbsaref => "sbsa-ref",
-            MachineAarch64::Smdkc210 => "smdkc210",
-            MachineAarch64::Sonorapassbmc => "sonorapass-bmc",
-            MachineAarch64::Stm32vldiscovery => "stm32vldiscovery",
-            MachineAarch64::Supermicrox11spibmc => "supermicro-x11spi-bmc",
-            MachineAarch64::Supermicrox11bmc => "supermicrox11-bmc",
-            MachineAarch64::Sx1 => "sx1",
-            MachineAarch64::Sx1V1 => "sx1-v1",
-            MachineAarch64::Tiogapassbmc => "tiogapass-bmc",
-            MachineAarch64::Versatileab => "versatileab",
-            MachineAarch64::Versatilepb => "versatilepb",
-            MachineAarch64::Vexpressa15 => "vexpress-a15",
-            MachineAarch64::Vexpressa9 => "vexpress-a9",
-            MachineAarch64::Virt => "virt",
-            MachineAarch64::Virt10_0 => "virt-10.0",
-            MachineAarch64::Virt7_1 => "virt-7.1",
-            MachineAarch64::Virt7_2 => "virt-7.2",
-            MachineAarch64::Virt8_0 => "virt-8.0",
-            MachineAarch64::Virt8_1 => "virt-8.1",
-            MachineAarch64::Virt8_2 => "virt-8.2",
-            MachineAarch64::Virt9_0 => "virt-9.0",
-            MachineAarch64::Virt9_1 => "virt-9.1",
-            MachineAarch64::Virt9_2 => "virt-9.2",
-            MachineAarch64::Witherspoonbmc => "witherspoon-bmc",
-            MachineAarch64::Xilinxzynqa9 => "xilinx-zynq-a9",
-            MachineAarch64::XlnxVersalvirt => "xlnx-versal-virt",
-            MachineAarch64::Xlnxzcu102 => "xlnx-zcu102",
-            MachineAarch64::Yosemitev2bmc => "yosemitev2-bmc",
+            MachineTypeAarch64::Ast1030evb => "ast1030-evb",
+            MachineTypeAarch64::Ast2500evb => "ast2500-evb",
+            MachineTypeAarch64::Ast2600evb => "ast2600-evb",
+            MachineTypeAarch64::Ast2700evb => "ast2700-evb",
+            MachineTypeAarch64::Ast2700a0evb => "ast2700a0-evb",
+            MachineTypeAarch64::Ast2700a1evb => "ast2700a1-evb",
+            MachineTypeAarch64::Bl475eiot01a => "b-l475e-iot01a",
+            MachineTypeAarch64::Bletchleybmc => "bletchley-bmc",
+            MachineTypeAarch64::Bpim2u => "bpim2u",
+            MachineTypeAarch64::Canona1100 => "canon-a1100",
+            MachineTypeAarch64::Collie => "collie",
+            MachineTypeAarch64::Cubieboard => "cubieboard",
+            MachineTypeAarch64::Emcraftsf2 => "emcraft-sf2",
+            MachineTypeAarch64::Fby35bmc => "fby35-bmc",
+            MachineTypeAarch64::Fby35 => "fby35",
+            MachineTypeAarch64::Fp5280g2bmc => "fp5280g2-bmc",
+            MachineTypeAarch64::Fujibmc => "fuji-bmc",
+            MachineTypeAarch64::G220abmc => "g220a-bmc",
+            MachineTypeAarch64::Highbank => "highbank",
+            MachineTypeAarch64::Imx25pdk => "imx25-pdk",
+            MachineTypeAarch64::Imx8mpevk => "imx8mp-evk",
+            MachineTypeAarch64::Integratorcp => "integratorcp",
+            MachineTypeAarch64::Kudobmc => "kudo-bmc",
+            MachineTypeAarch64::Kzm => "kzm",
+            MachineTypeAarch64::Lm3s6965evb => "lm3s6965evb",
+            MachineTypeAarch64::Lm3s811evb => "lm3s811evb",
+            MachineTypeAarch64::Mcimx6ulevk => "mcimx6ul-evk",
+            MachineTypeAarch64::Mcimx7dsabre => "mcimx7d-sabre",
+            MachineTypeAarch64::Microbit => "microbit",
+            MachineTypeAarch64::Midway => "midway",
+            MachineTypeAarch64::Moribmc => "mori-bmc",
+            MachineTypeAarch64::Mps2an385 => "mps2-an385",
+            MachineTypeAarch64::Mps2an386 => "mps2-an386",
+            MachineTypeAarch64::Mps2an500 => "mps2-an500",
+            MachineTypeAarch64::Mps2an505 => "mps2-an505",
+            MachineTypeAarch64::Mps2an511 => "mps2-an511",
+            MachineTypeAarch64::Mps2an521 => "mps2-an521",
+            MachineTypeAarch64::Mps3an524 => "mps3-an524",
+            MachineTypeAarch64::Mps3an536 => "mps3-an536",
+            MachineTypeAarch64::Mps3an547 => "mps3-an547",
+            MachineTypeAarch64::Muscaa => "musca-a",
+            MachineTypeAarch64::Muscab1 => "musca-b1",
+            MachineTypeAarch64::Musicpal => "musicpal",
+            MachineTypeAarch64::Netduino2 => "netduino2",
+            MachineTypeAarch64::Netduinoplus2 => "netduinoplus2",
+            MachineTypeAarch64::None => "none",
+            MachineTypeAarch64::Npcm750evb => "npcm750-evb",
+            MachineTypeAarch64::Npcm845evb => "npcm845-evb",
+            MachineTypeAarch64::Nuri => "nuri",
+            MachineTypeAarch64::Olimexstm32h405 => "olimex-stm32-h405",
+            MachineTypeAarch64::Orangepipc => "orangepi-pc",
+            MachineTypeAarch64::Palmettobmc => "palmetto-bmc",
+            MachineTypeAarch64::QcomdcscmV1bmc => "qcom-dc-scm-v1-bmc",
+            MachineTypeAarch64::Qcomfireworkbmc => "qcom-firework-bmc",
+            MachineTypeAarch64::Quantagbsbmc => "quanta-gbs-bmc",
+            MachineTypeAarch64::Quantagsj => "quanta-gsj",
+            MachineTypeAarch64::Quantaq71lbmc => "quanta-q71l-bmc",
+            MachineTypeAarch64::Rainierbmc => "rainier-bmc",
+            MachineTypeAarch64::Raspi0 => "raspi0",
+            MachineTypeAarch64::Raspi1ap => "raspi1ap",
+            MachineTypeAarch64::Raspi2b => "raspi2b",
+            MachineTypeAarch64::Raspi3ap => "raspi3ap",
+            MachineTypeAarch64::Raspi3b => "raspi3b",
+            MachineTypeAarch64::Raspi4b => "raspi4b",
+            MachineTypeAarch64::Realvieweb => "realview-eb",
+            MachineTypeAarch64::Realviewebmpcore => "realview-eb-mpcore",
+            MachineTypeAarch64::Realviewpba8 => "realview-pb-a8",
+            MachineTypeAarch64::Realviewpbxa9 => "realview-pbx-a9",
+            MachineTypeAarch64::Romulusbmc => "romulus-bmc",
+            MachineTypeAarch64::Sabrelite => "sabrelite",
+            MachineTypeAarch64::Sbsaref => "sbsa-ref",
+            MachineTypeAarch64::Smdkc210 => "smdkc210",
+            MachineTypeAarch64::Sonorapassbmc => "sonorapass-bmc",
+            MachineTypeAarch64::Stm32vldiscovery => "stm32vldiscovery",
+            MachineTypeAarch64::Supermicrox11spibmc => "supermicro-x11spi-bmc",
+            MachineTypeAarch64::Supermicrox11bmc => "supermicrox11-bmc",
+            MachineTypeAarch64::Sx1 => "sx1",
+            MachineTypeAarch64::Sx1V1 => "sx1-v1",
+            MachineTypeAarch64::Tiogapassbmc => "tiogapass-bmc",
+            MachineTypeAarch64::Versatileab => "versatileab",
+            MachineTypeAarch64::Versatilepb => "versatilepb",
+            MachineTypeAarch64::Vexpressa15 => "vexpress-a15",
+            MachineTypeAarch64::Vexpressa9 => "vexpress-a9",
+            MachineTypeAarch64::Virt => "virt",
+            MachineTypeAarch64::Virt10_0 => "virt-10.0",
+            MachineTypeAarch64::Virt7_1 => "virt-7.1",
+            MachineTypeAarch64::Virt7_2 => "virt-7.2",
+            MachineTypeAarch64::Virt8_0 => "virt-8.0",
+            MachineTypeAarch64::Virt8_1 => "virt-8.1",
+            MachineTypeAarch64::Virt8_2 => "virt-8.2",
+            MachineTypeAarch64::Virt9_0 => "virt-9.0",
+            MachineTypeAarch64::Virt9_1 => "virt-9.1",
+            MachineTypeAarch64::Virt9_2 => "virt-9.2",
+            MachineTypeAarch64::Witherspoonbmc => "witherspoon-bmc",
+            MachineTypeAarch64::Xilinxzynqa9 => "xilinx-zynq-a9",
+            MachineTypeAarch64::XlnxVersalvirt => "xlnx-versal-virt",
+            MachineTypeAarch64::Xlnxzcu102 => "xlnx-zcu102",
+            MachineTypeAarch64::Yosemitev2bmc => "yosemitev2-bmc",
         }
     }
 }
 
-impl FromStr for MachineAarch64 {
+impl FromStr for MachineTypeAarch64 {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {

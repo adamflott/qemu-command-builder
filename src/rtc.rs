@@ -1,7 +1,7 @@
 use crate::parsers::DELIM_COMMA;
 use crate::shell_string::ShellStringError;
 use crate::to_command::{ToArg, ToCommand};
-use crate::{XDateTime, pco0, qao};
+use crate::{QDateTime, pco0, qao};
 use bon::Builder;
 use chrono::NaiveDateTime;
 use proptest_derive::Arbitrary;
@@ -25,7 +25,7 @@ const KEY_BASE_LOCALTIME: &str = "localtime";
 pub enum RtcBase {
     Utc,
     Localtime,
-    Datetime(XDateTime),
+    Datetime(QDateTime),
 }
 
 impl Display for RtcBase {
@@ -52,7 +52,7 @@ impl FromStr for RtcBase {
             KEY_BASE_UTC => Ok(RtcBase::Utc),
             KEY_BASE_LOCALTIME => Ok(RtcBase::Localtime),
             maybe_dt => match NaiveDateTime::parse_from_str(maybe_dt, "%Y-%m-%dT%H:%M:%S") {
-                Ok(dt) => Ok(RtcBase::Datetime(XDateTime(dt.and_utc()))),
+                Ok(dt) => Ok(RtcBase::Datetime(QDateTime(dt.and_utc()))),
                 Err(err) => {
                     eprintln!("{} => {}", maybe_dt, err);
                     Err(())
