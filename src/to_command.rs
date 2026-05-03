@@ -3,6 +3,19 @@ use std::hash::Hash;
 use std::str::FromStr;
 // TODO use proptest_derive::Arbitrary;
 
+fn shell_escape_arg(arg: &str) -> String {
+    if !arg.is_empty()
+        && arg
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '/' | ':' | ',' | '=' | '+'))
+    {
+        return arg.to_string();
+    }
+
+    let escaped = arg.replace('\'', r#"'\''"#);
+    format!("'{}'", escaped)
+}
+
 pub trait ToCommand: Debug + Clone + Hash + Ord + PartialOrd + Eq + PartialEq + FromStr {
     fn has_args(&self) -> bool {
         true
@@ -29,12 +42,12 @@ pub trait ToCommand: Debug + Clone + Hash + Ord + PartialOrd + Eq + PartialEq + 
 
     /// Construct the full command as a single [`String`]
     fn to_single_command(&self) -> String {
-        self.to_command().join(" ")
+        self.to_command().iter().map(|arg| shell_escape_arg(arg)).collect::<Vec<_>>().join(" ")
     }
 
     /// Construct only the args as a single [`String`]
     fn to_single_arg(&self) -> String {
-        self.to_args().join(" ")
+        self.to_args().iter().map(|arg| shell_escape_arg(arg)).collect::<Vec<_>>().join(" ")
     }
 }
 
