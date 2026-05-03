@@ -1,14 +1,14 @@
 use std::str::FromStr;
 
-use crate::parsers::{DELIM_COLON, DELIM_COMMA, ascii_plus_more};
-use crate::shell_path::ShellPath;
-use crate::shell_string::{ShellString, ShellStringError};
+use crate::parsers::{DELIM_COLON, DELIM_COMMA};
+use crate::shell_path::{ShellPath, shell_path_until_colon};
+use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
 use crate::to_command::ToCommand;
-use crate::{ppo0, pso0, qao};
+use crate::{pco0, ppo0, qao};
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use winnow::Result;
-use winnow::ascii::{alphanumeric1, dec_uint};
+use winnow::ascii::dec_uint;
 use winnow::combinator::{opt, separated};
 use winnow::prelude::*;
 use winnow::token::literal;
@@ -69,16 +69,24 @@ impl ToCommand for AcpiTable {
     }
     fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
-        qao!(&self.sig, args, KEY_SIG);
+        if let Some(sig) = &self.sig {
+            args.push(format!("{}{}", KEY_SIG, sig.as_ref()));
+        }
         qao!(&self.rev, args, KEY_REV);
-        qao!(&self.oem_id, args, KEY_OEM_ID);
-        qao!(&self.oem_table_id, args, KEY_OEM_TABLE_ID);
+        if let Some(oem_id) = &self.oem_id {
+            args.push(format!("{}{}", KEY_OEM_ID, oem_id.as_ref()));
+        }
+        if let Some(oem_table_id) = &self.oem_table_id {
+            args.push(format!("{}{}", KEY_OEM_TABLE_ID, oem_table_id.as_ref()));
+        }
         qao!(&self.oem_rev, args, KEY_OEM_REV);
-        qao!(&self.asl_compiler_id, args, KEY_ASL_COMPILER_ID);
+        if let Some(asl_compiler_id) = &self.asl_compiler_id {
+            args.push(format!("{}{}", KEY_ASL_COMPILER_ID, asl_compiler_id.as_ref()));
+        }
         qao!(&self.asl_compiler_rev, args, KEY_ASL_COMPILER_REV);
 
         if let Some(data) = &self.data {
-            let files: Vec<String> = data.iter().map(|p| p.to_string()).collect();
+            let files: Vec<&str> = data.iter().map(|p| p.as_ref()).collect();
             args.push(format!("{}{}", KEY_FILE, files.join(DELIM_COLON)));
         }
 
@@ -94,18 +102,18 @@ impl FromStr for AcpiTable {
     }
 }
 
-pso0!(sig, KEY_SIG);
+pco0!(sig, shell_string_until_comma, ShellString, KEY_SIG);
 ppo0!(rev, dec_uint, usize, KEY_REV);
-pso0!(oem_id, KEY_OEM_ID);
-pso0!(oem_table_id, KEY_OEM_TABLE_ID);
+pco0!(oem_id, shell_string_until_comma, ShellString, KEY_OEM_ID);
+pco0!(oem_table_id, shell_string_until_comma, ShellString, KEY_OEM_TABLE_ID);
 ppo0!(oem_rev, dec_uint, usize, KEY_OEM_REV);
-pso0!(asl_compiler_id, KEY_ASL_COMPILER_ID);
+pco0!(asl_compiler_id, shell_string_until_comma, ShellString, KEY_ASL_COMPILER_ID);
 ppo0!(asl_compiler_rev, dec_uint, usize, KEY_ASL_COMPILER_REV);
 
 fn data(s: &mut &str) -> ModalResult<Vec<ShellPath>> {
     opt(literal(DELIM_COMMA)).parse_next(s)?;
     let _ = literal(KEY_FILE).parse_next(s)?;
-    let str: Vec<&str> = separated(1.., alphanumeric1, DELIM_COLON).parse_next(s)?;
+    let str: Vec<&str> = separated(1.., shell_path_until_colon, DELIM_COLON).parse_next(s)?;
     let str = str.iter().map(|v| ShellPath { s: v.to_string() }).collect();
     Ok(str)
 }

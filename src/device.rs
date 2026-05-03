@@ -9,7 +9,7 @@ use winnow::Result;
 use winnow::ascii::alphanumeric1;
 use winnow::combinator::{opt, separated, separated_pair};
 use winnow::prelude::*;
-use winnow::token::literal;
+use winnow::token::{literal, take_while};
 
 pub(crate) const ARG_DEVICE: &str = "-device";
 
@@ -43,7 +43,7 @@ impl ToCommand for Device {
         let mut args = vec![self.device.s.clone()];
 
         for (prop_key, prop_value) in &self.properties {
-            args.push(format!("{}={}", prop_key, prop_value));
+            args.push(format!("{}={}", prop_key.as_ref(), prop_value.as_ref()));
         }
 
         vec![args.join(DELIM_COMMA)]
@@ -58,9 +58,17 @@ impl FromStr for Device {
     }
 }
 
+pub fn key_parser<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
+    take_while(1.., |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.' || c == '_' || c == '/').parse_next(input)
+}
+
+pub fn value_parser<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
+    take_while(1.., |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.' || c == '_' || c == '/' || c == ':').parse_next(input)
+}
+
 // TODO move
 fn parse_key_value_pair<'a>(s: &mut &'a str) -> ModalResult<(&'a str, &'a str)> {
-    let (q, r) = separated_pair(alphanumeric1, "=", alphanumeric1).parse_next(s)?;
+    let (q, r) = separated_pair(key_parser, "=", value_parser).parse_next(s)?;
     Ok((q, r))
 }
 
@@ -75,7 +83,7 @@ fn props(s: &mut &str) -> ModalResult<BTreeMap<ShellString, ShellString>> {
     Ok(pt)
 }
 pub fn device(s: &mut &str) -> ModalResult<Device> {
-    let dev = alphanumeric1.parse_next(s)?;
+    let dev = key_parser.parse_next(s)?;
     let properties = opt(props).parse_next(s)?.unwrap_or_default();
     Ok(Device {
         device: ShellString { s: dev.to_string() },

@@ -10,8 +10,8 @@ use winnow::prelude::*;
 use winnow::token::literal;
 
 use crate::common::OnOff;
-use crate::parsers::{DELIM_COMMA, ascii_plus_more};
-use crate::shell_string::{ShellString, ShellStringError};
+use crate::parsers::DELIM_COMMA;
+use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
 use crate::to_command::{ToArg, ToCommand};
 use crate::{pco, qao};
 
@@ -69,7 +69,7 @@ impl ToCommand for Mon {
     }
     fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
-        args.push(format!("{}{}", KEY_CHARDEV, self.chardev));
+        args.push(format!("{}{}", KEY_CHARDEV, self.chardev.as_ref()));
         qao!(&self.mode, args, KEY_MODE);
         qao!(&self.pretty, args, KEY_PRETTY);
         vec![args.join(DELIM_COMMA)]
@@ -89,7 +89,7 @@ pco!(pretty, alphanumeric1, OnOff, KEY_PRETTY);
 
 pub fn mon(s: &mut &str) -> ModalResult<Mon> {
     let _ = literal(KEY_CHARDEV).parse_next(s)?;
-    let chardev = ascii_plus_more.parse_to::<ShellString>().parse_next(s)?;
+    let chardev = shell_string_until_comma.parse_to::<ShellString>().parse_next(s)?;
     let mode = opt(mode).parse_next(s)?;
     let pretty = opt(pretty).parse_next(s)?;
     Ok(Mon { chardev, mode, pretty })

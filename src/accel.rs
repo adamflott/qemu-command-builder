@@ -9,7 +9,7 @@ use winnow::token::literal;
 
 use crate::common::*;
 use crate::parsers::DELIM_COMMA;
-use crate::shell_path::ShellPath;
+use crate::shell_path::{ShellPath, shell_path_until_comma};
 use crate::shell_string::ShellStringError;
 use crate::to_command::{ToArg, ToCommand};
 use crate::{pco, ppo, qao};
@@ -244,7 +244,9 @@ impl ToCommand for Accel {
         qao!(&self.eager_split_size, args, KEY_EAGER_SPLIT_SIZE);
         qao!(&self.notify_vmexit, args, KEY_NOTIFY_VMEXIT);
         qao!(&self.thread, args, KEY_THREAD);
-        qao!(&self.device, args, KEY_DEVICE);
+        if let Some(device) = &self.device {
+            args.push(format!("{}{}", KEY_DEVICE, device.as_ref()));
+        }
 
         vec![args.join(DELIM_COMMA)]
     }
@@ -272,7 +274,7 @@ fn notify_vmexit(s: &mut &str) -> ModalResult<NotifyVMExit> {
     notify_vm_exit_type.parse_next(s)
 }
 pco!(thread, alphanumeric1, TCGThreadType, KEY_THREAD);
-pco!(device, alphanumeric1, ShellPath, KEY_DEVICE);
+pco!(device, shell_path_until_comma, ShellPath, KEY_DEVICE);
 
 fn accel(s: &mut &str) -> ModalResult<Accel> {
     let accel_type = alphanumeric1.parse_to::<AccelType>().parse_next(s)?;

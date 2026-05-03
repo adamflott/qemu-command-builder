@@ -7,15 +7,15 @@ use proptest_derive::Arbitrary;
 
 use crate::common::{IgnoreUnmap, OnOff, OnOffUnmap};
 use crate::parsers::DELIM_COMMA;
-use crate::shell_path::ShellPath;
-use crate::shell_string::{ShellString, ShellStringError};
+use crate::shell_path::{ShellPath, shell_path_until_comma};
+use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
 use crate::to_command::{ToArg, ToCommand};
 use crate::{pco0, ppo0, pso0, qao};
 use winnow::Result;
 use winnow::ascii::{alphanumeric1, dec_uint};
-use winnow::combinator::opt;
+use winnow::combinator::{alt, fail, opt};
 use winnow::prelude::*;
-use winnow::token::literal;
+use winnow::token::{literal, take_until, take_while};
 
 pub(crate) const ARG_DRIVE: &str = "-drive";
 
@@ -458,19 +458,27 @@ impl ToCommand for Drive {
     fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
 
-        qao!(&self.file, args, KEY_FILE);
+        if let Some(file) = &self.file {
+            args.push(format!("{}{}", KEY_FILE, file.as_ref()));
+        }
         qao!(&self.interface, args, KEY_INTERFACE);
         qao!(&self.bus, args, KEY_BUS);
         qao!(&self.unit, args, KEY_UNIT);
-        qao!(&self.index, args, KEY_INDEX);
+        if let Some(index) = &self.index {
+            args.push(format!("{}{}", KEY_INDEX, index.as_ref()));
+        }
         qao!(&self.media, args, KEY_MEDIA);
         qao!(&self.snapshot, args, KEY_SNAPSHOT);
         qao!(&self.cache, args, KEY_CACHE);
         qao!(&self.aio, args, KEY_AIO);
-        qao!(&self.format, args, KEY_FORMAT);
+        if let Some(format) = &self.format {
+            args.push(format!("{}{}", KEY_FORMAT, format.as_ref()));
+        }
         qao!(&self.rerror, args, KEY_RERROR);
         qao!(&self.werror, args, KEY_WERROR);
-        qao!(&self.id, args, KEY_ID);
+        if let Some(id) = &self.id {
+            args.push(format!("{}{}", KEY_ID, id.as_ref()));
+        }
         qao!(&self.read_only, args, KEY_READ_ONLY);
         qao!(&self.copy_on_ready, args, KEY_COPY_ON_READY);
         qao!(&self.discard, args, KEY_DISCARD);
@@ -488,7 +496,9 @@ impl ToCommand for Drive {
         qao!(&self.iops_rd_max, args, KEY_IOPS_RD_MAX);
         qao!(&self.iops_wr_max, args, KEY_IOPS_WR_MAX);
         qao!(&self.iops_size, args, KEY_IOPS_SIZE);
-        qao!(&self.group, args, KEY_GROUP);
+        if let Some(group) = &self.group {
+            args.push(format!("{}{}", KEY_GROUP, group.as_ref()));
+        }
 
         vec![args.join(DELIM_COMMA)]
     }
@@ -502,19 +512,19 @@ impl FromStr for Drive {
     }
 }
 
-pco0!(file, ascii_plus_more, ShellPath, KEY_FILE);
+pco0!(file, shell_path_until_comma, ShellPath, KEY_FILE);
 pco0!(interface, alphanumeric1, DriveInterface, KEY_INTERFACE);
 ppo0!(bus, dec_uint, usize, KEY_BUS);
 ppo0!(unit, dec_uint, usize, KEY_UNIT);
-pso0!(index, KEY_INDEX);
+pco0!(index, shell_string_until_comma, ShellString, KEY_INDEX);
 pco0!(media, alphanumeric1, DriveMedia, KEY_MEDIA);
 pco0!(snapshot, alphanumeric1, OnOff, KEY_SNAPSHOT);
 pco0!(cache, alphanumeric1, DriveCacheType, KEY_CACHE);
 pco0!(aio, ascii_plus_more, DriveAIOType, KEY_AIO);
-pso0!(format, KEY_FORMAT);
+pco0!(format, shell_string_until_comma, ShellString, KEY_FORMAT);
 pco0!(rerror, alphanumeric1, DriveErrorAction, KEY_RERROR);
 pco0!(werror, alphanumeric1, DriveErrorAction, KEY_WERROR);
-pso0!(id, KEY_ID);
+pco0!(id, shell_string_until_comma, ShellString, KEY_ID);
 pco0!(read_only, alphanumeric1, OnOff, KEY_READ_ONLY);
 pco0!(copy_on_ready, alphanumeric1, OnOff, KEY_COPY_ON_READY);
 pco0!(discard, alphanumeric1, IgnoreUnmap, KEY_DISCARD);
@@ -532,8 +542,58 @@ ppo0!(iops_max, dec_uint, usize, KEY_IOPS_MAX);
 ppo0!(iops_rd_max, dec_uint, usize, KEY_IOPS_RD_MAX);
 ppo0!(iops_wr_max, dec_uint, usize, KEY_IOPS_WR_MAX);
 ppo0!(iops_size, dec_uint, usize, KEY_IOPS_SIZE);
-pso0!(group, KEY_GROUP);
+pco0!(group, shell_string_until_comma, ShellString, KEY_GROUP);
 
+pub fn drive2(s: &mut &str) -> ModalResult<Drive> {
+    //let ks = [KEY_FILE, KEY_INTERFACE, KEY_BUS, KEY_UNIT, KEY_INDEX, KEY_MEDIA].map(|v|literal(v)).collect();
+    //let k = alt( (literal(KEY_FILE), literal(KEY_INTERFACE), literal(KEY_BUS)) ).parse(s)?;
+    let k = take_while(1.., |c: char| !(c == '=')).parse_next(s)?;
+    let mut d = Drive::builder().build();
+    match k {
+        KEY_FILE => {
+            let file = ascii_plus_more.parse_next(s)?;
+            d.file = Some(ShellPath { s: file.to_string() });
+        }
+        KEY_INTERFACE => {}
+        KEY_BUS => {}
+        KEY_UNIT => {}
+        KEY_INDEX => {}
+        KEY_MEDIA => {}
+        KEY_SNAPSHOT => {}
+        KEY_CACHE => {}
+        KEY_ID => {}
+        KEY_AIO => {}
+        KEY_FORMAT => {}
+        KEY_RERROR => {}
+        KEY_WERROR => {}
+        KEY_COPY_ON_READY => {}
+        KEY_BPS => {}
+        KEY_BPS_RD => {}
+        KEY_BPS_WR => {}
+        KEY_BPS_MAX => {}
+        KEY_BPS_RD_MAX => {}
+        KEY_BPS_WR_MAX => {}
+        KEY_IOPS => {}
+        KEY_IOPS_RD => {}
+        KEY_IOPS_WR => {}
+        KEY_IOPS_MAX => {}
+        KEY_IOPS_RD_MAX => {}
+        KEY_IOPS_WR_MAX => {}
+        KEY_IOPS_SIZE => {}
+        KEY_GROUP => {}
+        KEY_NODE_NAME => {}
+        KEY_DISCARD => {}
+        KEY_CACHE_DIRECT => {}
+        KEY_CACHE_NO_FLUSH => {}
+        KEY_READ_ONLY => {}
+        KEY_AUTO_READ_ONLY => {}
+        KEY_FORCE_SHARE => {}
+        KEY_DETECT_ZEROES => {}
+        _ => return fail(s),
+    }
+
+    todo!()
+}
 pub fn drive(s: &mut &str) -> ModalResult<Drive> {
     let file = opt(file).parse_next(s)?;
     let interface = opt(interface).parse_next(s)?;

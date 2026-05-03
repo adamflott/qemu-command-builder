@@ -1,8 +1,8 @@
+use crate::parsers::DELIM_COMMA;
+use crate::to_command::ToCommand;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
-
-use crate::to_command::ToCommand;
 
 pub(crate) const ARG_OBJECT: &str = "-objectfd";
 
@@ -35,7 +35,7 @@ impl ToCommand for Object {
         for (prop_key, prop_value) in &self.properties {
             args.push(format!("{}={}", prop_key, prop_value));
         }
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
 

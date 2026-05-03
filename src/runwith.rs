@@ -1,7 +1,7 @@
 use crate::common::OnOff;
-use crate::parsers::{DELIM_COLON, DELIM_COMMA, ascii_plus_more};
-use crate::shell_path::ShellPath;
-use crate::shell_string::{ShellString, ShellStringError};
+use crate::parsers::{DELIM_COLON, DELIM_COMMA};
+use crate::shell_path::{ShellPath, shell_path_until_comma};
+use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
 use crate::to_command::ToCommand;
 use crate::{pco0, qao};
 use bon::Builder;
@@ -42,7 +42,9 @@ impl ToCommand for RunWith {
         let mut args = vec![];
 
         qao!(&self.async_teardown, args, KEY_ASYNC_TEARDOWN);
-        qao!(&self.chroot, args, KEY_CHROOT);
+        if let Some(chroot) = &self.chroot {
+            args.push(format!("{}{}", KEY_CHROOT, chroot.as_ref()));
+        }
 
         if let Some(user) = &self.user {
             match user {
@@ -67,7 +69,7 @@ impl FromStr for RunWith {
 }
 
 pco0!(async_teardown, alphanumeric1, OnOff, KEY_ASYNC_TEARDOWN);
-pco0!(chroot, ascii_plus_more, ShellPath, KEY_CHROOT);
+pco0!(chroot, shell_path_until_comma, ShellPath, KEY_CHROOT);
 
 fn user(s: &mut &str) -> ModalResult<UserOrIds> {
     let _ = opt(literal(DELIM_COMMA)).parse_next(s)?;
@@ -76,8 +78,8 @@ fn user(s: &mut &str) -> ModalResult<UserOrIds> {
 }
 
 fn user_name(s: &mut &str) -> ModalResult<UserOrIds> {
-    let name = alphanumeric1.parse_next(s)?;
-    Ok(UserOrIds::User(ShellString { s: name.to_string() }))
+    let name = shell_string_until_comma.parse_to::<ShellString>().parse_next(s)?;
+    Ok(UserOrIds::User(name))
 }
 
 fn user_id(s: &mut &str) -> ModalResult<UserOrIds> {

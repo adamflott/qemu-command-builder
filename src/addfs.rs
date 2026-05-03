@@ -7,9 +7,9 @@ use winnow::combinator::opt;
 use winnow::token::literal;
 use winnow::{ModalResult, Parser};
 
-use crate::parsers::{DELIM_COMMA, optional_quotes_parser};
+use crate::parsers::DELIM_COMMA;
 use crate::qao;
-use crate::shell_string::{ShellString, ShellStringError};
+use crate::shell_string::{ShellString, ShellStringError, shell_string_until_end};
 use crate::to_command::ToCommand;
 
 pub(crate) const ARG_ADD_FD: &str = "-add-fd";
@@ -41,7 +41,9 @@ impl ToCommand for AddFd {
     fn to_args(&self) -> Vec<String> {
         let mut args = vec![format!("{}{}", KEY_FD, self.fd)];
         args.push(format!("{}{}", KEY_SET, self.set));
-        qao!(&self.opaque, args, KEY_OPAQUE);
+        if let Some(opaque) = &self.opaque {
+            args.push(format!("{}{}", KEY_OPAQUE, opaque.as_ref()));
+        }
 
         vec![args.join(DELIM_COMMA)]
     }
@@ -58,7 +60,7 @@ impl FromStr for AddFd {
 fn opaque(s: &mut &str) -> ModalResult<ShellString> {
     let _ = literal(DELIM_COMMA).parse_next(s)?;
     let _ = literal(KEY_OPAQUE).parse_next(s)?;
-    let op = optional_quotes_parser.parse_next(s)?;
+    let op = shell_string_until_end.parse_to::<ShellString>().parse_next(s)?;
     Ok(op)
 }
 

@@ -1,4 +1,3 @@
-use crate::parsers::ascii_plus_more;
 use std::str::FromStr;
 
 use bon::Builder;
@@ -11,9 +10,9 @@ use winnow::token::literal;
 
 use crate::common::OnOff;
 use crate::parsers::DELIM_COMMA;
-use crate::shell_string::{ShellString, ShellStringError};
+use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
 use crate::to_command::ToCommand;
-use crate::{pco0, ppo0, pso0, qao};
+use crate::{pco0, ppo0, qao};
 
 pub(crate) const ARG_BOOT: &str = "-boot";
 
@@ -76,10 +75,16 @@ impl ToCommand for Boot {
     fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
 
-        qao!(&self.order, args, KEY_ORDER);
-        qao!(&self.once, args, KEY_ONCE);
+        if let Some(order) = &self.order {
+            args.push(format!("{}{}", KEY_ORDER, order.as_ref()));
+        }
+        if let Some(once) = &self.once {
+            args.push(format!("{}{}", KEY_ONCE, once.as_ref()));
+        }
         qao!(&self.menu, args, KEY_MENU);
-        qao!(&self.splash, args, KEY_SPLASH);
+        if let Some(splash) = &self.splash {
+            args.push(format!("{}{}", KEY_SPLASH, splash.as_ref()));
+        }
         qao!(&self.splash_time, args, KEY_SPLASH_TIME);
         qao!(&self.reboot_timeout, args, KEY_REBOOT_TIMEOUT);
         qao!(&self.strict, args, KEY_STRICT);
@@ -96,10 +101,10 @@ impl FromStr for Boot {
     }
 }
 
-pso0!(order, KEY_ORDER);
-pso0!(once, KEY_ONCE);
+pco0!(order, shell_string_until_comma, ShellString, KEY_ORDER);
+pco0!(once, shell_string_until_comma, ShellString, KEY_ONCE);
 pco0!(menu, alphanumeric1, OnOff, KEY_MENU);
-pso0!(splash, KEY_SPLASH);
+pco0!(splash, shell_string_until_comma, ShellString, KEY_SPLASH);
 ppo0!(splash_time, dec_uint, usize, KEY_SPLASH_TIME);
 ppo0!(reboot_timeout, dec_uint, usize, KEY_REBOOT_TIMEOUT);
 pco0!(strict, alphanumeric1, OnOff, KEY_STRICT);
