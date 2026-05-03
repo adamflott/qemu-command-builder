@@ -34,7 +34,7 @@ use std::path::PathBuf;
 fn full_command_line() {
     let mut cpu = CpuX86::new(CpuTypeX86_64::Host);
     cpu.migratable(YesNo::Yes);
-    cpu.flags(BTreeSet::from([CPUFlag::Vmx, CPUFlag::Svm]));
+    cpu.flags(BTreeSet::from([(CPUFlag::Vmx, OnOff::On), (CPUFlag::Svm, OnOff::On)]));
 
     let m = Memory::builder().mem(MemoryUnit::MegaBytes(1024)).build();
 
@@ -175,7 +175,7 @@ fn full_command_line() {
         "-machine",
         "q35,accel=kvm",
         "-cpu",
-        "host,migratable=yes,-svm,-vmx",
+        "host,migratable=yes,svm,vmx",
         "-smp",
         "1",
         "-m",
@@ -214,7 +214,7 @@ fn full_command_line() {
         "-kernel",
         "/kernel.img",
         "-append",
-        "\"console=tty1 ro\"",
+        "console=tty1 ro",
         "-serial",
         "chardev:serial0",
         "-parallel",
