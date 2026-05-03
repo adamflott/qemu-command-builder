@@ -1,7 +1,6 @@
 use std::str::FromStr;
 
 use crate::parsers::DELIM_COMMA;
-use crate::qao;
 use crate::to_command::ToCommand;
 use bon::Builder;
 use proptest_derive::Arbitrary;
@@ -11,38 +10,69 @@ pub(crate) const ARG_AUDIO: &str = "-audio";
 const KEY_DRIVER: &str = "driver=";
 const KEY_MODEL: &str = "model=";
 
-/// If the ``model`` option is specified, ``-audio`` is a shortcut
-/// for configuring both the guest audio hardware and the host audio
-/// backend in one go. The guest hardware model can be set with
-/// ``model=modelname``.  Use ``model=help`` to list the available
-/// device types.
+/// A generic `-audio` property rendered after `driver=` and `model=`.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+pub struct AudioProperty {
+    key: String,
+    value: Option<String>,
+}
+
+impl AudioProperty {
+    /// Creates a `key=value` property.
+    pub fn with_value(key: impl Into<String>, value: impl Into<String>) -> Self {
+        Self {
+            key: key.into(),
+            value: Some(value.into()),
+        }
+    }
+
+    /// Creates a bare `key` property with no explicit value.
+    pub fn flag(key: impl Into<String>) -> Self {
+        Self {
+            key: key.into(),
+            value: None,
+        }
+    }
+}
+
+/// QEMU `-audio [driver=]driver[,model=value][,prop[=value][,...]]`.
 ///
-/// The following two example do exactly the same, to show how ``-audio``
-/// can be used to shorten the command line length:
-///
-///
-/// -audiodev pa,id=pa -device sb16,audiodev=pa
-/// -audio pa,model=sb16
-///
-/// If the ``model`` option is not specified, ``-audio`` is used to
-/// configure a default audio backend that will be used whenever the
-/// ``audiodev`` property is not set on a device or machine.  In
-/// particular, ``-audio none`` ensures that no audio is produced even
-/// for machines that have embedded sound hardware.
-///
-/// In both cases, the driver option is the same as with the corresponding
-/// ``-audiodev`` option below.  Use ``driver=help`` to list the available
-/// drivers.
+/// This shortcut configures a default host audio backend and optionally the
+/// guest audio device model. Additional backend properties are emitted after
+/// the canonical `driver` and `model` fields.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Audio {
     driver: String,
     model: Option<String>,
-    properties: Vec<(String, String)>,
+    #[builder(default)]
+    properties: Vec<AudioProperty>,
 }
 
 impl Audio {
-    pub fn add_prop<S: AsRef<str>>(&mut self, key: S, value: S) -> &mut Self {
-        self.properties.push((key.as_ref().to_string(), value.as_ref().to_string()));
+    /// Creates an audio configuration for the given backend driver.
+    pub fn new(driver: impl Into<String>) -> Self {
+        Self {
+            driver: driver.into(),
+            model: None,
+            properties: Vec::new(),
+        }
+    }
+
+    /// Sets the guest audio device model used by the `-audio` shortcut.
+    pub fn model(&mut self, model: impl Into<String>) -> &mut Self {
+        self.model = Some(model.into());
+        self
+    }
+
+    /// Adds a `key=value` backend property.
+    pub fn add_prop<K: AsRef<str>, V: AsRef<str>>(&mut self, key: K, value: V) -> &mut Self {
+        self.properties.push(AudioProperty::with_value(key.as_ref(), value.as_ref()));
+        self
+    }
+
+    /// Adds a bare backend property with no explicit value.
+    pub fn add_flag<K: AsRef<str>>(&mut self, key: K) -> &mut Self {
+        self.properties.push(AudioProperty::flag(key.as_ref()));
         self
     }
 }
@@ -53,11 +83,16 @@ impl ToCommand for Audio {
     }
 
     fn to_args(&self) -> Vec<String> {
-        let mut args = vec![format!("{}{}", KEY_DRIVER, self.driver.to_string())];
+        let mut args = vec![format!("{}{}", KEY_DRIVER, self.driver)];
 
-        qao!(&self.model, args, KEY_MODEL);
-        for (prop_key, prop_value) in &self.properties {
-            args.push(format!("{}={}", prop_key, prop_value));
+        if let Some(model) = &self.model {
+            args.push(format!("{}{}", KEY_MODEL, model));
+        }
+        for property in &self.properties {
+            match &property.value {
+                Some(value) => args.push(format!("{}={}", property.key, value)),
+                None => args.push(property.key.clone()),
+            }
         }
 
         vec![args.join(DELIM_COMMA)]
@@ -65,9 +100,26 @@ impl ToCommand for Audio {
 }
 
 impl FromStr for Audio {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(DELIM_COMMA);
+        let first = parts.next().ok_or_else(|| "empty audio argument".to_string())?;
+        let driver = first.strip_prefix(KEY_DRIVER).unwrap_or(first).to_string();
+        if driver.is_empty() {
+            return Err("missing audio driver".to_string());
+        }
+
+        let mut audio = Audio::new(driver);
+
+        for part in parts {
+            match part.split_once('=') {
+                Some(("model", value)) => audio.model = Some(value.to_string()),
+                Some((key, value)) => audio.properties.push(AudioProperty::with_value(key, value)),
+                None => audio.properties.push(AudioProperty::flag(part)),
+            }
+        }
+
+        Ok(audio)
     }
 }
