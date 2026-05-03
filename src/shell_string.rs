@@ -120,10 +120,6 @@ pub(crate) fn shell_string_until_comma<'a>(input: &mut &'a str) -> ModalResult<&
     shell_string_until(input, &[','])
 }
 
-pub(crate) fn shell_string_until_end<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
-    shell_string_until(input, &[])
-}
-
 fn shell_string_until<'a>(input: &mut &'a str, delimiters: &[char]) -> ModalResult<&'a str> {
     let mut single_quoted = false;
     let mut double_quoted = false;

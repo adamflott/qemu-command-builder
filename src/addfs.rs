@@ -2,13 +2,9 @@ use std::str::FromStr;
 
 use bon::Builder;
 use proptest_derive::Arbitrary;
-use winnow::ascii::dec_uint;
-use winnow::combinator::opt;
-use winnow::token::literal;
-use winnow::{ModalResult, Parser};
 
 use crate::parsers::DELIM_COMMA;
-use crate::shell_string::{ShellString, ShellStringError, shell_string_until_end};
+use crate::shell_string::ShellString;
 use crate::to_command::ToCommand;
 
 pub(crate) const ARG_ADD_FD: &str = "-add-fd";
@@ -32,6 +28,17 @@ pub struct AddFd {
     pub opaque: Option<ShellString>,
 }
 
+impl AddFd {
+    /// Creates an `-add-fd` mapping from a host file descriptor to a QEMU fd set.
+    pub fn new(fd: usize, set: usize) -> Self {
+        Self {
+            fd,
+            set,
+            opaque: None,
+        }
+    }
+}
+
 impl ToCommand for AddFd {
     fn command(&self) -> String {
         ARG_ADD_FD.to_string()
@@ -49,26 +56,27 @@ impl ToCommand for AddFd {
 }
 
 impl FromStr for AddFd {
-    type Err = ShellStringError;
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        add_fd.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        let mut fd = None;
+        let mut set = None;
+        let mut opaque = None;
+
+        for part in s.split(DELIM_COMMA) {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid add-fd option: {part}"))?;
+            match key {
+                "fd" => fd = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "set" => set = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "opaque" => opaque = Some(ShellString::from_str(value)?),
+                other => return Err(format!("unsupported add-fd option: {other}")),
+            }
+        }
+
+        Ok(AddFd {
+            fd: fd.ok_or_else(|| "missing fd= for -add-fd".to_string())?,
+            set: set.ok_or_else(|| "missing set= for -add-fd".to_string())?,
+            opaque,
+        })
     }
-}
-
-fn opaque(s: &mut &str) -> ModalResult<ShellString> {
-    let _ = literal(DELIM_COMMA).parse_next(s)?;
-    let _ = literal(KEY_OPAQUE).parse_next(s)?;
-    let op = shell_string_until_end.parse_to::<ShellString>().parse_next(s)?;
-    Ok(op)
-}
-
-fn add_fd(s: &mut &str) -> ModalResult<AddFd> {
-    let _ = literal(KEY_FD).parse_next(s)?;
-    let fd = dec_uint.parse_next(s)?;
-    let _ = literal(DELIM_COMMA).parse_next(s)?;
-    let _ = literal(KEY_SET).parse_next(s)?;
-    let set = dec_uint.parse_next(s)?;
-    let opaque = opt(opaque).parse_next(s)?;
-    Ok(AddFd { fd, set, opaque })
 }
