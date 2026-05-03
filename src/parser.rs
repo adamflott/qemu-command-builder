@@ -2,6 +2,7 @@ use crate::accel::{ARG_ACCEL, Accel};
 use crate::acpitable::{ARG_ACPITABLE, AcpiTable};
 use crate::action::{ARG_ACTION, Action};
 use crate::addfs::{ARG_ADD_FD, AddFd};
+use crate::blockdev::{ARG_BLOCKDEV, BlockDev};
 use crate::boot::{ARG_BOOT, Boot};
 use crate::chardev::{ARG_CHARDEV, CharDev};
 use crate::cpu::{ARG_CPU, CpuX86};
@@ -115,6 +116,7 @@ impl FromStr for QemuInstanceForX86_64 {
                 ARG_HDC => ff!(tokens, ARG_HDC, PathBuf, q.hdc),
                 ARG_HDD => ff!(tokens, ARG_HDD, PathBuf, q.hdd),
                 ARG_CDROM => ff!(tokens, ARG_CDROM, PathBuf, q.cdrom),
+                ARG_BLOCKDEV => ffs!(tokens, ARG_BLOCKDEV, BlockDev, q.blockdev),
                 ARG_MTDBLOCK => ff!(tokens, ARG_MTDBLOCK, PathBuf, q.mdtblock),
                 ARG_BIOS => ff!(tokens, ARG_BIOS, PathBuf, q.bios),
                 ARG_PFLASH => ff!(tokens, ARG_PFLASH, PathBuf, q.pflash),

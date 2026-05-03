@@ -95,7 +95,35 @@ pub struct BlockDev {
     /// write to be converted to an ``unmap`` operation.
     pub detect_zeroes: Option<OnOffUnmap>,
 
+    /// Driver-specific options such as `filename=...` or `file.driver=...`.
+    ///
+    /// These are emitted after the generic blockdev options in sorted key
+    /// order so parsing and formatting remain stable.
     pub driver_opts: Option<BTreeMap<String, String>>,
+}
+
+impl BlockDev {
+    /// Creates a block driver node for the given `driver=...` value.
+    pub fn new(driver: impl Into<String>) -> Self {
+        Self {
+            driver: driver.into(),
+            node_name: None,
+            discard: None,
+            cache_direct: None,
+            cache_no_flush: None,
+            read_only: None,
+            auto_read_only: None,
+            force_share: None,
+            detect_zeroes: None,
+            driver_opts: None,
+        }
+    }
+
+    /// Adds a driver-specific `key=value` option.
+    pub fn add_driver_opt<K: AsRef<str>, V: AsRef<str>>(&mut self, key: K, value: V) -> &mut Self {
+        self.driver_opts.get_or_insert_with(BTreeMap::new).insert(key.as_ref().to_string(), value.as_ref().to_string());
+        self
+    }
 }
 
 impl ToCommand for BlockDev {
@@ -136,14 +164,45 @@ impl ToCommand for BlockDev {
             }
         }
 
-        args
+        vec![args.join(",")]
     }
 }
 
 impl FromStr for BlockDev {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(',');
+        let first = parts.next().ok_or_else(|| "empty blockdev argument".to_string())?;
+        let driver = first.strip_prefix("driver=").unwrap_or(first).to_string();
+        if driver.is_empty() {
+            return Err("missing blockdev driver".to_string());
+        }
+
+        let mut blockdev = BlockDev::new(driver);
+        let mut driver_opts = BTreeMap::new();
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid blockdev option: {part}"))?;
+            match key {
+                "node-name" => blockdev.node_name = Some(value.to_string()),
+                "discard" => blockdev.discard = Some(value.parse::<IgnoreUnmap>().map_err(|_| format!("invalid discard value: {value}"))?),
+                "cache.direct" => blockdev.cache_direct = Some(value.parse::<OnOff>().map_err(|_| format!("invalid cache.direct value: {value}"))?),
+                "cache.no-flush" => blockdev.cache_no_flush = Some(value.parse::<OnOff>().map_err(|_| format!("invalid cache.no-flush value: {value}"))?),
+                "read-only" => blockdev.read_only = Some(value.parse::<OnOff>().map_err(|_| format!("invalid read-only value: {value}"))?),
+                "auto-read-only" => blockdev.auto_read_only = Some(value.parse::<OnOff>().map_err(|_| format!("invalid auto-read-only value: {value}"))?),
+                "force-share" => blockdev.force_share = Some(value.parse::<OnOff>().map_err(|_| format!("invalid force-share value: {value}"))?),
+                "detect-zeroes" => blockdev.detect_zeroes = Some(value.parse::<OnOffUnmap>().map_err(|_| format!("invalid detect-zeroes value: {value}"))?),
+                other => {
+                    driver_opts.insert(other.to_string(), value.to_string());
+                }
+            }
+        }
+
+        if !driver_opts.is_empty() {
+            blockdev.driver_opts = Some(driver_opts);
+        }
+
+        Ok(blockdev)
     }
 }
