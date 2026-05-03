@@ -1,4 +1,3 @@
-use crate::parsers::ascii_plus_more;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -7,15 +6,10 @@ use proptest_derive::Arbitrary;
 
 use crate::common::{IgnoreUnmap, OnOff, OnOffUnmap};
 use crate::parsers::DELIM_COMMA;
-use crate::shell_path::{ShellPath, shell_path_until_comma};
-use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
+use crate::shell_path::ShellPath;
+use crate::shell_string::ShellString;
 use crate::to_command::{ToArg, ToCommand};
-use crate::{pco0, ppo0, qao};
-use winnow::Result;
-use winnow::ascii::{alphanumeric1, dec_uint};
-use winnow::combinator::{fail, opt};
-use winnow::prelude::*;
-use winnow::token::{literal, take_while};
+use crate::qao;
 
 pub(crate) const ARG_DRIVE: &str = "-drive";
 
@@ -32,7 +26,7 @@ const KEY_AIO: &str = "aio=";
 const KEY_FORMAT: &str = "format=";
 const KEY_RERROR: &str = "rerror=";
 const KEY_WERROR: &str = "werror=";
-const KEY_COPY_ON_READY: &str = "copy-on-ready=";
+const KEY_COPY_ON_READ: &str = "copy-on-read=";
 const KEY_BPS: &str = "bps=";
 const KEY_BPS_RD: &str = "bps_rd=";
 const KEY_BPS_WR: &str = "bps_wr=";
@@ -47,13 +41,8 @@ const KEY_IOPS_RD_MAX: &str = "iops_rd_max=";
 const KEY_IOPS_WR_MAX: &str = "iops_wr_max=";
 const KEY_IOPS_SIZE: &str = "iops_size=";
 const KEY_GROUP: &str = "group=";
-const KEY_NODE_NAME: &str = "node-name=";
 const KEY_DISCARD: &str = "discard=";
-const KEY_CACHE_DIRECT: &str = "cache.direct=";
-const KEY_CACHE_NO_FLUSH: &str = "cache.no-flush=";
-const KEY_READ_ONLY: &str = "read-only=";
-const KEY_AUTO_READ_ONLY: &str = "auto-read-only=";
-const KEY_FORCE_SHARE: &str = "force-share=";
+const KEY_READ_ONLY: &str = "readonly=";
 const KEY_DETECT_ZEROES: &str = "detect-zeroes=";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
@@ -356,13 +345,13 @@ pub struct Drive {
     ///
     /// Note that some block drivers support only read-only access,
     /// either generally or in certain configurations. In this case,
-    /// the default value ``read-only=off`` does not work and the
+    /// the default value ``readonly=off`` does not work and the
     /// option must be specified explicitly.
     pub read_only: Option<OnOff>,
 
-    /// copy-on-read is "on" or "off" and enables whether to copy read
+    /// `copy-on-read=` is `on` or `off` and enables whether to copy read
     /// backing file sectors into the image file.
-    pub copy_on_ready: Option<OnOff>,
+    pub copy_on_read: Option<OnOff>,
 
     /// discard is one of "ignore" (or "off") or "unmap" (or "on")
     /// and controls whether ``discard`` (also known as ``trim`` or
@@ -439,7 +428,7 @@ impl ToCommand for Drive {
             || self.format.is_some()
             || self.rerror.is_some()
             || self.werror.is_some()
-            || self.copy_on_ready.is_some()
+            || self.copy_on_read.is_some()
             || self.bps.is_some()
             || self.bps_rd.is_some()
             || self.bps_wr.is_some()
@@ -480,7 +469,7 @@ impl ToCommand for Drive {
             args.push(format!("{}{}", KEY_ID, id.as_ref()));
         }
         qao!(&self.read_only, args, KEY_READ_ONLY);
-        qao!(&self.copy_on_ready, args, KEY_COPY_ON_READY);
+        qao!(&self.copy_on_read, args, KEY_COPY_ON_READ);
         qao!(&self.discard, args, KEY_DISCARD);
         qao!(&self.detect_zeroes, args, KEY_DETECT_ZEROES);
         qao!(&self.bps, args, KEY_BPS);
@@ -505,158 +494,55 @@ impl ToCommand for Drive {
 }
 
 impl FromStr for Drive {
-    type Err = ShellStringError;
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        drive.parse(s).map_err(|e| ShellStringError::from_parse(e))
-    }
-}
+        let mut drive = Drive::default();
 
-pco0!(file, shell_path_until_comma, ShellPath, KEY_FILE);
-pco0!(interface, alphanumeric1, DriveInterface, KEY_INTERFACE);
-ppo0!(bus, dec_uint, usize, KEY_BUS);
-ppo0!(unit, dec_uint, usize, KEY_UNIT);
-pco0!(index, shell_string_until_comma, ShellString, KEY_INDEX);
-pco0!(media, alphanumeric1, DriveMedia, KEY_MEDIA);
-pco0!(snapshot, alphanumeric1, OnOff, KEY_SNAPSHOT);
-pco0!(cache, alphanumeric1, DriveCacheType, KEY_CACHE);
-pco0!(aio, ascii_plus_more, DriveAIOType, KEY_AIO);
-pco0!(format, shell_string_until_comma, ShellString, KEY_FORMAT);
-pco0!(rerror, alphanumeric1, DriveErrorAction, KEY_RERROR);
-pco0!(werror, alphanumeric1, DriveErrorAction, KEY_WERROR);
-pco0!(id, shell_string_until_comma, ShellString, KEY_ID);
-pco0!(read_only, alphanumeric1, OnOff, KEY_READ_ONLY);
-pco0!(copy_on_ready, alphanumeric1, OnOff, KEY_COPY_ON_READY);
-pco0!(discard, alphanumeric1, IgnoreUnmap, KEY_DISCARD);
-pco0!(detect_zeroes, alphanumeric1, OnOffUnmap, KEY_DETECT_ZEROES);
-ppo0!(bps, dec_uint, usize, KEY_BPS);
-ppo0!(bps_rd, dec_uint, usize, KEY_BPS_RD);
-ppo0!(bps_wr, dec_uint, usize, KEY_BPS_WR);
-ppo0!(bps_max, dec_uint, usize, KEY_BPS_MAX);
-ppo0!(bps_rd_max, dec_uint, usize, KEY_BPS_RD_MAX);
-ppo0!(bps_wr_max, dec_uint, usize, KEY_BPS_WR_MAX);
-ppo0!(iops, dec_uint, usize, KEY_IOPS);
-ppo0!(iops_rd, dec_uint, usize, KEY_IOPS_RD);
-ppo0!(iops_wr, dec_uint, usize, KEY_IOPS_WR);
-ppo0!(iops_max, dec_uint, usize, KEY_IOPS_MAX);
-ppo0!(iops_rd_max, dec_uint, usize, KEY_IOPS_RD_MAX);
-ppo0!(iops_wr_max, dec_uint, usize, KEY_IOPS_WR_MAX);
-ppo0!(iops_size, dec_uint, usize, KEY_IOPS_SIZE);
-pco0!(group, shell_string_until_comma, ShellString, KEY_GROUP);
-
-pub fn drive2(s: &mut &str) -> ModalResult<Drive> {
-    //let ks = [KEY_FILE, KEY_INTERFACE, KEY_BUS, KEY_UNIT, KEY_INDEX, KEY_MEDIA].map(|v|literal(v)).collect();
-    //let k = alt( (literal(KEY_FILE), literal(KEY_INTERFACE), literal(KEY_BUS)) ).parse(s)?;
-    let k = take_while(1.., |c: char| c != '=').parse_next(s)?;
-    let mut d = Drive::builder().build();
-    match k {
-        KEY_FILE => {
-            let file = ascii_plus_more.parse_next(s)?;
-            d.file = Some(ShellPath { s: file.to_string() });
+        for part in s.split(DELIM_COMMA) {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid drive option: {part}"))?;
+            match key {
+                "file" => drive.file = Some(ShellPath::from(value)),
+                "if" => drive.interface = Some(value.parse::<DriveInterface>().map_err(|_| format!("invalid if value: {value}"))?),
+                "bus" => drive.bus = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "unit" => drive.unit = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "index" => drive.index = Some(ShellString::from_str(value)?),
+                "media" => drive.media = Some(value.parse::<DriveMedia>().map_err(|_| format!("invalid media value: {value}"))?),
+                "snapshot" => drive.snapshot = Some(value.parse::<OnOff>().map_err(|_| format!("invalid snapshot value: {value}"))?),
+                "cache" => drive.cache = Some(value.parse::<DriveCacheType>().map_err(|_| format!("invalid cache value: {value}"))?),
+                "aio" => drive.aio = Some(value.parse::<DriveAIOType>().map_err(|_| format!("invalid aio value: {value}"))?),
+                "format" => drive.format = Some(ShellString::from_str(value)?),
+                "rerror" => drive.rerror = Some(value.parse::<DriveErrorAction>().map_err(|_| format!("invalid rerror value: {value}"))?),
+                "werror" => drive.werror = Some(value.parse::<DriveErrorAction>().map_err(|_| format!("invalid werror value: {value}"))?),
+                "id" => drive.id = Some(ShellString::from_str(value)?),
+                "readonly" | "read-only" => {
+                    drive.read_only = Some(value.parse::<OnOff>().map_err(|_| format!("invalid readonly value: {value}"))?)
+                }
+                "copy-on-read"  => {
+                    drive.copy_on_read = Some(value.parse::<OnOff>().map_err(|_| format!("invalid copy-on-read value: {value}"))?)
+                }
+                "discard" => drive.discard = Some(value.parse::<IgnoreUnmap>().map_err(|_| format!("invalid discard value: {value}"))?),
+                "detect-zeroes" => {
+                    drive.detect_zeroes = Some(value.parse::<OnOffUnmap>().map_err(|_| format!("invalid detect-zeroes value: {value}"))?)
+                }
+                "bps" => drive.bps = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "bps_rd" => drive.bps_rd = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "bps_wr" => drive.bps_wr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "bps_max" => drive.bps_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "bps_rd_max" => drive.bps_rd_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "bps_wr_max" => drive.bps_wr_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "iops" => drive.iops = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "iops_rd" => drive.iops_rd = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "iops_wr" => drive.iops_wr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "iops_max" => drive.iops_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "iops_rd_max" => drive.iops_rd_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "iops_wr_max" => drive.iops_wr_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "iops_size" => drive.iops_size = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "group" => drive.group = Some(ShellString::from_str(value)?),
+                other => return Err(format!("unsupported drive option: {other}")),
+            }
         }
-        KEY_INTERFACE => {}
-        KEY_BUS => {}
-        KEY_UNIT => {}
-        KEY_INDEX => {}
-        KEY_MEDIA => {}
-        KEY_SNAPSHOT => {}
-        KEY_CACHE => {}
-        KEY_ID => {}
-        KEY_AIO => {}
-        KEY_FORMAT => {}
-        KEY_RERROR => {}
-        KEY_WERROR => {}
-        KEY_COPY_ON_READY => {}
-        KEY_BPS => {}
-        KEY_BPS_RD => {}
-        KEY_BPS_WR => {}
-        KEY_BPS_MAX => {}
-        KEY_BPS_RD_MAX => {}
-        KEY_BPS_WR_MAX => {}
-        KEY_IOPS => {}
-        KEY_IOPS_RD => {}
-        KEY_IOPS_WR => {}
-        KEY_IOPS_MAX => {}
-        KEY_IOPS_RD_MAX => {}
-        KEY_IOPS_WR_MAX => {}
-        KEY_IOPS_SIZE => {}
-        KEY_GROUP => {}
-        KEY_NODE_NAME => {}
-        KEY_DISCARD => {}
-        KEY_CACHE_DIRECT => {}
-        KEY_CACHE_NO_FLUSH => {}
-        KEY_READ_ONLY => {}
-        KEY_AUTO_READ_ONLY => {}
-        KEY_FORCE_SHARE => {}
-        KEY_DETECT_ZEROES => {}
-        _ => return fail(s),
-    }
 
-    todo!()
-}
-pub fn drive(s: &mut &str) -> ModalResult<Drive> {
-    let file = opt(file).parse_next(s)?;
-    let interface = opt(interface).parse_next(s)?;
-    let bus = opt(bus).parse_next(s)?;
-    let unit = opt(unit).parse_next(s)?;
-    let index = opt(index).parse_next(s)?;
-    let media = opt(media).parse_next(s)?;
-    let snapshot = opt(snapshot).parse_next(s)?;
-    let cache = opt(cache).parse_next(s)?;
-    let aio = opt(aio).parse_next(s)?;
-    let format = opt(format).parse_next(s)?;
-    let rerror = opt(rerror).parse_next(s)?;
-    let werror = opt(werror).parse_next(s)?;
-    let id = opt(id).parse_next(s)?;
-    let read_only = opt(read_only).parse_next(s)?;
-    let copy_on_ready = opt(copy_on_ready).parse_next(s)?;
-    let discard = opt(discard).parse_next(s)?;
-    let detect_zeroes = opt(detect_zeroes).parse_next(s)?;
-    let bps = opt(bps).parse_next(s)?;
-    let bps_rd = opt(bps_rd).parse_next(s)?;
-    let bps_wr = opt(bps_wr).parse_next(s)?;
-    let bps_max = opt(bps_max).parse_next(s)?;
-    let bps_rd_max = opt(bps_rd_max).parse_next(s)?;
-    let bps_wr_max = opt(bps_wr_max).parse_next(s)?;
-    let iops = opt(iops).parse_next(s)?;
-    let iops_rd = opt(iops_rd).parse_next(s)?;
-    let iops_wr = opt(iops_wr).parse_next(s)?;
-    let iops_max = opt(iops_max).parse_next(s)?;
-    let iops_rd_max = opt(iops_rd_max).parse_next(s)?;
-    let iops_wr_max = opt(iops_wr_max).parse_next(s)?;
-    let iops_size = opt(iops_size).parse_next(s)?;
-    let group = opt(group).parse_next(s)?;
-    Ok(Drive {
-        file,
-        interface,
-        bus,
-        unit,
-        index,
-        media,
-        snapshot,
-        cache,
-        aio,
-        format,
-        rerror,
-        werror,
-        id,
-        read_only,
-        copy_on_ready,
-        discard,
-        detect_zeroes,
-        bps,
-        bps_rd,
-        bps_wr,
-        bps_max,
-        bps_rd_max,
-        bps_wr_max,
-        iops,
-        iops_rd,
-        iops_wr,
-        iops_max,
-        iops_rd_max,
-        iops_wr_max,
-        iops_size,
-        group,
-    })
+        Ok(drive)
+    }
 }

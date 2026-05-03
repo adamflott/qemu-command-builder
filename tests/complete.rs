@@ -193,7 +193,7 @@ fn full_command_line() {
         "-name",
         "crate_test",
         "-drive",
-        "file=/dev/vg1/drive0-27573,if=none,media=disk,cache=writeback,aio=native,format=raw,id=drive-scsi-disk-0,read-only=off",
+        "file=/dev/vg1/drive0-27573,if=none,media=disk,cache=writeback,aio=native,format=raw,id=drive-scsi-disk-0,readonly=off",
         "-display",
         "vnc=unix:/run/vnc.socket",
         "-nographic",
