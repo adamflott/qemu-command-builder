@@ -40,4 +40,15 @@ mod test {
 
         assert_eq!(parsed, expected);
     }
+
+    #[test]
+    fn cpu_duplicate_feature_modifiers_use_last_state() {
+        let parsed = CpuX86::from_str("host,vmx,-vmx,vmx,-svm,svm").unwrap();
+
+        let mut expected = CpuX86::new(CpuTypeX86_64::Host);
+        expected.flags(BTreeSet::from([(CPUFlag::Vmx, OnOff::On), (CPUFlag::Svm, OnOff::On)]));
+
+        assert_eq!(parsed, expected);
+        assert_eq!(parsed.to_command(), vec!["-cpu".to_string(), "host,svm,vmx".to_string()]);
+    }
 }

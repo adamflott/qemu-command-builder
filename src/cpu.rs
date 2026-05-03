@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
 use bon::Builder;
@@ -27,7 +27,7 @@ const KEY_MIGRATABLE: &str = "migratable=";
 pub struct CpuX86 {
     cpu_type: CpuTypeX86_64,
     migratable: Option<YesNo>,
-    flags: Option<BTreeSet<(CPUFlag, OnOff)>>,
+    flags: Option<BTreeMap<CPUFlag, OnOff>>,
 }
 
 impl CpuX86 {
@@ -49,9 +49,14 @@ impl CpuX86 {
     /// Sets CPU feature toggles.
     ///
     /// Enabled features are rendered as `flag`, while disabled features are
-    /// rendered as `-flag`.
+    /// rendered as `-flag`. If the same feature appears more than once, the
+    /// final state for that feature wins.
     pub fn flags(&mut self, flags: BTreeSet<(CPUFlag, OnOff)>) -> &mut Self {
-        self.flags = Some(flags);
+        let mut normalized = BTreeMap::new();
+        for (flag, state) in flags {
+            normalized.insert(flag, state);
+        }
+        self.flags = Some(normalized);
         self
     }
 }
@@ -129,14 +134,14 @@ fn cpu_x86_64(s: &mut &str) -> ModalResult<CpuX86> {
     let cpu_type = cpu_type(s)?;
     let items: Option<Vec<CpuX86Item>> = opt(preceded(literal(DELIM_COMMA), separated(1.., cpu_x86_item, DELIM_COMMA))).parse_next(s)?;
     let mut migratable = None;
-    let mut flags = BTreeSet::new();
+    let mut flags = BTreeMap::new();
 
     if let Some(items) = items {
         for item in items {
             match item {
                 CpuX86Item::Migratable(value) => migratable = Some(value),
                 CpuX86Item::Flag(flag, state) => {
-                    flags.replace((flag, state));
+                    flags.insert(flag, state);
                 }
             }
         }
@@ -146,6 +151,7 @@ fn cpu_x86_64(s: &mut &str) -> ModalResult<CpuX86> {
     Ok(CpuX86 { cpu_type, migratable, flags })
 }
 
+/// An aarch64 `-cpu` argument.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct CpuAarch64 {
     pub cpu_type: CpuTypeAarch64,
