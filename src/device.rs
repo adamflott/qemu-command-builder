@@ -1,35 +1,67 @@
 use crate::parsers::DELIM_COMMA;
-use crate::shell_string::{ShellString, ShellStringError};
+use crate::shell_string::ShellString;
 use crate::to_command::ToCommand;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::collections::BTreeMap;
 use std::str::FromStr;
-use winnow::Result;
-use winnow::combinator::{opt, separated, separated_pair};
-use winnow::prelude::*;
-use winnow::token::{literal, take_while};
 
 pub(crate) const ARG_DEVICE: &str = "-device";
 
-///Add device driver. prop=value sets driver properties. Valid
-/// properties depend on the driver. To get help on possible drivers and
-/// properties, use ``-device help`` and ``-device driver,help``.
+/// A generic `-device` property rendered after the device driver name.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+pub struct DeviceProperty {
+    key: ShellString,
+    value: Option<ShellString>,
+}
+
+impl DeviceProperty {
+    /// Creates a `key=value` property.
+    pub fn with_value(key: impl AsRef<str>, value: impl AsRef<str>) -> Self {
+        Self {
+            key: ShellString::from(key.as_ref()),
+            value: Some(ShellString::from(value.as_ref())),
+        }
+    }
+
+    /// Creates a bare `key` property.
+    pub fn flag(key: impl AsRef<str>) -> Self {
+        Self {
+            key: ShellString::from(key.as_ref()),
+            value: None,
+        }
+    }
+}
+
+/// Add a QEMU device driver with optional `prop` or `prop=value` settings.
+///
+/// Valid properties depend on the device driver. Use `-device help` or
+/// `-device driver,help` in QEMU for the device-specific property list.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Device {
     device: ShellString,
-    properties: BTreeMap<ShellString, ShellString>,
+    #[builder(default)]
+    properties: BTreeMap<ShellString, Option<ShellString>>,
 }
 
 impl Device {
+    /// Creates a new device argument for the given QEMU device driver.
     pub fn new<S: AsRef<str>>(device: S) -> Self {
         Device {
-            device: ShellString { s: device.as_ref().to_string() },
+            device: ShellString::from(device.as_ref()),
             properties: Default::default(),
         }
     }
-    pub fn add_prop<S: AsRef<str>>(&mut self, key: S, value: S) -> &mut Self {
-        self.properties.insert(ShellString { s: key.as_ref().to_string() }, ShellString { s: value.as_ref().to_string() });
+
+    /// Adds a `key=value` property to the device.
+    pub fn add_prop<K: AsRef<str>, V: AsRef<str>>(&mut self, key: K, value: V) -> &mut Self {
+        self.properties.insert(ShellString::from(key.as_ref()), Some(ShellString::from(value.as_ref())));
+        self
+    }
+
+    /// Adds a bare `key` property to the device.
+    pub fn add_flag<K: AsRef<str>>(&mut self, key: K) -> &mut Self {
+        self.properties.insert(ShellString::from(key.as_ref()), None);
         self
     }
 }
@@ -38,11 +70,15 @@ impl ToCommand for Device {
     fn command(&self) -> String {
         ARG_DEVICE.to_string()
     }
+
     fn to_args(&self) -> Vec<String> {
-        let mut args = vec![self.device.s.clone()];
+        let mut args = vec![self.device.as_ref().to_string()];
 
         for (prop_key, prop_value) in &self.properties {
-            args.push(format!("{}={}", prop_key.as_ref(), prop_value.as_ref()));
+            match prop_value {
+                Some(value) => args.push(format!("{}={}", prop_key.as_ref(), value.as_ref())),
+                None => args.push(prop_key.as_ref().to_string()),
+            }
         }
 
         vec![args.join(DELIM_COMMA)]
@@ -50,42 +86,30 @@ impl ToCommand for Device {
 }
 
 impl FromStr for Device {
-    type Err = ShellStringError;
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        device.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        let mut parts = s.split(DELIM_COMMA);
+        let device = parts.next().ok_or_else(|| "empty device argument".to_string())?;
+        if device.is_empty() {
+            return Err("missing device driver".to_string());
+        }
+
+        let mut properties = BTreeMap::new();
+        for part in parts {
+            match part.split_once('=') {
+                Some((key, value)) => {
+                    properties.insert(ShellString::from(key), Some(ShellString::from_str(value)?));
+                }
+                None => {
+                    properties.insert(ShellString::from(part), None);
+                }
+            }
+        }
+
+        Ok(Device {
+            device: ShellString::from(device),
+            properties,
+        })
     }
-}
-
-pub fn key_parser<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
-    take_while(1.., |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.' || c == '_' || c == '/').parse_next(input)
-}
-
-pub fn value_parser<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
-    take_while(1.., |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.' || c == '_' || c == '/' || c == ':').parse_next(input)
-}
-
-// TODO move
-fn parse_key_value_pair<'a>(s: &mut &'a str) -> ModalResult<(&'a str, &'a str)> {
-    let (q, r) = separated_pair(key_parser, "=", value_parser).parse_next(s)?;
-    Ok((q, r))
-}
-
-fn props(s: &mut &str) -> ModalResult<BTreeMap<ShellString, ShellString>> {
-    let _ = literal(DELIM_COMMA).parse_next(s)?;
-    let ps: Vec<(&str, &str)> = separated(1.., parse_key_value_pair, DELIM_COMMA).parse_next(s)?;
-    let ps: Vec<(ShellString, ShellString)> = ps.into_iter().map(|(k, v)| (ShellString { s: k.to_string() }, ShellString { s: v.to_string() })).collect();
-    let mut pt = BTreeMap::new();
-    for (k, v) in ps {
-        pt.insert(k, v);
-    }
-    Ok(pt)
-}
-pub fn device(s: &mut &str) -> ModalResult<Device> {
-    let dev = key_parser.parse_next(s)?;
-    let properties = opt(props).parse_next(s)?.unwrap_or_default();
-    Ok(Device {
-        device: ShellString { s: dev.to_string() },
-        properties,
-    })
 }
