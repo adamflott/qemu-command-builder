@@ -1,5 +1,5 @@
-use crate::to_command::ToArg;
-use crate::to_command::ToCommand;
+use crate::parsers::DELIM_COMMA;
+use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::path::PathBuf;
@@ -7,6 +7,7 @@ use std::str::FromStr;
 
 pub(crate) const ARG_FSDEV: &str = "-fsdev";
 
+/// QEMU `security_model=` values for `-fsdev local`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum SecurityModel {
     Passthrough,
@@ -25,94 +26,81 @@ impl ToArg for SecurityModel {
         }
     }
 }
-/// Accesses to the filesystem are done by QEMU
+
+impl FromStr for SecurityModel {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "passthrough" => Ok(Self::Passthrough),
+            "mapped-xattr" => Ok(Self::MappedXAttr),
+            "mapped-file" => Ok(Self::MappedFile),
+            "none" => Ok(Self::None),
+            _ => Err(format!("invalid security_model value: {s}")),
+        }
+    }
+}
+
+/// A `-fsdev local,...` backend.
+///
+/// This exports a host path for a guest 9p device.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct FsDevLocal {
     /// Specifies identifier for this device.
     id: String,
 
-    /// Specifies the export path for the file system device. Files
-    /// under this path will be available to the 9p client on the guest.
+    /// Specifies the export path for the file system device.
     path: PathBuf,
 
     /// Specifies the security model to be used for this export path.
-    /// Supported security models are "passthrough", "mapped-xattr",
-    /// "mapped-file" and "none". In "passthrough" security model, files
-    /// are stored using the same credentials as they are created on the
-    /// guest. This requires QEMU to run as root. In "mapped-xattr"
-    /// security model, some of the file attributes like uid, gid, mode
-    /// bits and link target are stored as file attributes. For
-    /// "mapped-file" these attributes are stored in the hidden
-    /// .virtfs\_metadata directory. Directories exported by this
-    /// security model cannot interact with other unix tools. "none"
-    /// security model is same as passthrough except the sever won't
-    /// report failures if it fails to set file attributes like
-    /// ownership. Security model is mandatory only for local fsdriver.
     security_model: SecurityModel,
 
-    /// This is an optional argument. The only supported value is
-    /// "immediate". This means that host page cache will be used to
-    /// read and write data but write notification will be sent to the
-    /// guest only when the data has been reported as written by the
-    /// storage subsystem.
+    /// Emit `writeout=immediate` when enabled.
     writeout: Option<()>,
 
-    /// Enables exporting 9p share as a readonly mount for guests. By
-    /// default read-write access is given.
+    /// Emit `readonly=on` when enabled.
     readonly: Option<()>,
 
     /// Specifies the default mode for newly created files on the host.
-    /// Works only with security models "mapped-xattr" and
-    /// "mapped-file".
     fmode: Option<String>,
 
-    /// Specifies the default mode for newly created directories on the
-    /// host. Works only with security models "mapped-xattr" and
-    /// "mapped-file".
+    /// Specifies the default mode for newly created directories on the host.
     dmode: Option<String>,
 
-    /// Specify bandwidth throttling limits in bytes per second, either
-    /// for all request types or for reads or writes only.
+    /// Throttling limits in bytes per second.
     throttling_bps_total: Option<usize>,
     throttling_bps_read: Option<usize>,
     throttling_bps_write: Option<usize>,
 
-    /// Specify bursts in bytes per second, either for all request types
-    /// or for reads or writes only. Bursts allow the guest I/O to spike
-    /// above the limit temporarily.
+    /// Bursts in bytes per second.
     throttling_bps_total_max: Option<usize>,
     bps_read_max: Option<usize>,
     bps_write_max: Option<usize>,
 
-    /// Specify request rate limits in requests per second, either for
-    /// all request types or for reads or writes only.
+    /// Request rate limits in requests per second.
     throttling_iops_total: Option<usize>,
     throttling_iops_read: Option<usize>,
     throttling_iops_write: Option<usize>,
 
-    /// Specify bursts in requests per second, either for all request
-    /// types or for reads or writes only. Bursts allow the guest I/O to
-    /// spike above the limit temporarily.
+    /// Bursts in requests per second.
     throttling_iops_total_max: Option<usize>,
     throttling_iops_read_max: Option<usize>,
     throttling_iops_write_max: Option<usize>,
 
-    /// Let every is bytes of a request count as a new request for iops
-    /// throttling purposes.
+    /// Request size for IOPS throttling accounting.
     throttling_iops_size: Option<usize>,
 }
 
-/// Synthetic filesystem, only used by QTests.
+/// A synthetic `-fsdev synth,...` backend used by QTests.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct FsDevSynth {
     /// Specifies identifier for this device.
     id: String,
+    /// Emit `readonly=on` when enabled.
+    readonly: Option<()>,
 }
 
-/// Define a new file system device
-///
-/// TODO
-/// - device virtio-9p-type integration
+/// Define a new QEMU file system device.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum FsDev {
     Local(FsDevLocal),
@@ -123,92 +111,198 @@ impl ToCommand for FsDev {
     fn command(&self) -> String {
         ARG_FSDEV.to_string()
     }
+
     fn to_args(&self) -> Vec<String> {
+        let mut args = vec![];
         match self {
             FsDev::Local(local) => {
-                let mut args = vec![];
-
-                args.push(format!("local,id={}", local.id));
-
-                args.push(format!(",path={}", local.path.display()));
-
-                args.push(format!(",security-model={}", local.security_model.to_arg()));
+                args.push("local".to_string());
+                args.push(format!("id={}", local.id));
+                args.push(format!("path={}", local.path.display()));
+                args.push(format!("security_model={}", local.security_model.to_arg()));
 
                 if local.writeout.is_some() {
                     args.push("writeout=immediate".to_string());
                 }
-
                 if local.readonly.is_some() {
                     args.push("readonly=on".to_string());
                 }
-
                 if let Some(fmode) = &local.fmode {
                     args.push(format!("fmode={}", fmode));
                 }
-
                 if let Some(dmode) = &local.dmode {
                     args.push(format!("dmode={}", dmode));
                 }
-
-                if let Some(throttling_bps_total) = local.throttling_bps_total {
-                    args.push(format!("throttling.bps-total={}", throttling_bps_total));
+                if let Some(v) = local.throttling_bps_total {
+                    args.push(format!("throttling.bps-total={}", v));
                 }
-                if let Some(throttling_bps_read) = local.throttling_bps_read {
-                    args.push(format!("throttling.bps-read={}", throttling_bps_read));
+                if let Some(v) = local.throttling_bps_read {
+                    args.push(format!("throttling.bps-read={}", v));
                 }
-                if let Some(throttling_bps_write) = local.throttling_bps_write {
-                    args.push(format!("throttling.bps-write={}", throttling_bps_write));
+                if let Some(v) = local.throttling_bps_write {
+                    args.push(format!("throttling.bps-write={}", v));
                 }
-
-                if let Some(throttling_bps_total_max) = local.throttling_bps_total_max {
-                    args.push(format!("throttling.bps-total-max={}", throttling_bps_total_max));
+                if let Some(v) = local.throttling_bps_total_max {
+                    args.push(format!("throttling.bps-total-max={}", v));
                 }
-                if let Some(bps_read_max) = local.bps_read_max {
-                    args.push(format!("bps-read-max={}", bps_read_max));
+                if let Some(v) = local.bps_read_max {
+                    args.push(format!("throttling.bps-read-max={}", v));
                 }
-                if let Some(bps_write_max) = local.bps_write_max {
-                    args.push(format!("bps-write-max={}", bps_write_max));
+                if let Some(v) = local.bps_write_max {
+                    args.push(format!("throttling.bps-write-max={}", v));
                 }
-
-                if let Some(throttling_iops_total) = local.throttling_iops_total {
-                    args.push(format!("throttling.iops-total={}", throttling_iops_total));
+                if let Some(v) = local.throttling_iops_total {
+                    args.push(format!("throttling.iops-total={}", v));
                 }
-                if let Some(throttling_iops_read) = local.throttling_iops_read {
-                    args.push(format!("throttling.iops-read={}", throttling_iops_read));
+                if let Some(v) = local.throttling_iops_read {
+                    args.push(format!("throttling.iops-read={}", v));
                 }
-                if let Some(throttling_iops_write) = local.throttling_iops_write {
-                    args.push(format!("throttling.iops-write={}", throttling_iops_write));
+                if let Some(v) = local.throttling_iops_write {
+                    args.push(format!("throttling.iops-write={}", v));
                 }
-
-                if let Some(throttling_ios_total_max) = local.throttling_iops_total_max {
-                    args.push(format!("throttling.ios-total-max={}", throttling_ios_total_max));
+                if let Some(v) = local.throttling_iops_total_max {
+                    args.push(format!("throttling.iops-total-max={}", v));
                 }
-                if let Some(throttling_iops_read_max) = local.throttling_iops_read_max {
-                    args.push(format!("throttling.iops-read-max={}", throttling_iops_read_max));
+                if let Some(v) = local.throttling_iops_read_max {
+                    args.push(format!("throttling.iops-read-max={}", v));
                 }
-                if let Some(throttling_iops_write_max) = local.throttling_iops_write_max {
-                    args.push(format!("throttling.iops-write-max={}", throttling_iops_write_max));
+                if let Some(v) = local.throttling_iops_write_max {
+                    args.push(format!("throttling.iops-write-max={}", v));
                 }
-
-                if let Some(throttling_iops_size) = local.throttling_iops_size {
-                    args.push(format!("throttling.iops-size={}", throttling_iops_size));
+                if let Some(v) = local.throttling_iops_size {
+                    args.push(format!("throttling.iops-size={}", v));
                 }
-                args
             }
             FsDev::Synth(synth) => {
-                let mut arg = String::new();
-                arg.push_str("synth,id=");
-                arg.push_str(synth.id.to_string().as_str());
-                vec![arg]
+                args.push("synth".to_string());
+                args.push(format!("id={}", synth.id));
+                if synth.readonly.is_some() {
+                    args.push("readonly=on".to_string());
+                }
             }
         }
+
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
 impl FromStr for FsDev {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(DELIM_COMMA);
+        let backend = parts.next().ok_or_else(|| "empty fsdev argument".to_string())?;
+        match backend {
+            "local" => parse_local_fsdev(parts.collect()),
+            "synth" => parse_synth_fsdev(parts.collect()),
+            other => Err(format!("unsupported fsdev backend: {other}")),
+        }
     }
+}
+
+fn parse_local_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
+    let mut id = None;
+    let mut path = None;
+    let mut security_model = None;
+    let mut writeout = None;
+    let mut readonly = None;
+    let mut fmode = None;
+    let mut dmode = None;
+    let mut throttling_bps_total = None;
+    let mut throttling_bps_read = None;
+    let mut throttling_bps_write = None;
+    let mut throttling_bps_total_max = None;
+    let mut bps_read_max = None;
+    let mut bps_write_max = None;
+    let mut throttling_iops_total = None;
+    let mut throttling_iops_read = None;
+    let mut throttling_iops_write = None;
+    let mut throttling_iops_total_max = None;
+    let mut throttling_iops_read_max = None;
+    let mut throttling_iops_write_max = None;
+    let mut throttling_iops_size = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid fsdev local option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "path" => path = Some(PathBuf::from(value)),
+            "security_model" => security_model = Some(value.parse::<SecurityModel>()?),
+            "writeout" => {
+                if value != "immediate" {
+                    return Err(format!("invalid writeout value: {value}"));
+                }
+                writeout = Some(());
+            }
+            "readonly" => {
+                if value != "on" {
+                    return Err(format!("invalid readonly value: {value}"));
+                }
+                readonly = Some(());
+            }
+            "fmode" => fmode = Some(value.to_string()),
+            "dmode" => dmode = Some(value.to_string()),
+            "throttling.bps-total" => throttling_bps_total = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.bps-read" => throttling_bps_read = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.bps-write" => throttling_bps_write = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.bps-total-max" => throttling_bps_total_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.bps-read-max" => bps_read_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.bps-write-max" => bps_write_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.iops-total" => throttling_iops_total = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.iops-read" => throttling_iops_read = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.iops-write" => throttling_iops_write = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.iops-total-max" => throttling_iops_total_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.iops-read-max" => throttling_iops_read_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.iops-write-max" => throttling_iops_write_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "throttling.iops-size" => throttling_iops_size = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            other => return Err(format!("unsupported fsdev local option: {other}")),
+        }
+    }
+
+    Ok(FsDev::Local(FsDevLocal {
+        id: id.ok_or_else(|| "fsdev local requires id=".to_string())?,
+        path: path.ok_or_else(|| "fsdev local requires path=".to_string())?,
+        security_model: security_model.ok_or_else(|| "fsdev local requires security_model=".to_string())?,
+        writeout,
+        readonly,
+        fmode,
+        dmode,
+        throttling_bps_total,
+        throttling_bps_read,
+        throttling_bps_write,
+        throttling_bps_total_max,
+        bps_read_max,
+        bps_write_max,
+        throttling_iops_total,
+        throttling_iops_read,
+        throttling_iops_write,
+        throttling_iops_total_max,
+        throttling_iops_read_max,
+        throttling_iops_write_max,
+        throttling_iops_size,
+    }))
+}
+
+fn parse_synth_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
+    let mut id = None;
+    let mut readonly = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid fsdev synth option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "readonly" => {
+                if value != "on" {
+                    return Err(format!("invalid readonly value: {value}"));
+                }
+                readonly = Some(());
+            }
+            other => return Err(format!("unsupported fsdev synth option: {other}")),
+        }
+    }
+
+    Ok(FsDev::Synth(FsDevSynth {
+        id: id.ok_or_else(|| "fsdev synth requires id=".to_string())?,
+        readonly,
+    }))
 }
