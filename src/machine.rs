@@ -9,7 +9,7 @@ use crate::machine_type::{MachineTypeAarch64, MachineTypeX86_64};
 use crate::parsers::{DELIM_COLON, DELIM_COMMA, ascii_plus_more};
 use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::{ToArg, ToCommand};
-use crate::{pco, pco0, pso, pso0, qao};
+use crate::{pco, pso, qao};
 use winnow::ascii::alphanumeric1;
 use winnow::combinator::{opt, separated};
 use winnow::{ModalResult, Parser};
@@ -321,7 +321,7 @@ impl ToCommand for MachineAarch64 {
 impl FromStr for MachineAarch64 {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }

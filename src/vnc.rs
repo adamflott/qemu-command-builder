@@ -255,7 +255,7 @@ impl ToCommand for VNC {
 impl FromStr for VNC {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }

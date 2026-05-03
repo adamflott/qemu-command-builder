@@ -8,7 +8,6 @@ use winnow::token::literal;
 use winnow::{ModalResult, Parser};
 
 use crate::parsers::DELIM_COMMA;
-use crate::qao;
 use crate::shell_string::{ShellString, ShellStringError, shell_string_until_end};
 use crate::to_command::ToCommand;
 

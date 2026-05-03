@@ -143,7 +143,7 @@ impl ToCommand for BlockDev {
 impl FromStr for BlockDev {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }

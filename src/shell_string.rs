@@ -54,9 +54,9 @@ impl FromStr for ShellString {
     }
 }
 
-impl Into<String> for ShellString {
-    fn into(self) -> String {
-        self.s.to_string()
+impl From<ShellString> for String {
+    fn from(val: ShellString) -> Self {
+        val.s.to_string()
     }
 }
 

@@ -248,7 +248,7 @@ impl ToCommand for SmbiosType3 {
 impl FromStr for SmbiosType3 {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -308,7 +308,7 @@ impl ToCommand for SmbiosType4 {
 impl FromStr for SmbiosType4 {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -344,7 +344,7 @@ impl ToCommand for SmbiosType8 {
 impl FromStr for SmbiosType8 {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -372,7 +372,7 @@ impl ToCommand for SmbiosType11 {
 impl FromStr for SmbiosType11 {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -421,7 +421,7 @@ impl ToCommand for SmbiosType17 {
 impl FromStr for SmbiosType17 {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -458,7 +458,7 @@ impl ToCommand for SmbiosType41 {
 impl FromStr for SmbiosType41 {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }

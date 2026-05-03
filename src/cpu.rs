@@ -91,7 +91,7 @@ impl FromStr for CpuX86 {
 }
 
 fn cpu_type(s: &mut &str) -> ModalResult<CpuTypeX86_64> {
-    Ok(ascii_plus_more.parse_to::<CpuTypeX86_64>().parse_next(s)?)
+    ascii_plus_more.parse_to::<CpuTypeX86_64>().parse_next(s)
 }
 
 fn migratable_item(s: &mut &str) -> ModalResult<YesNo> {
@@ -122,17 +122,12 @@ enum CpuX86Item {
 }
 
 fn cpu_x86_item(s: &mut &str) -> ModalResult<CpuX86Item> {
-    alt((
-        migratable_item.map(CpuX86Item::Migratable),
-        cpu_flag.map(|(flag, state)| CpuX86Item::Flag(flag, state)),
-    ))
-    .parse_next(s)
+    alt((migratable_item.map(CpuX86Item::Migratable), cpu_flag.map(|(flag, state)| CpuX86Item::Flag(flag, state)))).parse_next(s)
 }
 
 fn cpu_x86_64(s: &mut &str) -> ModalResult<CpuX86> {
     let cpu_type = cpu_type(s)?;
-    let items: Option<Vec<CpuX86Item>> =
-        opt(preceded(literal(DELIM_COMMA), separated(1.., cpu_x86_item, DELIM_COMMA))).parse_next(s)?;
+    let items: Option<Vec<CpuX86Item>> = opt(preceded(literal(DELIM_COMMA), separated(1.., cpu_x86_item, DELIM_COMMA))).parse_next(s)?;
     let mut migratable = None;
     let mut flags = BTreeSet::new();
 

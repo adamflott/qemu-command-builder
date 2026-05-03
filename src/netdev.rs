@@ -53,11 +53,7 @@ impl FromStr for ScriptOrNot {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "no" {
-            Ok(Self::None)
-        } else {
-            Ok(Self::Script(PathBuf::from(s)))
-        }
+        if s == "no" { Ok(Self::None) } else { Ok(Self::Script(PathBuf::from(s))) }
     }
 }
 
@@ -212,7 +208,7 @@ impl ToCommand for User {
 impl FromStr for User {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -379,7 +375,7 @@ impl ToCommand for Bridge {
 impl FromStr for Bridge {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -427,7 +423,7 @@ impl ToCommand for SocketRegular {
 impl FromStr for SocketRegular {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -460,7 +456,7 @@ impl ToCommand for SocketMulticast {
 impl FromStr for SocketMulticast {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -493,7 +489,7 @@ impl ToCommand for SocketUdpTunnel {
 impl FromStr for SocketUdpTunnel {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -518,7 +514,7 @@ impl ToCommand for Socket {
 impl FromStr for Socket {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -576,7 +572,7 @@ impl ToCommand for StreamOverTcp {
 impl FromStr for StreamOverTcp {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -616,7 +612,7 @@ impl ToCommand for StreamOverUds {
 impl FromStr for StreamOverUds {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -648,7 +644,7 @@ impl ToCommand for StreamOverFd {
 impl FromStr for StreamOverFd {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -673,7 +669,7 @@ impl ToCommand for Stream {
 impl FromStr for Stream {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -707,7 +703,7 @@ impl ToCommand for DgramMulticast {
 impl FromStr for DgramMulticast {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -741,7 +737,7 @@ impl ToCommand for DgramMulticastUdpFd {
 impl FromStr for DgramMulticastUdpFd {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -779,7 +775,7 @@ impl ToCommand for DgramSocket {
 impl FromStr for DgramSocket {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -810,7 +806,7 @@ impl ToCommand for DgramUds {
 impl FromStr for DgramUds {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -824,12 +820,10 @@ pub struct DgramFd {
 impl ToCommand for DgramFd {
     fn to_args(&self) -> Vec<String> {
         vec![
-            vec![
-                "dgram".to_string(),
+            ["dgram".to_string(),
                 format!("id={}", self.id.to_string()),
                 "local.type=fd".to_string(),
-                format!("local.str={}", self.local_str),
-            ]
+                format!("local.str={}", self.local_str)]
             .join(DELIM_COMMA),
         ]
     }
@@ -838,7 +832,7 @@ impl ToCommand for DgramFd {
 impl FromStr for DgramFd {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -867,7 +861,7 @@ impl ToCommand for Dgram {
 impl FromStr for Dgram {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -904,7 +898,7 @@ impl ToCommand for Vde {
 impl FromStr for Vde {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -930,7 +924,7 @@ impl ToCommand for NetMap {
 impl FromStr for NetMap {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -990,7 +984,7 @@ impl ToCommand for AfXdp {
 impl FromStr for AfXdp {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -1016,7 +1010,7 @@ impl ToCommand for VhostUser {
 impl FromStr for VhostUser {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -1044,7 +1038,7 @@ impl ToCommand for VhostVdpa {
 impl FromStr for VhostVdpa {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -1085,7 +1079,7 @@ impl ToCommand for VmnetHost {
 impl FromStr for VmnetHost {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -1126,7 +1120,7 @@ impl ToCommand for VmnetShared {
 impl FromStr for VmnetShared {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -1152,7 +1146,7 @@ impl ToCommand for VmnetBridged {
 impl FromStr for VmnetBridged {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -1178,7 +1172,7 @@ impl ToCommand for Hubport {
 impl FromStr for Hubport {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }

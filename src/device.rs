@@ -6,7 +6,6 @@ use proptest_derive::Arbitrary;
 use std::collections::BTreeMap;
 use std::str::FromStr;
 use winnow::Result;
-use winnow::ascii::alphanumeric1;
 use winnow::combinator::{opt, separated, separated_pair};
 use winnow::prelude::*;
 use winnow::token::{literal, take_while};

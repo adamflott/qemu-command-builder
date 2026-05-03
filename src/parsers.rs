@@ -1,5 +1,4 @@
 use crate::shell_string::ShellString;
-use winnow::Result;
 use winnow::ascii::{alphanumeric1, escaped};
 use winnow::combinator::preceded;
 use winnow::combinator::{alt, terminated};
@@ -65,14 +64,6 @@ pub(crate) const ARG_READCONFIG: &str = "-readconfig";
 pub(crate) const ARG_G: &str = "-g";
 pub(crate) const ARG_GDB: &str = "-gdb";
 
-pub(crate) fn non_whitespace_token<'a>(input: &mut &'a str) -> Result<&'a str> {
-    take_while(0.., |c: char| !c.is_whitespace()).parse_next(input)
-}
-
-pub(crate) fn all_non_whitespace<'a>(input: &mut &'a str) -> Result<&'a str> {
-    take_while(1.., |c: char| !c.is_whitespace()).parse_next(input)
-}
-
 pub(crate) fn ascii_plus_more<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
     take_while(1.., |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '=' || c == '.' || c == '_' || c == '/').parse_next(input)
 }
@@ -120,14 +111,14 @@ pub fn optional_quotes_parser(input: &mut &str) -> ModalResult<ShellString> {
         Ok(strs) => {
             match ShellString::try_from(strs.join(" ")) {
                 Ok(str) => Ok(str),
-                Err(tf_err) => {
+                Err(_tf_err) => {
                     // TODO
                     let cerr = ContextError::new();
                     Err(winnow::error::ErrMode::Cut(cerr))
                 }
             }
         }
-        Err(err) => {
+        Err(_err) => {
             // TODO
             let cerr = ContextError::new();
             Err(winnow::error::ErrMode::Cut(cerr))

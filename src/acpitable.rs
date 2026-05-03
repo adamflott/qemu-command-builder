@@ -2,10 +2,10 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use crate::parsers::{DELIM_COLON, DELIM_COMMA};
+use crate::qao;
 use crate::shell_path::ShellPath;
 use crate::shell_string::ShellString;
 use crate::to_command::ToCommand;
-use crate::qao;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 
@@ -168,9 +168,5 @@ impl FromStr for AcpiTable {
 
 fn parse_data_list(value: &str, is_data: bool) -> AcpiTableData {
     let files = value.split(DELIM_COLON).map(ShellPath::from).collect::<Vec<_>>();
-    if is_data {
-        AcpiTableData::Data(files)
-    } else {
-        AcpiTableData::File(files)
-    }
+    if is_data { AcpiTableData::Data(files) } else { AcpiTableData::File(files) }
 }

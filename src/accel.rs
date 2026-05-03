@@ -5,9 +5,9 @@ use std::str::FromStr;
 
 use crate::common::*;
 use crate::parsers::DELIM_COMMA;
+use crate::qao;
 use crate::shell_path::ShellPath;
 use crate::to_command::{ToArg, ToCommand};
-use crate::qao;
 
 pub(crate) const ARG_ACCEL: &str = "-accel";
 

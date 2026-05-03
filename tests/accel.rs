@@ -15,10 +15,7 @@ fn accel_displays_qemu_hyphenated_keys() {
         .device(ShellPath::from("/dev/fdset/7"))
         .build();
 
-    assert_eq!(
-        "kvm,kernel-irqchip=split,kvm-shadow-mem=1048576,dirty-ring-size=4096,device=/dev/fdset/7",
-        accel.to_single_arg()
-    );
+    assert_eq!("kvm,kernel-irqchip=split,kvm-shadow-mem=1048576,dirty-ring-size=4096,device=/dev/fdset/7", accel.to_single_arg());
 }
 
 #[test]
@@ -27,23 +24,15 @@ fn accel_round_trips_mixed_property_order() {
 
     let parsed = Accel::from_str(s).unwrap();
 
-    assert_eq!(
-        "tcg,one-insn-per-tb=on,split-wx=off,tb-size=32,notify-vmexit=run,notify-window=7,thread=multi",
-        parsed.to_single_arg()
-    );
+    assert_eq!("tcg,one-insn-per-tb=on,split-wx=off,tb-size=32,notify-vmexit=run,notify-window=7,thread=multi", parsed.to_single_arg());
     assert_eq!(parsed, Accel::from_str(&parsed.to_single_arg()).unwrap());
 }
 
 #[test]
 fn accel_parses_optional_accel_prefix() {
-    let parsed =
-        Accel::from_str("accel=xen,igd-passthru=off,kernel-irqchip=on").unwrap();
+    let parsed = Accel::from_str("accel=xen,igd-passthru=off,kernel-irqchip=on").unwrap();
 
-    let expected = Accel::builder()
-        .accel_type(AccelType::Xen)
-        .igd_passthru(OnOffDefaultOff::Off)
-        .kernel_irqchip(OnOffSplit::On)
-        .build();
+    let expected = Accel::builder().accel_type(AccelType::Xen).igd_passthru(OnOffDefaultOff::Off).kernel_irqchip(OnOffSplit::On).build();
 
     assert_eq!(expected, parsed);
     assert_eq!("xen,igd-passthru=off,kernel-irqchip=on", parsed.to_single_arg());

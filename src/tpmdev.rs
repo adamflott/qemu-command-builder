@@ -35,7 +35,7 @@ impl ToCommand for Passthrough {
 impl FromStr for Passthrough {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -57,7 +57,7 @@ impl ToCommand for Emulator {
 impl FromStr for Emulator {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }
@@ -87,7 +87,7 @@ impl ToCommand for TpmDev {
 impl FromStr for TpmDev {
     type Err = ();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
         todo!()
     }
 }

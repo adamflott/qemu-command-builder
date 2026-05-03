@@ -10,12 +10,12 @@ use crate::parsers::DELIM_COMMA;
 use crate::shell_path::{ShellPath, shell_path_until_comma};
 use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
 use crate::to_command::{ToArg, ToCommand};
-use crate::{pco0, ppo0, pso0, qao};
+use crate::{pco0, ppo0, qao};
 use winnow::Result;
 use winnow::ascii::{alphanumeric1, dec_uint};
-use winnow::combinator::{alt, fail, opt};
+use winnow::combinator::{fail, opt};
 use winnow::prelude::*;
-use winnow::token::{literal, take_until, take_while};
+use winnow::token::{literal, take_while};
 
 pub(crate) const ARG_DRIVE: &str = "-drive";
 
@@ -547,7 +547,7 @@ pco0!(group, shell_string_until_comma, ShellString, KEY_GROUP);
 pub fn drive2(s: &mut &str) -> ModalResult<Drive> {
     //let ks = [KEY_FILE, KEY_INTERFACE, KEY_BUS, KEY_UNIT, KEY_INDEX, KEY_MEDIA].map(|v|literal(v)).collect();
     //let k = alt( (literal(KEY_FILE), literal(KEY_INTERFACE), literal(KEY_BUS)) ).parse(s)?;
-    let k = take_while(1.., |c: char| !(c == '=')).parse_next(s)?;
+    let k = take_while(1.., |c: char| c != '=').parse_next(s)?;
     let mut d = Drive::builder().build();
     match k {
         KEY_FILE => {

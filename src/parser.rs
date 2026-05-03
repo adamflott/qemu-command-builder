@@ -3,9 +3,10 @@ use crate::acpitable::{ARG_ACPITABLE, AcpiTable};
 use crate::action::{ARG_ACTION, Action};
 use crate::addfs::{ARG_ADD_FD, AddFd};
 use crate::boot::{ARG_BOOT, Boot};
+use crate::chardev::{ARG_CHARDEV, CharDev};
 use crate::cpu::{ARG_CPU, CpuX86};
-use crate::display::{ARG_DISPLAY, QemuDisplay};
 use crate::device::{ARG_DEVICE, Device};
+use crate::display::{ARG_DISPLAY, QemuDisplay};
 use crate::drive::{ARG_DRIVE, Drive};
 use crate::machine::{ARG_MACHINE, MachineX86_64};
 use crate::memory::{ARG_MEMORY, Memory};
@@ -26,7 +27,6 @@ use crate::shell_string::ShellString;
 use crate::smbios::{ARG_SMBIOS, Smbios};
 use crate::smp::{ARG_SMP, SMP};
 use crate::vga::{ARG_VGA, VGA};
-use crate::chardev::{ARG_CHARDEV, CharDev};
 use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -206,13 +206,7 @@ impl FromStr for QemuInstanceForAarch64 {
                 }
             }
         }
-
-        while let Some(token) = tokens.next() {
-            match token {
-                _ => todo!(),
-            }
-        }
-
+        
         Ok(q)
     }
 }

@@ -24,11 +24,7 @@ mod test {
 
         let mut expected = CpuX86::new(CpuTypeX86_64::Host);
         expected.migratable(YesNo::Yes);
-        expected.flags(BTreeSet::from([
-            (CPUFlag::Svm, OnOff::Off),
-            (CPUFlag::Vmx, OnOff::On),
-            (CPUFlag::Sse4_1, OnOff::On),
-        ]));
+        expected.flags(BTreeSet::from([(CPUFlag::Svm, OnOff::Off), (CPUFlag::Vmx, OnOff::On), (CPUFlag::Sse4_1, OnOff::On)]));
 
         assert_eq!(parsed, expected);
         assert_eq!(parsed.to_command(), vec!["-cpu".to_string(), "host,migratable=yes,sse4.1,-svm,vmx".to_string()]);

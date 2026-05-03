@@ -117,10 +117,10 @@ use crate::virtfs::Virtfs;
 use crate::vnc::VNC;
 
 /// QEMU binary name for x86_64
-const QEMU_BIN_X86_64: &'static str = "qemu-system-x86_64";
+const QEMU_BIN_X86_64: &str = "qemu-system-x86_64";
 
 /// QEMU binary name for aarch64
-const QEMU_BIN_AARCH64: &'static str = "qemu-system-aarch64";
+const QEMU_BIN_AARCH64: &str = "qemu-system-aarch64";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct QemuInstanceBase<Machine, Cpu> {
