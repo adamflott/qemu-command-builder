@@ -9,6 +9,8 @@ use crate::to_command::{ToArg, ToCommand};
 pub(crate) const ARG_SERIAL: &str = "-serial";
 pub(crate) const ARG_PARALLEL: &str = "-parallel";
 
+/// A QEMU special character device target used by options such as
+/// `-serial`, `-parallel`, `-monitor`, and `-qmp`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VC {
     is_pixel: bool,
@@ -227,9 +229,53 @@ impl ToCommand for SpecialDevice {
 }
 
 impl FromStr for SpecialDevice {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        if s == "none" {
+            return Ok(Self::None);
+        }
+        if s == "null" {
+            return Ok(Self::Null);
+        }
+        if s == "stdio" {
+            return Ok(Self::Stdio);
+        }
+        if s == "braille" {
+            return Ok(Self::Braille);
+        }
+        if s == "msmouse" {
+            return Ok(Self::Msmouse);
+        }
+        if let Some(chardev) = s.strip_prefix("chardev:") {
+            return Ok(Self::Chardev(chardev.to_string()));
+        }
+        if let Some(mon) = s.strip_prefix("mon:") {
+            return Ok(Self::Mon(mon.to_string()));
+        }
+        if let Some(path) = s.strip_prefix("file:") {
+            return Ok(Self::File(PathBuf::from(path)));
+        }
+        if let Some(path) = s.strip_prefix("pipe:") {
+            return Ok(Self::Pipe(PathBuf::from(path)));
+        }
+        if let Some(path) = s.strip_prefix("pty:") {
+            return Ok(Self::Pty(Some(PathBuf::from(path))));
+        }
+        if s == "pty" {
+            return Ok(Self::Pty(None));
+        }
+        if let Some(dev) = s.strip_prefix("/dev/parport") {
+            let index = dev.parse::<usize>().map_err(|e| e.to_string())?;
+            return Ok(Self::Parport(index));
+        }
+        if let Some(dev) = s.strip_prefix("/dev/") {
+            return Ok(Self::Dev(dev.to_string()));
+        }
+        if let Some(port) = s.strip_prefix("COM") {
+            return Ok(Self::Com(port.parse::<usize>().map_err(|e| e.to_string())?));
+        }
+
+        Err(format!("unsupported special device: {s}"))
     }
 }

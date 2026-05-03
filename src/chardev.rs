@@ -10,6 +10,11 @@ use crate::to_command::{ToArg, ToCommand};
 
 pub(crate) const ARG_CHARDEV: &str = "-chardev";
 
+/// A QEMU `-chardev` backend.
+///
+/// The parser currently supports the backend forms that this crate can render
+/// and that are exercised by the integration tests, including `socket` and
+/// `stdio`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharNull {
     id: String,
@@ -592,9 +597,132 @@ impl ToCommand for CharDev {
 }
 
 impl FromStr for CharDev {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let mut parts = s.split(',');
+        let backend = parts.next().ok_or_else(|| "empty chardev argument".to_string())?;
+
+        match backend {
+            "socket" => parse_socket_chardev(parts.collect()),
+            "stdio" => parse_stdio_chardev(parts.collect()),
+            other => Err(format!("unsupported chardev backend: {other}")),
+        }
     }
+}
+
+fn parse_socket_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut host = None;
+    let mut port = None;
+    let mut path = None;
+    let mut to = None;
+    let mut ipv4 = None;
+    let mut ipv6 = None;
+    let mut nodelay = None;
+    let mut server = None;
+    let mut wait = None;
+    let mut telnet = None;
+    let mut websocket = None;
+    let mut reconnect_ms = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+    let mut tls_creds = None;
+    let mut tls_authz = None;
+    let mut abstract_opt = None;
+    let mut tight = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev socket option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "host" => host = Some(value.to_string()),
+            "port" => port = Some(value.parse::<u16>().map_err(|e| e.to_string())?),
+            "path" => path = Some(PathBuf::from(value)),
+            "to" => to = Some(value.parse::<u16>().map_err(|e| e.to_string())?),
+            "ipv4" => ipv4 = Some(value.parse::<OnOff>().map_err(|_| format!("invalid ipv4 value: {value}"))?),
+            "ipv6" => ipv6 = Some(value.parse::<OnOff>().map_err(|_| format!("invalid ipv6 value: {value}"))?),
+            "nodelay" => nodelay = Some(value.parse::<OnOff>().map_err(|_| format!("invalid nodelay value: {value}"))?),
+            "server" => server = Some(value.parse::<OnOff>().map_err(|_| format!("invalid server value: {value}"))?),
+            "wait" => wait = Some(value.parse::<OnOff>().map_err(|_| format!("invalid wait value: {value}"))?),
+            "telnet" => telnet = Some(value.parse::<OnOff>().map_err(|_| format!("invalid telnet value: {value}"))?),
+            "websocket" => websocket = Some(value.parse::<OnOff>().map_err(|_| format!("invalid websocket value: {value}"))?),
+            "reconnect-ms" => reconnect_ms = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            "tls-creds" => tls_creds = Some(value.to_string()),
+            "tls-authz" => tls_authz = Some(value.to_string()),
+            "abstract" => abstract_opt = Some(value.parse::<OnOff>().map_err(|_| format!("invalid abstract value: {value}"))?),
+            "tight" => tight = Some(value.parse::<OnOff>().map_err(|_| format!("invalid tight value: {value}"))?),
+            other => return Err(format!("unsupported chardev socket option: {other}")),
+        }
+    }
+
+    let id = id.ok_or_else(|| "socket chardev requires id=".to_string())?;
+    if let Some(path) = path {
+        return Ok(CharDev::Socket(CharSocket::Uds(CharSocketUds {
+            id,
+            path,
+            server,
+            wait,
+            telnet,
+            websocket,
+            reconnect_ms,
+            mux,
+            logfile,
+            logappend,
+            abstract_opt,
+            tight,
+        })));
+    }
+
+    Ok(CharDev::Socket(CharSocket::Tcp(CharSocketTcp {
+        id,
+        host,
+        port: port.ok_or_else(|| "tcp socket chardev requires port=".to_string())?,
+        to,
+        ipv4,
+        ipv6,
+        nodelay,
+        server,
+        wait,
+        telnet,
+        websocket,
+        reconnect_ms,
+        mux,
+        logfile,
+        logappend,
+        tls_creds,
+        tls_authz,
+    })))
+}
+
+fn parse_stdio_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut mux = None;
+    let mut signal = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev stdio option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "signal" => signal = Some(value.parse::<OnOff>().map_err(|_| format!("invalid signal value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev stdio option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Stdio(CharStdio {
+        id: id.ok_or_else(|| "stdio chardev requires id=".to_string())?,
+        mux,
+        signal,
+        logfile,
+        logappend,
+    }))
 }

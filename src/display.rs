@@ -8,6 +8,11 @@ use crate::to_command::{ToArg, ToCommand};
 
 pub(crate) const ARG_DISPLAY: &str = "-display";
 
+/// QEMU `-display` backend selection.
+///
+/// Each variant models one documented `-display` form from the bundled QEMU
+/// option reference. `to_args()` emits raw `argv` values, while `FromStr`
+/// accepts the single argument that follows `-display`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum OnCoreEsOff {
     On,
@@ -215,9 +220,67 @@ impl ToCommand for QemuDisplay {
 }
 
 impl FromStr for QemuDisplay {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        if s == "none" {
+            return Ok(Self::None);
+        }
+        if s == "spice-app" {
+            return Ok(Self::Spice { gl: None });
+        }
+        if s == "sdl" {
+            return Ok(Self::Sdl {
+                gl: None,
+                grab_mod: None,
+                show_cursor: None,
+                window_close: None,
+            });
+        }
+        if s == "gtk" {
+            return Ok(Self::Gtk {
+                fullscreen: None,
+                gl: None,
+                grab_on_hover: None,
+                show_tabs: None,
+                show_cursor: None,
+                window_close: None,
+                show_menubar: None,
+                zoom_to_fit: None,
+            });
+        }
+        if s == "curses" {
+            return Ok(Self::Curses { charset: None });
+        }
+        if s == "cocoa" {
+            return Ok(Self::Cocoa {
+                full_grab: None,
+                swap_opt_cmd: None,
+                show_cursor: None,
+                left_command_key: None,
+                full_screen: None,
+                zoom_to_fit: None,
+            });
+        }
+        if s == "egl-headless" {
+            return Ok(Self::EglHeadless { rendernode: None });
+        }
+        if s == "dbus" {
+            return Ok(Self::Dbus {
+                addr: None,
+                p2p: None,
+                gl: None,
+                rendernode: None,
+            });
+        }
+        if let Some(rest) = s.strip_prefix("vnc=") {
+            let (vnc, optargs) = match rest.split_once(',') {
+                Some((vnc, optargs)) => (vnc.to_string(), Some(optargs.to_string())),
+                None => (rest.to_string(), None),
+            };
+            return Ok(Self::Vnc { vnc, optargs });
+        }
+
+        Err(format!("unsupported -display value: {s}"))
     }
 }

@@ -149,59 +149,60 @@ pub struct Machine<T> {
 
     /// An alternative to legacy ``-mem-path`` and ``mem-prealloc`` options.
     /// Allows to use a memory backend as main RAM.
-    memory_backend: Option<String>, // TODO find out actual values
+    memory_backend: Option<ShellString>, // TODO find out actual values
+                                         /*
+                                           /// Define a CXL Fixed Memory Window (CFMW).
+                                           ///
+                                           /// Described in the CXL 2.0 ECN: CEDT CFMWS & QTG _DSM.
+                                           ///
+                                           /// They are regions of Host Physical Addresses (HPA) on a system which
+                                           /// may be interleaved across one or more CXL host bridges.  The system
+                                           /// software will assign particular devices into these windows and
+                                           /// configure the downstream Host-managed Device Memory (HDM) decoders
+                                           /// in root ports, switch ports and devices appropriately to meet the
+                                           /// interleave requirements before enabling the memory devices.
+                                           ///
+                                           /// ``targets.X=target`` provides the mapping to CXL host bridges
+                                           /// which may be identified by the id provided in the -device entry.
+                                           /// Multiple entries are needed to specify all the targets when
+                                           /// the fixed memory window represents interleaved memory. X is the
+                                           /// target index from 0.
+                                           ///
+                                           /// ``size=size`` sets the size of the CFMW. This must be a multiple of
+                                           /// 256MiB. The region will be aligned to 256MiB but the location is
+                                           /// platform and configuration dependent.
+                                           ///
+                                           /// ``interleave-granularity=granularity`` sets the granularity of
+                                           /// interleave. Default 256 (bytes). Only 256, 512, 1k, 2k,
+                                           /// 4k, 8k and 16k granularities supported.
+                                         // TOOD  cxl_fmw: Option<CxlFmw>,
 
-    /// Define a CXL Fixed Memory Window (CFMW).
-    ///
-    /// Described in the CXL 2.0 ECN: CEDT CFMWS & QTG _DSM.
-    ///
-    /// They are regions of Host Physical Addresses (HPA) on a system which
-    /// may be interleaved across one or more CXL host bridges.  The system
-    /// software will assign particular devices into these windows and
-    /// configure the downstream Host-managed Device Memory (HDM) decoders
-    /// in root ports, switch ports and devices appropriately to meet the
-    /// interleave requirements before enabling the memory devices.
-    ///
-    /// ``targets.X=target`` provides the mapping to CXL host bridges
-    /// which may be identified by the id provided in the -device entry.
-    /// Multiple entries are needed to specify all the targets when
-    /// the fixed memory window represents interleaved memory. X is the
-    /// target index from 0.
-    ///
-    /// ``size=size`` sets the size of the CFMW. This must be a multiple of
-    /// 256MiB. The region will be aligned to 256MiB but the location is
-    /// platform and configuration dependent.
-    ///
-    /// ``interleave-granularity=granularity`` sets the granularity of
-    /// interleave. Default 256 (bytes). Only 256, 512, 1k, 2k,
-    /// 4k, 8k and 16k granularities supported.
-    cxl_fmw: Option<CxlFmw>,
-
-    /// Define cache properties for SMP system.
-    ///
-    /// ``cache=cachename`` specifies the cache that the properties will be
-    /// applied on. This field is the combination of cache level and cache
-    /// type. It supports ``l1d`` (L1 data cache), ``l1i`` (L1 instruction
-    /// cache), ``l2`` (L2 unified cache) and ``l3`` (L3 unified cache).
-    ///
-    /// ``topology=topologylevel`` sets the cache topology level. It accepts
-    /// CPU topology levels including ``core``, ``module``, ``cluster``, ``die``,
-    /// ``socket``, ``book``, ``drawer`` and a special value ``default``. If
-    /// ``default`` is set, then the cache topology will follow the architecture's
-    /// default cache topology model. If another topology level is set, the cache
-    /// will be shared at corresponding CPU topology level. For example,
-    /// ``topology=core`` makes the cache shared by all threads within a core.
-    /// The omitting cache will default to using the ``default`` level.
-    ///
-    /// The default cache topology model for an i386 PC machine is as follows:
-    /// ``l1d``, ``l1i``, and ``l2`` caches are per ``core``, while the ``l3``
-    /// cache is per ``die``.
-    smp_cache: Option<Vec<SmpCache>>,
+                                           /// Define cache properties for SMP system.
+                                           ///
+                                           /// ``cache=cachename`` specifies the cache that the properties will be
+                                           /// applied on. This field is the combination of cache level and cache
+                                           /// type. It supports ``l1d`` (L1 data cache), ``l1i`` (L1 instruction
+                                           /// cache), ``l2`` (L2 unified cache) and ``l3`` (L3 unified cache).
+                                           ///
+                                           /// ``topology=topologylevel`` sets the cache topology level. It accepts
+                                           /// CPU topology levels including ``core``, ``module``, ``cluster``, ``die``,
+                                           /// ``socket``, ``book``, ``drawer`` and a special value ``default``. If
+                                           /// ``default`` is set, then the cache topology will follow the architecture's
+                                           /// default cache topology model. If another topology level is set, the cache
+                                           /// will be shared at corresponding CPU topology level. For example,
+                                           /// ``topology=core`` makes the cache shared by all threads within a core.
+                                           /// The omitting cache will default to using the ``default`` level.
+                                           ///
+                                           /// The default cache topology model for an i386 PC machine is as follows:
+                                           /// ``l1d``, ``l1i``, and ``l2`` caches are per ``core``, while the ``l3``
+                                           /// cache is per ``die``.
+                                           */
+                                         // TODO   smp_cache: Option<Vec<SmpCache>>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct MachineX86_64 {
-    m: Machine<MachineTypeX86_64>,
+    pub m: Machine<MachineTypeX86_64>,
 }
 
 impl ToCommand for MachineX86_64 {
@@ -222,11 +223,16 @@ impl ToCommand for MachineX86_64 {
         qao!(&self.m.aes_key_wrap, args, KEY_AES_KEY_WRAP);
         qao!(&self.m.dea_key_wrap, args, KEY_DEA_KEY_WRAP);
         qao!(&self.m.nvdimm, args, KEY_NVDIMM);
-        qao!(&self.m.memory_encryption, args, KEY_MEMORY_ENCRYPTION);
+        if let Some(memory_encryption) = &self.m.memory_encryption {
+            args.push(format!("{}{}", KEY_MEMORY_ENCRYPTION, memory_encryption.as_ref()));
+        }
         qao!(&self.m.hmat, args, KEY_HMAT);
         qao!(&self.m.aux_ram_share, args, KEY_AUX_RAM_SHARE);
-        qao!(&self.m.memory_backend, args, KEY_MEMORY_BACKEND);
+        if let Some(memory_backend) = &self.m.memory_backend {
+            args.push(format!("{}{}", KEY_MEMORY_BACKEND, memory_backend.as_ref()));
+        }
 
+        /*
         if let Some(cxl_fmw) = &self.m.cxl_fmw {
             for (idx, target) in cxl_fmw.targets.iter().enumerate() {
                 args.push(format!("cxl-fmw.0.targets.{}={}", idx, target));
@@ -242,6 +248,7 @@ impl ToCommand for MachineX86_64 {
                 args.push(format!("smp-cache.{}.topology={}", idx, smp_cache.topology));
             }
         }
+         */
         vec![args.join(DELIM_COMMA)]
     }
 }
@@ -258,27 +265,63 @@ fn accel_type(s: &mut &str) -> ModalResult<AccelType> {
     ascii_plus_more.parse_to::<AccelType>().parse_next(s)
 }
 
+pco!(vmport, alphanumeric1, OnOffAuto, KEY_VMPORT);
+pco!(dump_guest_core, alphanumeric1, OnOffDefaultOn, KEY_DUMP_GUEST_CORE);
+pco!(mem_merge, alphanumeric1, OnOffDefaultOn, KEY_MEM_MERGE);
+pco!(aes_key_wrap, alphanumeric1, OnOffDefaultOn, KEY_AES_KEY_WRAP);
+pco!(dea_key_wrap, alphanumeric1, OnOffDefaultOn, KEY_DEA_KEY_WRAP);
+pco!(nvdimm, alphanumeric1, OnOffDefaultOff, KEY_NVDIMM);
+pso!(memory_encryption, KEY_MEMORY_ENCRYPTION);
+pco!(hmat, alphanumeric1, OnOffDefaultOff, KEY_HMAT);
+pco!(aux_ram_share, alphanumeric1, OnOffDefaultOff, KEY_AUX_RAM_SHARE);
+pso!(memory_backend, KEY_MEMORY_BACKEND);
 fn machine_x86_64(s: &mut &str) -> ModalResult<MachineX86_64> {
     let machine_type = ascii_plus_more.parse_to::<MachineTypeX86_64>().parse_next(s)?;
+    let _ = literal(DELIM_COMMA).parse_next(s)?;
+    let _ = literal(KEY_ACCEL).parse_next(s)?;
     let accel = opt(separated(1.., accel_type, DELIM_COLON)).parse_next(s)?;
-    //let name = ascii_plus_more.parse_to::<ShellString>().parse_next(s)?;
-    //let process = opt(process).parse_next(s)?;
-    //let debug_threads = opt(debug_threads).parse_next(s)?;
+    let vmport = opt(vmport).parse_next(s)?;
+    let dump_guest_core = opt(dump_guest_core).parse_next(s)?;
+    let mem_merge = opt(mem_merge).parse_next(s)?;
+    let aes_key_wrap = opt(aes_key_wrap).parse_next(s)?;
+    let dea_key_wrap = opt(dea_key_wrap).parse_next(s)?;
+    let nvdimm = opt(nvdimm).parse_next(s)?;
+    let memory_encryption = opt(memory_encryption).parse_next(s)?;
+    let hmat = opt(hmat).parse_next(s)?;
+    let aux_ram_share = opt(aux_ram_share).parse_next(s)?;
+    let memory_backend = opt(memory_backend).parse_next(s)?;
     let m = Machine {
         machine_type,
         accel,
-        vmport: None,
-        dump_guest_core: None,
-        mem_merge: None,
-        aes_key_wrap: None,
-        dea_key_wrap: None,
-        nvdimm: None,
-        memory_encryption: None,
-        hmat: None,
-        aux_ram_share: None,
-        memory_backend: None,
-        cxl_fmw: None,
-        smp_cache: None,
+        vmport,
+        dump_guest_core,
+        mem_merge,
+        aes_key_wrap,
+        dea_key_wrap,
+        nvdimm,
+        memory_encryption,
+        hmat,
+        aux_ram_share,
+        memory_backend,
+        //  cxl_fmw: None,
+        //        smp_cache: None,
     };
     Ok(MachineX86_64 { m })
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
+pub struct MachineAarch64 {
+    pub m: Machine<MachineTypeAarch64>,
+}
+impl ToCommand for MachineAarch64 {
+    fn to_args(&self) -> Vec<String> {
+        todo!()
+    }
+}
+impl FromStr for MachineAarch64 {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
 }

@@ -24,13 +24,16 @@ impl ToCommand for SmbiosFile {
 }
 
 impl FromStr for SmbiosFile {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let path = s.strip_prefix("file=").ok_or_else(|| format!("unsupported smbios file form: {s}"))?;
+        Ok(Self { path: PathBuf::from(path) })
     }
 }
 /// Specify SMBIOS type 0 fields
+///
+/// Corresponds to QEMU `-smbios type=0[,vendor=str][,version=str][,date=str][,release=%d.%d][,uefi=on|off]`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType0 {
     vendor: Option<String>,
@@ -63,13 +66,31 @@ impl ToCommand for SmbiosType0 {
 }
 
 impl FromStr for SmbiosType0 {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let mut value = Self::default();
+        for part in s.split(',') {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid smbios type 0 option: {part}"))?;
+            match key {
+                "type" if raw == "0" => {}
+                "vendor" => value.vendor = Some(raw.to_string()),
+                "version" => value.version = Some(raw.to_string()),
+                "date" => value.date = Some(raw.to_string()),
+                "release" => {
+                    let (major, minor) = raw.split_once('.').ok_or_else(|| format!("invalid release value: {raw}"))?;
+                    value.release = Some((major.parse::<usize>().map_err(|e| e.to_string())?, minor.parse::<usize>().map_err(|e| e.to_string())?));
+                }
+                "uefi" => value.uefi = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid uefi value: {raw}"))?),
+                other => return Err(format!("unsupported smbios type 0 option: {other}")),
+            }
+        }
+        Ok(value)
     }
 }
 /// Specify SMBIOS type 1 fields
+///
+/// Corresponds to QEMU `-smbios type=1[,manufacturer=str][,product=str][,version=str][,serial=str][,uuid=uuid][,sku=str][,family=str]`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType1 {
     manufacturer: Option<String>,
@@ -110,14 +131,31 @@ impl ToCommand for SmbiosType1 {
 }
 
 impl FromStr for SmbiosType1 {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let mut value = Self::default();
+        for part in s.split(',') {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid smbios type 1 option: {part}"))?;
+            match key {
+                "type" if raw == "1" => {}
+                "manufacturer" => value.manufacturer = Some(raw.to_string()),
+                "product" => value.product = Some(raw.to_string()),
+                "version" => value.version = Some(raw.to_string()),
+                "serial" => value.serial = Some(raw.to_string()),
+                "uuid" => value.uuid = Some(raw.to_string()),
+                "sku" => value.sku = Some(raw.to_string()),
+                "family" => value.family = Some(raw.to_string()),
+                other => return Err(format!("unsupported smbios type 1 option: {other}")),
+            }
+        }
+        Ok(value)
     }
 }
 
 /// Specify SMBIOS type 2 fields
+///
+/// Corresponds to QEMU `-smbios type=2[,manufacturer=str][,product=str][,version=str][,serial=str][,asset=str][,location=str]`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct SmbiosType2 {
     manufacturer: Option<String>,
@@ -154,10 +192,24 @@ impl ToCommand for SmbiosType2 {
 }
 
 impl FromStr for SmbiosType2 {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let mut value = Self::default();
+        for part in s.split(',') {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid smbios type 2 option: {part}"))?;
+            match key {
+                "type" if raw == "2" => {}
+                "manufacturer" => value.manufacturer = Some(raw.to_string()),
+                "product" => value.product = Some(raw.to_string()),
+                "version" => value.version = Some(raw.to_string()),
+                "serial" => value.serial = Some(raw.to_string()),
+                "asset" => value.asset = Some(raw.to_string()),
+                "location" => value.location = Some(raw.to_string()),
+                other => return Err(format!("unsupported smbios type 2 option: {other}")),
+            }
+        }
+        Ok(value)
     }
 }
 
@@ -444,9 +496,22 @@ impl ToCommand for Smbios {
 }
 
 impl FromStr for Smbios {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        if s.starts_with("file=") {
+            return Ok(Self::File(s.parse::<SmbiosFile>()?));
+        }
+        if s.starts_with("type=0") {
+            return Ok(Self::Type0(s.parse::<SmbiosType0>()?));
+        }
+        if s.starts_with("type=1") {
+            return Ok(Self::Type1(s.parse::<SmbiosType1>()?));
+        }
+        if s.starts_with("type=2") {
+            return Ok(Self::Type2(s.parse::<SmbiosType2>()?));
+        }
+
+        Err(format!("unsupported smbios argument: {s}"))
     }
 }

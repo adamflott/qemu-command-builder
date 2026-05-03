@@ -12,6 +12,11 @@ use std::str::FromStr;
 
 pub(crate) const ARG_NETDEV: &str = "-netdev";
 
+/// A QEMU `-netdev` backend.
+///
+/// The parser supports the same canonical comma-separated forms that the
+/// formatter emits for the implemented backend variants. The current round-trip
+/// coverage focuses on `tap`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SMB {
     dir: PathBuf,
@@ -45,10 +50,14 @@ impl ToCommand for ScriptOrNot {
 }
 
 impl FromStr for ScriptOrNot {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        if s == "no" {
+            Ok(Self::None)
+        } else {
+            Ok(Self::Script(PathBuf::from(s)))
+        }
     }
 }
 
@@ -279,10 +288,70 @@ impl ToCommand for Tap {
 }
 
 impl FromStr for Tap {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        let mut parts = s.split(',');
+        let backend = parts.next().ok_or_else(|| "empty netdev argument".to_string())?;
+        if backend != "tap" {
+            return Err(format!("expected tap backend, got {backend}"));
+        }
+
+        let mut id = None;
+        let mut fd = None;
+        let mut fds = None;
+        let mut ifname = None;
+        let mut script = None;
+        let mut downscript = None;
+        let mut br = None;
+        let mut helper = None;
+        let mut sndbuf = None;
+        let mut vnet_hdr = None;
+        let mut vhost = None;
+        let mut vhostfd = None;
+        let mut vhostforce = None;
+        let mut queues = None;
+        let mut poll_us = None;
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid tap option: {part}"))?;
+            match key {
+                "id" => id = Some(value.to_string()),
+                "fd" => fd = Some(value.to_string()),
+                "fds" => fds = Some(value.split(':').map(|v| v.to_string()).collect()),
+                "ifname" => ifname = Some(value.to_string()),
+                "script" => script = Some(value.parse::<ScriptOrNot>()?),
+                "downscript" => downscript = Some(value.parse::<ScriptOrNot>()?),
+                "br" => br = Some(value.to_string()),
+                "helper" => helper = Some(value.to_string()),
+                "sndbuf" => sndbuf = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "vnet_hdr" => vnet_hdr = Some(value.parse::<OnOff>().map_err(|_| format!("invalid vnet_hdr value: {value}"))?),
+                "vhost" => vhost = Some(value.parse::<OnOff>().map_err(|_| format!("invalid vhost value: {value}"))?),
+                "vhostfd" => vhostfd = Some(value.to_string()),
+                "vhostforce" => vhostforce = Some(value.parse::<OnOff>().map_err(|_| format!("invalid vhostforce value: {value}"))?),
+                "queues" => queues = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "poll_us" => poll_us = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                other => return Err(format!("unsupported tap option: {other}")),
+            }
+        }
+
+        Ok(Self {
+            id: id.ok_or_else(|| "tap netdev requires id=".to_string())?,
+            fd,
+            fds,
+            ifname,
+            script,
+            downscript,
+            br,
+            helper,
+            sndbuf,
+            vnet_hdr,
+            vhost,
+            vhostfd,
+            vhostforce,
+            queues,
+            poll_us,
+        })
     }
 }
 
@@ -1161,9 +1230,13 @@ impl ToCommand for NetDev {
 }
 
 impl FromStr for NetDev {
-    type Err = ();
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        if s.starts_with("tap,") || s == "tap" {
+            return Ok(Self::Tap(s.parse::<Tap>()?));
+        }
+
+        Err(format!("unsupported netdev backend: {s}"))
     }
 }
