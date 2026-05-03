@@ -14,8 +14,7 @@ fn shell_path_args_remain_raw() {
 
 #[test]
 fn shell_path_single_command_is_escaped() {
-    let run_with =
-        RunWith::builder().chroot(ShellPath::from("/tmp/my root")).user(UserOrIds::User(ShellString::from("vmuser"))).build();
+    let run_with = RunWith::builder().chroot(ShellPath::from("/tmp/my root")).user(UserOrIds::User(ShellString::from("vmuser"))).build();
 
     assert_eq!(run_with.to_single_command(), "-run-with 'chroot=/tmp/my root,user=vmuser'");
 }
@@ -23,8 +22,7 @@ fn shell_path_single_command_is_escaped() {
 #[test]
 fn shell_path_round_trips_with_spaces() {
     let parsed = RunWith::from_str("chroot=/tmp/my root,user=vmuser").unwrap();
-    let expected =
-        RunWith::builder().chroot(ShellPath::from("/tmp/my root")).user(UserOrIds::User(ShellString::from("vmuser"))).build();
+    let expected = RunWith::builder().chroot(ShellPath::from("/tmp/my root")).user(UserOrIds::User(ShellString::from("vmuser"))).build();
 
     assert_eq!(parsed, expected);
 }

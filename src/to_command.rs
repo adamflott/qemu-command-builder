@@ -4,11 +4,7 @@ use std::str::FromStr;
 // TODO use proptest_derive::Arbitrary;
 
 fn shell_escape_arg(arg: &str) -> String {
-    if !arg.is_empty()
-        && arg
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '/' | ':' | ',' | '=' | '+'))
-    {
+    if !arg.is_empty() && arg.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '/' | ':' | ',' | '=' | '+')) {
         return arg.to_string();
     }
 

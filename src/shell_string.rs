@@ -8,11 +8,7 @@ use winnow::error::{ContextError, ParseError};
 use winnow::prelude::*;
 
 fn shell_quote(s: &str) -> String {
-    if !s.is_empty()
-        && s
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '/' | ':' | ',' | '=' | '+'))
-    {
+    if !s.is_empty() && s.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '/' | ':' | ',' | '=' | '+')) {
         return s.to_string();
     }
 
