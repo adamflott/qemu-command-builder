@@ -1,17 +1,13 @@
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 use crate::parsers::{DELIM_COLON, DELIM_COMMA};
-use crate::shell_path::{ShellPath, shell_path_until_colon};
-use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
+use crate::shell_path::ShellPath;
+use crate::shell_string::ShellString;
 use crate::to_command::ToCommand;
-use crate::{pco0, ppo0, qao};
+use crate::qao;
 use bon::Builder;
 use proptest_derive::Arbitrary;
-use winnow::Result;
-use winnow::ascii::dec_uint;
-use winnow::combinator::{opt, separated};
-use winnow::prelude::*;
-use winnow::token::literal;
 
 pub(crate) const ARG_ACPITABLE: &str = "-acpitable";
 
@@ -23,6 +19,42 @@ const KEY_OEM_REV: &str = "oem_rev=";
 const KEY_ASL_COMPILER_ID: &str = "asl_compiler_id=";
 const KEY_ASL_COMPILER_REV: &str = "asl_compiler_rev=";
 const KEY_FILE: &str = "file=";
+const KEY_DATA: &str = "data=";
+
+/// ACPI table payload source for `-acpitable`.
+///
+/// `file=` passes one or more complete ACPI table files including headers.
+/// `data=` passes one or more payload files while the table header fields are
+/// supplied on the command line.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+pub enum AcpiTableData {
+    /// Emit `file=file1[:file2]...`.
+    File(Vec<ShellPath>),
+    /// Emit `data=file1[:file2]...`.
+    Data(Vec<ShellPath>),
+}
+
+impl AcpiTableData {
+    fn key(&self) -> &'static str {
+        match self {
+            AcpiTableData::File(_) => KEY_FILE,
+            AcpiTableData::Data(_) => KEY_DATA,
+        }
+    }
+
+    fn files(&self) -> &[ShellPath] {
+        match self {
+            AcpiTableData::File(files) | AcpiTableData::Data(files) => files,
+        }
+    }
+}
+
+impl Display for AcpiTableData {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let files = self.files().iter().map(|p| p.as_ref()).collect::<Vec<_>>().join(DELIM_COLON);
+        write!(f, "{}{}", self.key(), files)
+    }
+}
 
 /// Add ACPI table with specified header fields and context from
 /// specified files. For file=, take whole ACPI table from the specified
@@ -35,21 +67,36 @@ const KEY_FILE: &str = "file=";
 /// Microsoft SLIC spec and the ACPI spec.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct AcpiTable {
+    /// ACPI signature override.
     sig: Option<ShellString>,
+    /// ACPI table revision.
     rev: Option<usize>,
+    /// ACPI OEM ID override.
     oem_id: Option<ShellString>,
+    /// ACPI OEM table ID override.
     oem_table_id: Option<ShellString>,
+    /// ACPI OEM revision override.
     oem_rev: Option<usize>,
+    /// ASL compiler ID override.
     asl_compiler_id: Option<ShellString>,
+    /// ASL compiler revision override.
     asl_compiler_rev: Option<usize>,
-    #[proptest(filter = "is_nonempty")]
-    data: Option<Vec<ShellPath>>,
+    #[proptest(filter = "acpi_table_data_is_nonempty")]
+    /// Table content source rendered as either `file=` or `data=`.
+    data: Option<AcpiTableData>,
 }
 
-fn is_nonempty(segment: &Option<Vec<ShellPath>>) -> bool {
+fn acpi_table_data_is_nonempty(segment: &Option<AcpiTableData>) -> bool {
     match segment {
         None => false,
-        Some(f) => !f.is_empty(),
+        Some(f) => !f.files().is_empty(),
+    }
+}
+
+impl AcpiTable {
+    /// Creates an empty `-acpitable` argument builder for incremental setup.
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
@@ -86,8 +133,7 @@ impl ToCommand for AcpiTable {
         qao!(&self.asl_compiler_rev, args, KEY_ASL_COMPILER_REV);
 
         if let Some(data) = &self.data {
-            let files: Vec<&str> = data.iter().map(|p| p.as_ref()).collect();
-            args.push(format!("{}{}", KEY_FILE, files.join(DELIM_COLON)));
+            args.push(data.to_string());
         }
 
         vec![args.join(DELIM_COMMA)]
@@ -95,46 +141,36 @@ impl ToCommand for AcpiTable {
 }
 
 impl FromStr for AcpiTable {
-    type Err = ShellStringError;
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        acpitable.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        let mut table = AcpiTable::default();
+
+        for part in s.split(DELIM_COMMA) {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid acpitable option: {part}"))?;
+            match key {
+                "sig" => table.sig = Some(ShellString::from_str(value)?),
+                "rev" => table.rev = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "oem_id" => table.oem_id = Some(ShellString::from_str(value)?),
+                "oem_table_id" => table.oem_table_id = Some(ShellString::from_str(value)?),
+                "oem_rev" => table.oem_rev = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "asl_compiler_id" => table.asl_compiler_id = Some(ShellString::from_str(value)?),
+                "asl_compiler_rev" => table.asl_compiler_rev = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "file" => table.data = Some(parse_data_list(value, false)),
+                "data" => table.data = Some(parse_data_list(value, true)),
+                other => return Err(format!("unsupported acpitable option: {other}")),
+            }
+        }
+
+        Ok(table)
     }
 }
 
-pco0!(sig, shell_string_until_comma, ShellString, KEY_SIG);
-ppo0!(rev, dec_uint, usize, KEY_REV);
-pco0!(oem_id, shell_string_until_comma, ShellString, KEY_OEM_ID);
-pco0!(oem_table_id, shell_string_until_comma, ShellString, KEY_OEM_TABLE_ID);
-ppo0!(oem_rev, dec_uint, usize, KEY_OEM_REV);
-pco0!(asl_compiler_id, shell_string_until_comma, ShellString, KEY_ASL_COMPILER_ID);
-ppo0!(asl_compiler_rev, dec_uint, usize, KEY_ASL_COMPILER_REV);
-
-fn data(s: &mut &str) -> ModalResult<Vec<ShellPath>> {
-    opt(literal(DELIM_COMMA)).parse_next(s)?;
-    let _ = literal(KEY_FILE).parse_next(s)?;
-    let str: Vec<&str> = separated(1.., shell_path_until_colon, DELIM_COLON).parse_next(s)?;
-    let str = str.iter().map(|v| ShellPath { s: v.to_string() }).collect();
-    Ok(str)
-}
-
-pub fn acpitable(s: &mut &str) -> ModalResult<AcpiTable> {
-    let sig = opt(sig).parse_next(s)?;
-    let rev = opt(rev).parse_next(s)?;
-    let oem_id = opt(oem_id).parse_next(s)?;
-    let oem_table_id = opt(oem_table_id).parse_next(s)?;
-    let oem_rev = opt(oem_rev).parse_next(s)?;
-    let asl_compiler_id = opt(asl_compiler_id).parse_next(s)?;
-    let asl_compiler_rev = opt(asl_compiler_rev).parse_next(s)?;
-    let data = opt(data).parse_next(s)?;
-    Ok(AcpiTable {
-        sig,
-        rev,
-        oem_id,
-        oem_table_id,
-        oem_rev,
-        asl_compiler_id,
-        asl_compiler_rev,
-        data,
-    })
+fn parse_data_list(value: &str, is_data: bool) -> AcpiTableData {
+    let files = value.split(DELIM_COLON).map(ShellPath::from).collect::<Vec<_>>();
+    if is_data {
+        AcpiTableData::Data(files)
+    } else {
+        AcpiTableData::File(files)
+    }
 }

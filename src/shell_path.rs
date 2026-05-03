@@ -73,7 +73,3 @@ impl AsRef<str> for ShellPath {
 pub(crate) fn shell_path_until_comma<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
     take_while(1.., |c: char| c != ',').parse_next(input)
 }
-
-pub(crate) fn shell_path_until_colon<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
-    take_while(1.., |c: char| c != ':' && c != ',').parse_next(input)
-}
