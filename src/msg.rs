@@ -4,13 +4,9 @@ use crate::common::OnOff;
 use crate::parsers::DELIM_COMMA;
 use crate::shell_string::ShellStringError;
 use crate::to_command::ToCommand;
-use crate::{pco0, qao};
+use crate::qao;
 use bon::Builder;
 use proptest_derive::Arbitrary;
-use winnow::ascii::alphanumeric1;
-use winnow::combinator::opt;
-use winnow::prelude::*;
-use winnow::token::literal;
 
 pub(crate) const ARG_MSG: &str = "-msg";
 
@@ -19,7 +15,9 @@ const KEY_GUEST_NAME: &str = "guest-name=";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Msg {
+    /// Prefix messages with a timestamp when enabled.
     timestamp: Option<OnOff>,
+    /// Prefix messages with the guest name when enabled.
     guest_name: Option<OnOff>,
 }
 
@@ -38,19 +36,34 @@ impl ToCommand for Msg {
     }
 }
 
-pco0!(timestamp, alphanumeric1, OnOff, KEY_TIMESTAMP);
-pco0!(guest_name, alphanumeric1, OnOff, KEY_GUEST_NAME);
-
 impl FromStr for Msg {
     type Err = ShellStringError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        msg.parse(s).map_err(|e| ShellStringError::from_parse(e))
-    }
-}
+        let mut timestamp = None;
+        let mut guest_name = None;
 
-fn msg(s: &mut &str) -> ModalResult<Msg> {
-    let timestamp = opt(timestamp).parse_next(s)?;
-    let guest_name = opt(guest_name).parse_next(s)?;
-    Ok(Msg { timestamp, guest_name })
+        for part in s.split(DELIM_COMMA).filter(|part| !part.is_empty()) {
+            match part {
+                "timestamp" => timestamp = Some(OnOff::On),
+                "guest-name" => guest_name = Some(OnOff::On),
+                _ => {
+                    let (key, value) = part.split_once('=').ok_or_else(|| ShellStringError::new(format!("invalid -msg option: {part}")))?;
+                    match key {
+                        "timestamp" => {
+                            timestamp =
+                                Some(value.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid timestamp value: {value}")))?)
+                        }
+                        "guest-name" => {
+                            guest_name =
+                                Some(value.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid guest-name value: {value}")))?)
+                        }
+                        other => return Err(ShellStringError::new(format!("unsupported -msg option: {other}"))),
+                    }
+                }
+            }
+        }
+
+        Ok(Msg { timestamp, guest_name })
+    }
 }

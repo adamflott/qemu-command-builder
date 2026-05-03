@@ -4,11 +4,14 @@ use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
 
-pub(crate) const ARG_OBJECT: &str = "-objectfd";
+pub(crate) const ARG_OBJECT: &str = "-object";
 
+/// A generic QEMU `-object typename[,prop=value,...]` definition.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Object {
+    /// The QOM object type name.
     typename: String,
+    /// Object properties emitted in the order stored.
     properties: Vec<(String, String)>,
 }
 
@@ -40,9 +43,18 @@ impl ToCommand for Object {
 }
 
 impl FromStr for Object {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(DELIM_COMMA);
+        let typename = parts.next().ok_or_else(|| "empty -object argument".to_string())?.to_string();
+
+        let mut properties = Vec::new();
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid -object property: {part}"))?;
+            properties.push((key.to_string(), value.to_string()));
+        }
+
+        Ok(Self { typename, properties })
     }
 }

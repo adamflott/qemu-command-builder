@@ -232,6 +232,25 @@ impl FromStr for SpecialDevice {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(rest) = s.strip_prefix("vc:") {
+            let (w, h, is_pixel) = if let Some((w, h)) = rest.split_once('x') {
+                if let Some(h) = h.strip_suffix('C') {
+                    (w.trim_end_matches('C'), h, false)
+                } else {
+                    (w, h, true)
+                }
+            } else {
+                return Err(format!("invalid vc geometry: {rest}"));
+            };
+            return Ok(Self::VC(Some(VC {
+                is_pixel,
+                w: w.parse::<usize>().map_err(|e| e.to_string())?,
+                h: h.parse::<usize>().map_err(|e| e.to_string())?,
+            })));
+        }
+        if s == "vc" {
+            return Ok(Self::VC(None));
+        }
         if s == "none" {
             return Ok(Self::None);
         }
@@ -252,6 +271,118 @@ impl FromStr for SpecialDevice {
         }
         if let Some(mon) = s.strip_prefix("mon:") {
             return Ok(Self::Mon(mon.to_string()));
+        }
+        if let Some(rest) = s.strip_prefix("udp:") {
+            let mut split = rest.split('@');
+            let remote = split.next().ok_or_else(|| "invalid udp endpoint".to_string())?;
+            let local = split.next();
+            let remote_parts = remote.split(':').collect::<Vec<_>>();
+            let (remote_host, remote_port) = match remote_parts.as_slice() {
+                [port] => (None, port.parse::<u16>().map_err(|e| e.to_string())?),
+                [host, port] => (Some((*host).to_string()), port.parse::<u16>().map_err(|e| e.to_string())?),
+                _ => return Err(format!("invalid udp endpoint: {remote}")),
+            };
+            let src = if let Some(local) = local {
+                let (src_ip, src_port) = local
+                    .rsplit_once(':')
+                    .ok_or_else(|| format!("invalid udp source endpoint: {local}"))?;
+                (Some(src_ip.to_string()), Some(src_port.parse::<u16>().map_err(|e| e.to_string())?))
+            } else {
+                (None, None)
+            };
+            return Ok(Self::Udp(Udp { remote_host, remote_port, src_ip: src.0, src_port: src.1 }));
+        }
+        if let Some(rest) = s.strip_prefix("tcp:") {
+            let mut parts = rest.split(',');
+            let endpoint = parts.next().ok_or_else(|| "invalid tcp endpoint".to_string())?;
+            let (host, port) = endpoint.rsplit_once(':').ok_or_else(|| format!("invalid tcp endpoint: {endpoint}"))?;
+            let mut server = None;
+            let mut wait = None;
+            let mut nodelay = None;
+            let mut reconnect_ms = None;
+            for part in parts {
+                let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid tcp option: {part}"))?;
+                match key {
+                    "server" => server = Some(value.parse::<OnOff>().map_err(|_| format!("invalid server value: {value}"))?),
+                    "wait" => wait = Some(value.parse::<OnOff>().map_err(|_| format!("invalid wait value: {value}"))?),
+                    "nodelay" => nodelay = Some(value.parse::<OnOff>().map_err(|_| format!("invalid nodelay value: {value}"))?),
+                    "reconnect-ms" => reconnect_ms = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                    other => return Err(format!("unsupported tcp option: {other}")),
+                }
+            }
+            return Ok(Self::Tcp(Tcp {
+                host: host.to_string(),
+                port: port.parse::<u16>().map_err(|e| e.to_string())?,
+                server,
+                wait,
+                nodelay,
+                reconnect_ms,
+            }));
+        }
+        if let Some(rest) = s.strip_prefix("telnet:") {
+            let mut parts = rest.split(',');
+            let endpoint = parts.next().ok_or_else(|| "invalid telnet endpoint".to_string())?;
+            let (host, port) = endpoint.rsplit_once(':').ok_or_else(|| format!("invalid telnet endpoint: {endpoint}"))?;
+            let mut server = None;
+            let mut wait = None;
+            let mut nodelay = None;
+            for part in parts {
+                let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid telnet option: {part}"))?;
+                match key {
+                    "server" => server = Some(value.parse::<OnOff>().map_err(|_| format!("invalid server value: {value}"))?),
+                    "wait" => wait = Some(value.parse::<OnOff>().map_err(|_| format!("invalid wait value: {value}"))?),
+                    "nodelay" => nodelay = Some(value.parse::<OnOff>().map_err(|_| format!("invalid nodelay value: {value}"))?),
+                    other => return Err(format!("unsupported telnet option: {other}")),
+                }
+            }
+            return Ok(Self::Telnet(Telnet {
+                host: host.to_string(),
+                port: port.parse::<u16>().map_err(|e| e.to_string())?,
+                server,
+                wait,
+                nodelay,
+            }));
+        }
+        if let Some(rest) = s.strip_prefix("websocket:") {
+            let mut parts = rest.split(',');
+            let endpoint = parts.next().ok_or_else(|| "invalid websocket endpoint".to_string())?;
+            let (host, port) = endpoint.rsplit_once(':').ok_or_else(|| format!("invalid websocket endpoint: {endpoint}"))?;
+            let mut server = None;
+            let mut wait = None;
+            let mut nodelay = None;
+            for part in parts {
+                let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid websocket option: {part}"))?;
+                match key {
+                    "server" => server = Some(value.parse::<OnOff>().map_err(|_| format!("invalid server value: {value}"))?),
+                    "wait" => wait = Some(value.parse::<OnOff>().map_err(|_| format!("invalid wait value: {value}"))?),
+                    "nodelay" => nodelay = Some(value.parse::<OnOff>().map_err(|_| format!("invalid nodelay value: {value}"))?),
+                    other => return Err(format!("unsupported websocket option: {other}")),
+                }
+            }
+            return Ok(Self::Websocket(Websocket {
+                host: host.to_string(),
+                port: port.parse::<u16>().map_err(|e| e.to_string())?,
+                server,
+                wait,
+                nodelay,
+            }));
+        }
+        if let Some(rest) = s.strip_prefix("unix:") {
+            let mut parts = rest.split(',');
+            let path = PathBuf::from(parts.next().ok_or_else(|| "invalid unix endpoint".to_string())?);
+            let mut server = None;
+            let mut wait = None;
+            let mut reconnect_ms = None;
+            for part in parts {
+                let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid unix option: {part}"))?;
+                match key {
+                    "server" => server = Some(value.parse::<OnOff>().map_err(|_| format!("invalid server value: {value}"))?),
+                    "wait" => wait = Some(value.parse::<OnOff>().map_err(|_| format!("invalid wait value: {value}"))?),
+                    "reconnect-ms" => reconnect_ms = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                    other => return Err(format!("unsupported unix option: {other}")),
+                }
+            }
+            return Ok(Self::Unix(Unix { path, server, wait, reconnect_ms }));
         }
         if let Some(path) = s.strip_prefix("file:") {
             return Ok(Self::File(PathBuf::from(path)));

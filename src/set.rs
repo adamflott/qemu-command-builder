@@ -9,7 +9,9 @@ pub(crate) const ARG_SET: &str = "-set";
 /// Set parameter arg for item id of type group
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Set {
+    /// The `group.id.arg` selector.
     group: String,
+    /// The value assigned to the selector.
     value: String,
 }
 
@@ -18,17 +20,15 @@ impl ToCommand for Set {
         ARG_SET.to_string()
     }
     fn to_args(&self) -> Vec<String> {
-        let mut args = vec![self.group.clone()];
-        args.push(format!("={}", self.value));
-
-        args
+        vec![format!("{}={}", self.group, self.value)]
     }
 }
 
 impl FromStr for Set {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (group, value) = s.split_once('=').ok_or_else(|| format!("invalid -set argument: {s}"))?;
+        Ok(Self { group: group.to_string(), value: value.to_string() })
     }
 }

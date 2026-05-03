@@ -4,13 +4,9 @@ use std::str::FromStr;
 
 use crate::common::OnOff;
 use crate::parsers::DELIM_COMMA;
-use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
+use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::ToCommand;
-use crate::{pco, qao};
-use winnow::ascii::alphanumeric1;
-use winnow::combinator::opt;
-use winnow::token::literal;
-use winnow::{ModalResult, Parser};
+use crate::qao;
 
 pub(crate) const ARG_NAME: &str = "-name";
 
@@ -23,8 +19,11 @@ const KEY_DEBUG_THREADS: &str = "debug-threads=";
 /// individual threads can also be enabled on Linux to aid debugging.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Name {
+    /// The guest name shown by QEMU frontends.
     name: ShellString,
+    /// Optional process name visible on the host.
     process: Option<ShellString>,
+    /// Whether QEMU should name individual threads.
     debug_threads: Option<OnOff>,
 }
 
@@ -48,16 +47,24 @@ impl FromStr for Name {
     type Err = ShellStringError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        name.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        let mut parts = s.split(DELIM_COMMA);
+        let first = parts.next().ok_or_else(|| ShellStringError::new("empty -name argument"))?;
+
+        let mut process = None;
+        let mut debug_threads = None;
+
+        for part in parts {
+            let (key, value) = part.split_once('=').ok_or_else(|| ShellStringError::new(format!("invalid -name option: {part}")))?;
+            match key {
+                "process" => process = Some(ShellString::new(value)),
+                "debug-threads" => {
+                    debug_threads =
+                        Some(value.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid debug-threads value: {value}")))?)
+                }
+                other => return Err(ShellStringError::new(format!("unsupported -name option: {other}"))),
+            }
+        }
+
+        Ok(Name { name: ShellString::new(first), process, debug_threads })
     }
-}
-
-pco!(process, shell_string_until_comma, ShellString, KEY_PROCESS);
-pco!(debug_threads, alphanumeric1, OnOff, KEY_DEBUG_THREADS);
-
-fn name(s: &mut &str) -> ModalResult<Name> {
-    let name = shell_string_until_comma.parse_to::<ShellString>().parse_next(s)?;
-    let process = opt(process).parse_next(s)?;
-    let debug_threads = opt(debug_threads).parse_next(s)?;
-    Ok(Name { name, process, debug_threads })
 }

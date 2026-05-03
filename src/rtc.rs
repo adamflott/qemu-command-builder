@@ -1,30 +1,29 @@
 use crate::parsers::DELIM_COMMA;
 use crate::shell_string::ShellStringError;
 use crate::to_command::{ToArg, ToCommand};
-use crate::{QDateTime, pco0, qao};
+use crate::{QDateTime, qao};
 use bon::Builder;
+use chrono::NaiveDate;
 use chrono::NaiveDateTime;
 use proptest_derive::Arbitrary;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use winnow::Result;
-use winnow::ascii::alphanumeric1;
-use winnow::combinator::opt;
-use winnow::prelude::*;
-use winnow::token::{literal, take_while};
 
 pub(crate) const ARG_RTC: &str = "-rtc";
 
 const KEY_CLOCK: &str = "clock=";
-const KEY_DRIFT: &str = "drift=";
+const KEY_DRIFT: &str = "driftfix=";
 const KEY_BASE: &str = "base=";
 const KEY_BASE_UTC: &str = "utc";
 const KEY_BASE_LOCALTIME: &str = "localtime";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum RtcBase {
+    /// Use the host UTC time.
     Utc,
+    /// Use the host local time.
     Localtime,
+    /// Start from a specific date/time.
     Datetime(QDateTime),
 }
 
@@ -53,14 +52,15 @@ impl FromStr for RtcBase {
             KEY_BASE_LOCALTIME => Ok(RtcBase::Localtime),
             maybe_dt => match NaiveDateTime::parse_from_str(maybe_dt, "%Y-%m-%dT%H:%M:%S") {
                 Ok(dt) => Ok(RtcBase::Datetime(QDateTime(dt.and_utc()))),
-                Err(err) => {
-                    eprintln!("{} => {}", maybe_dt, err);
-                    Err(())
-                }
+                Err(_) => match NaiveDate::parse_from_str(maybe_dt, "%Y-%m-%d") {
+                    Ok(date) => Ok(RtcBase::Datetime(QDateTime(date.and_hms_opt(0, 0, 0).unwrap().and_utc()))),
+                    Err(_) => Err(()),
+                },
             },
         }
     }
 }
+/// Supported RTC clock sources.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum RtcClock {
     Host,
@@ -99,6 +99,7 @@ impl ToArg for RtcClock {
     }
 }
 
+/// Supported QEMU RTC drift correction modes.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum RtcDriftFix {
     None,
@@ -132,10 +133,14 @@ impl ToArg for RtcDriftFix {
         }
     }
 }
+/// A QEMU `-rtc` definition.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct Rtc {
+    /// The base RTC time.
     base: Option<RtcBase>,
+    /// The RTC clock source.
     clock: Option<RtcClock>,
+    /// The RTC drift correction mode.
     drift_fix: Option<RtcDriftFix>,
 }
 
@@ -163,21 +168,27 @@ impl FromStr for Rtc {
     type Err = ShellStringError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        rtc.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        let mut base = None;
+        let mut clock = None;
+        let mut drift_fix = None;
+
+        for part in s.split(DELIM_COMMA).filter(|part| !part.is_empty()) {
+            let (key, value) = part.split_once('=').ok_or_else(|| ShellStringError::new(format!("invalid -rtc option: {part}")))?;
+            match key {
+                "base" => base = Some(value.parse::<RtcBase>().map_err(|_| ShellStringError::new(format!("invalid base value: {value}")))?),
+                "clock" => clock = Some(value.parse::<RtcClock>().map_err(|_| ShellStringError::new(format!("invalid clock value: {value}")))?),
+                "driftfix" => {
+                    drift_fix =
+                        Some(value.parse::<RtcDriftFix>().map_err(|_| ShellStringError::new(format!("invalid driftfix value: {value}")))?)
+                }
+                "drift" => {
+                    drift_fix =
+                        Some(value.parse::<RtcDriftFix>().map_err(|_| ShellStringError::new(format!("invalid drift value: {value}")))?)
+                }
+                other => return Err(ShellStringError::new(format!("unsupported -rtc option: {other}"))),
+            }
+        }
+
+        Ok(Rtc { base, clock, drift_fix })
     }
-}
-
-fn parse_date_time<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
-    take_while(1.., |c: char| c.is_ascii_alphanumeric() || c == '-' || c == ':').parse_next(input)
-}
-
-pco0!(base, parse_date_time, RtcBase, KEY_BASE);
-pco0!(clock, alphanumeric1, RtcClock, KEY_CLOCK);
-pco0!(drift_fix, alphanumeric1, RtcDriftFix, KEY_DRIFT);
-
-pub fn rtc(s: &mut &str) -> ModalResult<Rtc> {
-    let base = opt(base).parse_next(s)?;
-    let clock = opt(clock).parse_next(s)?;
-    let drift_fix = opt(drift_fix).parse_next(s)?;
-    Ok(Rtc { base, clock, drift_fix })
 }

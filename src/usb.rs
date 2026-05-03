@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 pub(crate) const ARG_USBDEVICE: &str = "-usbdevice";
 
+/// Legacy `-usbdevice` device names accepted by QEMU.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum USBDevice {
     Braille,
@@ -32,9 +33,16 @@ impl ToCommand for USBDevice {
 }
 
 impl FromStr for USBDevice {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "braille" => Ok(Self::Braille),
+            "keyboard" => Ok(Self::Keyboard),
+            "mouse" => Ok(Self::Mouse),
+            "tablet" => Ok(Self::Tablet),
+            "wacom-tablet" => Ok(Self::WacomTablet),
+            other => Err(format!("unsupported usbdevice: {other}")),
+        }
     }
 }

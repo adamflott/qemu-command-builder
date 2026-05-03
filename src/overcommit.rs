@@ -5,6 +5,7 @@ use std::str::FromStr;
 
 pub(crate) const ARG_OVERCOMMIT: &str = "-overcommit";
 
+/// Supported values for `mem-lock=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum OnOffOnfault {
     On,
@@ -22,6 +23,7 @@ impl ToArg for OnOffOnfault {
     }
 }
 
+/// Host overcommit hints for QEMU.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Overcommit {
     MemLock(OnOffOnfault),
@@ -37,10 +39,10 @@ impl ToCommand for Overcommit {
 
         match self {
             Overcommit::MemLock(memlock) => {
-                args.push(memlock.to_arg().to_string());
+                args.push(format!("mem-lock={}", memlock.to_arg()));
             }
             Overcommit::CpuPm(cpupm) => {
-                args.push(cpupm.to_arg().to_string());
+                args.push(format!("cpu-pm={}", cpupm.to_arg()));
             }
         }
 
@@ -49,9 +51,19 @@ impl ToCommand for Overcommit {
 }
 
 impl FromStr for Overcommit {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (key, value) = s.split_once('=').ok_or_else(|| format!("invalid -overcommit argument: {s}"))?;
+        match key {
+            "mem-lock" => match value {
+                "on" => Ok(Self::MemLock(OnOffOnfault::On)),
+                "off" => Ok(Self::MemLock(OnOffOnfault::Off)),
+                "on-fault" => Ok(Self::MemLock(OnOffOnfault::Onfault)),
+                _ => Err(format!("invalid mem-lock value: {value}")),
+            },
+            "cpu-pm" => Ok(Self::CpuPm(value.parse::<OnOff>().map_err(|_| format!("invalid cpu-pm value: {value}"))?)),
+            other => Err(format!("unsupported -overcommit option: {other}")),
+        }
     }
 }
