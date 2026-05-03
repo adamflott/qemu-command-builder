@@ -1,21 +1,19 @@
 use crate::parsers::DELIM_COMMA;
 use crate::shell_string::ShellStringError;
 use crate::to_command::ToCommand;
-use crate::{pco, qao};
+use crate::qao;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::fmt::Display;
 use std::str::FromStr;
-use winnow::ascii::{dec_uint, digit1};
-use winnow::combinator::{fail, opt};
-use winnow::token::{literal, one_of};
-use winnow::{ModalResult, Parser};
 
 pub(crate) const ARG_MEMORY: &str = "-m";
 
+const KEY_SIZE: &str = "size=";
 const KEY_SLOTS: &str = "slots=";
 const KEY_MAXMEM: &str = "maxmem=";
 
+/// Memory quantities accepted by QEMU `-m`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum MemoryUnit {
     Bytes(u64),
@@ -43,7 +41,7 @@ impl FromStr for MemoryUnit {
     type Err = ShellStringError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        memoryunit.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        parse_memory_unit(s).map_err(ShellStringError::new)
     }
 }
 /// Sets guest startup RAM size to megs megabytes. Default is 128 MiB.
@@ -62,8 +60,11 @@ impl FromStr for MemoryUnit {
 /// enabled and the guest startup RAM will never increase.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Memory {
+    /// Initial guest RAM size.
     mem: MemoryUnit,
+    /// Number of hotpluggable memory slots.
     slots: Option<usize>,
+    /// Maximum guest RAM size.
     maxmem: Option<MemoryUnit>,
 }
 
@@ -86,34 +87,53 @@ impl FromStr for Memory {
     type Err = ShellStringError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        m.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        parse_memory(s).map_err(ShellStringError::new)
     }
 }
 
-fn memoryunit(s: &mut &str) -> ModalResult<MemoryUnit> {
-    let amount = dec_uint.parse_next(s)?;
-    let unit = opt(one_of(['M', 'G'])).parse_next(s)?;
-    match unit {
-        None => Ok(MemoryUnit::Bytes(amount)),
-        Some(c) => match c {
-            'M' => Ok(MemoryUnit::MegaBytes(amount)),
-            'G' => Ok(MemoryUnit::GigaBytes(amount)),
-            _ => fail(s),
-        },
+fn parse_memory_unit(s: &str) -> Result<MemoryUnit, String> {
+    if let Some(amount) = s.strip_suffix('M') {
+        return Ok(MemoryUnit::MegaBytes(
+            amount.parse::<u64>().map_err(|e| format!("invalid memory amount: {e}"))?,
+        ));
     }
+    if let Some(amount) = s.strip_suffix('G') {
+        return Ok(MemoryUnit::GigaBytes(
+            amount.parse::<u64>().map_err(|e| format!("invalid memory amount: {e}"))?,
+        ));
+    }
+
+    Ok(MemoryUnit::Bytes(
+        s.parse::<u64>().map_err(|e| format!("invalid memory amount: {e}"))?,
+    ))
 }
 
-fn memoryunit_with_comma(s: &mut &str) -> ModalResult<MemoryUnit> {
-    literal(DELIM_COMMA).parse_next(s)?;
-    literal(KEY_MAXMEM).parse_next(s)?;
-    memoryunit.parse_next(s)
-}
+fn parse_memory(s: &str) -> Result<Memory, String> {
+    let mut parts = s.split(DELIM_COMMA);
+    let first = parts.next().ok_or_else(|| "empty memory argument".to_string())?;
 
-pco!(slots, digit1, usize, KEY_SLOTS);
+    let mem = if let Some(value) = first.strip_prefix(KEY_SIZE) {
+        parse_memory_unit(value)?
+    } else if first.contains('=') {
+        return Err(format!("unsupported memory option: {first}"));
+    } else {
+        parse_memory_unit(first)?
+    };
 
-fn m(s: &mut &str) -> ModalResult<Memory> {
-    let mem = memoryunit.parse_next(s)?;
-    let slots = opt(slots).parse_next(s)?;
-    let maxmem = opt(memoryunit_with_comma).parse_next(s)?;
+    let mut slots = None;
+    let mut maxmem = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid memory option: {part}"))?;
+        match key {
+            "size" => return Err("size= is only valid as the first -m component".to_string()),
+            "slots" => {
+                slots = Some(value.parse::<usize>().map_err(|e| format!("invalid slots value: {e}"))?);
+            }
+            "maxmem" => maxmem = Some(parse_memory_unit(value)?),
+            other => return Err(format!("unsupported memory option: {other}")),
+        }
+    }
+
     Ok(Memory { mem, slots, maxmem })
 }
