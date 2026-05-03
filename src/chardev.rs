@@ -12,12 +12,15 @@ pub(crate) const ARG_CHARDEV: &str = "-chardev";
 
 /// A QEMU `-chardev` backend.
 ///
-/// The parser currently supports the backend forms that this crate can render
-/// and that are exercised by the integration tests, including `socket` and
-/// `stdio`.
+/// The parser supports the canonical backend forms that this crate renders for
+/// common QEMU character device backends such as `socket`, `stdio`, `file`,
+/// `pipe`, `pty`, `hub`, and related simple backends.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharNull {
     id: String,
+    mux: Option<OnOff>,
+    logfile: Option<PathBuf>,
+    logappend: Option<OnOff>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
@@ -123,6 +126,7 @@ pub struct CharFile {
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharPipe {
     id: String,
+    path: PathBuf,
     mux: Option<OnOff>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
@@ -148,6 +152,7 @@ pub struct CharWin32Serial {
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharPty {
     id: String,
+    path: Option<PathBuf>,
     mux: Option<OnOff>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
@@ -218,6 +223,7 @@ pub enum CharDev {
 }
 
 impl CharDev {
+    /// Returns the configured `id=` for the chardev backend.
     pub fn id(&self) -> &str {
         match self {
             CharDev::Null(n) => &n.id,
@@ -256,6 +262,15 @@ impl ToCommand for CharDev {
             CharDev::Null(null) => {
                 args.push("null".to_string());
                 args.push(format!("id={}", null.id));
+                if let Some(mux) = &null.mux {
+                    args.push(format!("mux={}", mux.to_arg()));
+                }
+                if let Some(logfile) = &null.logfile {
+                    args.push(format!("logfile={}", logfile.display()));
+                }
+                if let Some(logappend) = &null.logappend {
+                    args.push(format!("logappend={}", logappend.to_arg()));
+                }
             }
             CharDev::Socket(socket) => match socket {
                 CharSocket::Tcp(tcp) => {
@@ -392,7 +407,7 @@ impl ToCommand for CharDev {
                 args.push("hub".to_string());
                 args.push(format!("id={}", hub.id));
                 if let Some(chardevs) = &hub.chardevs {
-                    for (chardev, n) in chardevs {
+                    for (n, chardev) in chardevs {
                         args.push(format!("chardevs.{}={}", n, chardev));
                     }
                 }
@@ -455,6 +470,7 @@ impl ToCommand for CharDev {
             CharDev::Pipe(pipe) => {
                 args.push("pipe".to_string());
                 args.push(format!("id={}", pipe.id));
+                args.push(format!("path={}", pipe.path.display()));
                 if let Some(mux) = &pipe.mux {
                     args.push(format!("mux={}", mux.to_arg()));
                 }
@@ -495,6 +511,9 @@ impl ToCommand for CharDev {
             CharDev::Pty(pty) => {
                 args.push("pty".to_string());
                 args.push(format!("id={}", pty.id));
+                if let Some(path) = &pty.path {
+                    args.push(format!("path={}", path.display()));
+                }
                 if let Some(mux) = &pty.mux {
                     args.push(format!("mux={}", mux.to_arg()));
                 }
@@ -604,11 +623,51 @@ impl FromStr for CharDev {
         let backend = parts.next().ok_or_else(|| "empty chardev argument".to_string())?;
 
         match backend {
+            "null" => parse_null_chardev(parts.collect()),
             "socket" => parse_socket_chardev(parts.collect()),
+            "udp" => parse_udp_chardev(parts.collect()),
+            "msmouse" => parse_msmouse_chardev(parts.collect()),
+            "hub" => parse_hub_chardev(parts.collect()),
+            "vc" => parse_vc_chardev(parts.collect()),
+            "ringbuf" => parse_ringbuf_chardev(parts.collect()),
+            "file" => parse_file_chardev(parts.collect()),
+            "pipe" => parse_pipe_chardev(parts.collect()),
+            "console" => parse_console_chardev(parts.collect()),
+            "serial" => parse_serial_chardev(parts.collect()),
+            "pty" => parse_pty_chardev(parts.collect()),
             "stdio" => parse_stdio_chardev(parts.collect()),
+            "braille" => parse_braille_chardev(parts.collect()),
+            "parallel" => parse_parallel_chardev(parts.collect()),
+            "spicevmc" => parse_spice_chardev(parts.collect(), true),
+            "spiceport" => parse_spice_chardev(parts.collect(), false),
             other => Err(format!("unsupported chardev backend: {other}")),
         }
     }
+}
+
+fn parse_null_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev null option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev null option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Null(CharNull {
+        id: id.ok_or_else(|| "null chardev requires id=".to_string())?,
+        mux,
+        logfile,
+        logappend,
+    }))
 }
 
 fn parse_socket_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
@@ -699,6 +758,298 @@ fn parse_socket_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
     })))
 }
 
+fn parse_udp_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut host = None;
+    let mut port = None;
+    let mut localaddr = None;
+    let mut localport = None;
+    let mut ipv4 = None;
+    let mut ipv6 = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev udp option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "host" => host = Some(value.to_string()),
+            "port" => port = Some(value.parse::<u16>().map_err(|e| e.to_string())?),
+            "localaddr" => localaddr = Some(value.to_string()),
+            "localport" => localport = Some(value.parse::<u16>().map_err(|e| e.to_string())?),
+            "ipv4" => ipv4 = Some(value.parse::<OnOff>().map_err(|_| format!("invalid ipv4 value: {value}"))?),
+            "ipv6" => ipv6 = Some(value.parse::<OnOff>().map_err(|_| format!("invalid ipv6 value: {value}"))?),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev udp option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Udp(CharUdp {
+        id: id.ok_or_else(|| "udp chardev requires id=".to_string())?,
+        host,
+        port: port.ok_or_else(|| "udp chardev requires port=".to_string())?,
+        localaddr,
+        localport,
+        ipv4,
+        ipv6,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_msmouse_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev msmouse option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev msmouse option: {other}")),
+        }
+    }
+
+    Ok(CharDev::MsMouse(CharMsMouse {
+        id: id.ok_or_else(|| "msmouse chardev requires id=".to_string())?,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_hub_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut chardevs = Vec::new();
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev hub option: {part}"))?;
+        if key == "id" {
+            id = Some(value.to_string());
+        } else if let Some(index) = key.strip_prefix("chardevs.") {
+            chardevs.push((index.parse::<usize>().map_err(|e| e.to_string())?, value.to_string()));
+        } else {
+            return Err(format!("unsupported chardev hub option: {key}"));
+        }
+    }
+
+    chardevs.sort_by_key(|(n, _)| *n);
+    Ok(CharDev::Hub(CharHub {
+        id: id.ok_or_else(|| "hub chardev requires id=".to_string())?,
+        chardevs: (!chardevs.is_empty()).then_some(chardevs),
+    }))
+}
+
+fn parse_vc_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut width = None;
+    let mut height = None;
+    let mut cols = None;
+    let mut rows = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev vc option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "width" => width = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "height" => height = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "cols" => cols = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "rows" => rows = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev vc option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Vc(CharVc {
+        id: id.ok_or_else(|| "vc chardev requires id=".to_string())?,
+        width,
+        height,
+        cols,
+        rows,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_ringbuf_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut size = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev ringbuf option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "size" => size = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev ringbuf option: {other}")),
+        }
+    }
+
+    Ok(CharDev::RingBuf(CharRingBuf {
+        id: id.ok_or_else(|| "ringbuf chardev requires id=".to_string())?,
+        size,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_file_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut path = None;
+    let mut input_path = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev file option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "path" => path = Some(PathBuf::from(value)),
+            "input-path" => input_path = Some(PathBuf::from(value)),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev file option: {other}")),
+        }
+    }
+
+    Ok(CharDev::File(CharFile {
+        id: id.ok_or_else(|| "file chardev requires id=".to_string())?,
+        path: path.ok_or_else(|| "file chardev requires path=".to_string())?,
+        input_path,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_pipe_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut path = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev pipe option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "path" => path = Some(PathBuf::from(value)),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev pipe option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Pipe(CharPipe {
+        id: id.ok_or_else(|| "pipe chardev requires id=".to_string())?,
+        path: path.ok_or_else(|| "pipe chardev requires path=".to_string())?,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_console_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev console option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev console option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Win32Console(CharWin32Console {
+        id: id.ok_or_else(|| "console chardev requires id=".to_string())?,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_serial_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut path = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev serial option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "path" => path = Some(PathBuf::from(value)),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev serial option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Serial(CharSerial {
+        id: id.ok_or_else(|| "serial chardev requires id=".to_string())?,
+        path: path.ok_or_else(|| "serial chardev requires path=".to_string())?,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_pty_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut path = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev pty option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "path" => path = Some(PathBuf::from(value)),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev pty option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Pty(CharPty {
+        id: id.ok_or_else(|| "pty chardev requires id=".to_string())?,
+        path,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
 fn parse_stdio_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
     let mut id = None;
     let mut mux = None;
@@ -725,4 +1076,87 @@ fn parse_stdio_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
         logfile,
         logappend,
     }))
+}
+
+fn parse_braille_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev braille option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev braille option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Braille(CharBraille {
+        id: id.ok_or_else(|| "braille chardev requires id=".to_string())?,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_parallel_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut path = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev parallel option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "path" => path = Some(PathBuf::from(value)),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev parallel option: {other}")),
+        }
+    }
+
+    Ok(CharDev::Parallel(CharParallel {
+        id: id.ok_or_else(|| "parallel chardev requires id=".to_string())?,
+        path: path.ok_or_else(|| "parallel chardev requires path=".to_string())?,
+        mux,
+        logfile,
+        logappend,
+    }))
+}
+
+fn parse_spice_chardev(parts: Vec<&str>, is_vmc: bool) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut name = None;
+    let mut debug = None;
+    let mut logfile = None;
+    let mut logappend = None;
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev spice option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "name" => name = Some(value.to_string()),
+            "debug" => debug = Some(value.to_string()),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev spice option: {other}")),
+        }
+    }
+
+    let spice = CharSpice {
+        id: id.ok_or_else(|| "spice chardev requires id=".to_string())?,
+        name: name.ok_or_else(|| "spice chardev requires name=".to_string())?,
+        debug,
+        logfile,
+        logappend,
+    };
+
+    Ok(if is_vmc { CharDev::SpiceVmc(spice) } else { CharDev::SpicePort(spice) })
 }
