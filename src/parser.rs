@@ -206,7 +206,7 @@ impl FromStr for QemuInstanceForAarch64 {
                 }
             }
         }
-        
+
         Ok(q)
     }
 }

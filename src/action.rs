@@ -1,11 +1,9 @@
 use std::str::FromStr;
 
+use bon::Builder;
 use proptest_derive::Arbitrary;
-use winnow::Result;
-use winnow::combinator::{alt, fail};
-use winnow::prelude::*;
-use winnow::token::literal;
 
+use crate::parsers::DELIM_COMMA;
 use crate::to_command::{ToArg, ToCommand};
 
 pub(crate) const ARG_ACTION: &str = "-action";
@@ -24,6 +22,7 @@ const VAL_NONE: &str = "none";
 const VAL_INJECT_NMI: &str = "inject-nmi";
 const VAL_DEBUG: &str = "debug";
 
+/// QEMU `reboot=` actions for `-action`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum RebootAction {
     #[default]
@@ -40,6 +39,19 @@ impl ToArg for RebootAction {
     }
 }
 
+impl FromStr for RebootAction {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            VAL_RESET => Ok(Self::Reset),
+            VAL_SHUTDOWN => Ok(Self::Shutdown),
+            _ => Err(format!("invalid reboot action: {s}")),
+        }
+    }
+}
+
+/// QEMU `shutdown=` actions for `-action`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum ShutdownAction {
     #[default]
@@ -56,6 +68,19 @@ impl ToArg for ShutdownAction {
     }
 }
 
+impl FromStr for ShutdownAction {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            VAL_POWEROFF => Ok(Self::PowerOff),
+            VAL_PAUSE => Ok(Self::Pause),
+            _ => Err(format!("invalid shutdown action: {s}")),
+        }
+    }
+}
+
+/// QEMU `panic=` actions for `-action`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum PanicAction {
     Pause,
@@ -76,6 +101,21 @@ impl ToArg for PanicAction {
     }
 }
 
+impl FromStr for PanicAction {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            VAL_PAUSE => Ok(Self::Pause),
+            VAL_SHUTDOWN => Ok(Self::Shutdown),
+            VAL_EXIT_FAILURE => Ok(Self::ExitFailure),
+            VAL_NONE => Ok(Self::None),
+            _ => Err(format!("invalid panic action: {s}")),
+        }
+    }
+}
+
+/// QEMU `watchdog=` actions for `-action` and `-watchdog-action`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum WatchdogAction {
     #[default]
@@ -87,6 +127,7 @@ pub enum WatchdogAction {
     Debug,
     None,
 }
+
 impl ToArg for WatchdogAction {
     fn to_arg(&self) -> &str {
         match self {
@@ -101,35 +142,67 @@ impl ToArg for WatchdogAction {
     }
 }
 
-#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
-pub enum Action {
-    Reboot(RebootAction),
-    Shutdown(ShutdownAction),
-    Panic(PanicAction),
-    Watchdog(WatchdogAction),
+impl FromStr for WatchdogAction {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            VAL_RESET => Ok(Self::Reset),
+            VAL_SHUTDOWN => Ok(Self::Shutdown),
+            VAL_POWEROFF => Ok(Self::PowerOff),
+            VAL_INJECT_NMI => Ok(Self::InjectNmi),
+            VAL_PAUSE => Ok(Self::Pause),
+            VAL_DEBUG => Ok(Self::Debug),
+            VAL_NONE => Ok(Self::None),
+            _ => Err(format!("invalid watchdog action: {s}")),
+        }
+    }
+}
+
+/// QEMU `-action` event handlers.
+///
+/// QEMU accepts a comma-separated list of event assignments such as
+/// `reboot=shutdown,shutdown=pause`. This type preserves those assignments in
+/// canonical field order.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
+pub struct Action {
+    reboot: Option<RebootAction>,
+    shutdown: Option<ShutdownAction>,
+    panic: Option<PanicAction>,
+    watchdog: Option<WatchdogAction>,
+}
+
+impl Action {
+    /// Creates an empty `-action` configuration.
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl ToCommand for Action {
+    fn has_args(&self) -> bool {
+        self.reboot.is_some() || self.shutdown.is_some() || self.panic.is_some() || self.watchdog.is_some()
+    }
+
     fn command(&self) -> String {
         ARG_ACTION.to_string()
     }
+
     fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
-        match self {
-            Action::Reboot(action) => {
-                args.push(format!("{}{}", KEY_REBOOT, action.to_arg()));
-            }
-            Action::Shutdown(action) => {
-                args.push(format!("{}{}", KEY_SHUTDOWN, action.to_arg()));
-            }
-            Action::Panic(action) => {
-                args.push(format!("{}{}", KEY_PANIC, action.to_arg()));
-            }
-            Action::Watchdog(action) => {
-                args.push(format!("{}{}", KEY_WATCHDOG, action.to_arg()));
-            }
+        if let Some(action) = &self.reboot {
+            args.push(format!("{}{}", KEY_REBOOT, action.to_arg()));
         }
-        args
+        if let Some(action) = &self.shutdown {
+            args.push(format!("{}{}", KEY_SHUTDOWN, action.to_arg()));
+        }
+        if let Some(action) = &self.panic {
+            args.push(format!("{}{}", KEY_PANIC, action.to_arg()));
+        }
+        if let Some(action) = &self.watchdog {
+            args.push(format!("{}{}", KEY_WATCHDOG, action.to_arg()));
+        }
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
@@ -137,66 +210,19 @@ impl FromStr for Action {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        action.parse(s).map_err(|e| e.to_string())
-    }
-}
+        let mut action = Action::default();
 
-fn reboot(s: &mut &str) -> Result<Action> {
-    let _ = literal(KEY_REBOOT).parse_next(s)?;
-    let rb = alt((literal(VAL_RESET), literal(VAL_SHUTDOWN))).parse_next(s)?;
-    match rb {
-        VAL_RESET => Ok(Action::Reboot(RebootAction::Reset)),
-        VAL_SHUTDOWN => Ok(Action::Reboot(RebootAction::Shutdown)),
-        _ => fail(s),
-    }
-}
+        for part in s.split(DELIM_COMMA) {
+            let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid action option: {part}"))?;
+            match key {
+                "reboot" => action.reboot = Some(value.parse::<RebootAction>()?),
+                "shutdown" => action.shutdown = Some(value.parse::<ShutdownAction>()?),
+                "panic" => action.panic = Some(value.parse::<PanicAction>()?),
+                "watchdog" => action.watchdog = Some(value.parse::<WatchdogAction>()?),
+                other => return Err(format!("unsupported action key: {other}")),
+            }
+        }
 
-fn shutdown(s: &mut &str) -> Result<Action> {
-    let _ = literal(KEY_SHUTDOWN).parse_next(s)?;
-    let rb = alt((literal(VAL_POWEROFF), literal(VAL_PAUSE))).parse_next(s)?;
-    match rb {
-        VAL_POWEROFF => Ok(Action::Shutdown(ShutdownAction::PowerOff)),
-        VAL_PAUSE => Ok(Action::Shutdown(ShutdownAction::Pause)),
-        _ => fail(s),
+        Ok(action)
     }
-}
-
-fn panic(s: &mut &str) -> Result<Action> {
-    let _ = literal(KEY_PANIC).parse_next(s)?;
-    let rb = alt((literal(VAL_PAUSE), literal(VAL_SHUTDOWN), literal(VAL_EXIT_FAILURE), literal(VAL_NONE))).parse_next(s)?;
-    match rb {
-        VAL_PAUSE => Ok(Action::Panic(PanicAction::Pause)),
-        VAL_SHUTDOWN => Ok(Action::Panic(PanicAction::Shutdown)),
-        VAL_EXIT_FAILURE => Ok(Action::Panic(PanicAction::ExitFailure)),
-        VAL_NONE => Ok(Action::Panic(PanicAction::None)),
-        _ => fail(s),
-    }
-}
-
-fn watchdog(s: &mut &str) -> Result<Action> {
-    let _ = literal(KEY_WATCHDOG).parse_next(s)?;
-    let rb = alt((
-        literal(VAL_RESET),
-        literal(VAL_SHUTDOWN),
-        literal(VAL_POWEROFF),
-        literal(VAL_INJECT_NMI),
-        literal(VAL_PAUSE),
-        literal(VAL_DEBUG),
-        literal(VAL_NONE),
-    ))
-    .parse_next(s)?;
-    match rb {
-        VAL_RESET => Ok(Action::Watchdog(WatchdogAction::Reset)),
-        VAL_SHUTDOWN => Ok(Action::Watchdog(WatchdogAction::Shutdown)),
-        VAL_POWEROFF => Ok(Action::Watchdog(WatchdogAction::PowerOff)),
-        VAL_INJECT_NMI => Ok(Action::Watchdog(WatchdogAction::InjectNmi)),
-        VAL_PAUSE => Ok(Action::Watchdog(WatchdogAction::Pause)),
-        VAL_DEBUG => Ok(Action::Watchdog(WatchdogAction::Debug)),
-        VAL_NONE => Ok(Action::Watchdog(WatchdogAction::None)),
-        _ => fail(s),
-    }
-}
-
-pub fn action(s: &mut &str) -> Result<Action> {
-    alt((reboot, shutdown, panic, watchdog)).parse_next(s)
 }
