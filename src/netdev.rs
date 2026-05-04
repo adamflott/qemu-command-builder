@@ -207,10 +207,52 @@ impl ToCommand for User {
 }
 
 impl FromStr for User {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "user")?;
+        let id = required_prop(&props, "id")?.to_string();
+        let mut dnssearch = vec![];
+        let mut hostfwd = vec![];
+        let mut guestfwd = vec![];
+
+        for value in all_props(&props, "dnssearch") {
+            dnssearch.push(value.to_string());
+        }
+        for value in all_props(&props, "hostfwd") {
+            hostfwd.push(parse_hostfwd(value)?);
+        }
+        for value in all_props(&props, "guestfwd") {
+            guestfwd.push(parse_guestfwd(value)?);
+        }
+
+        let smb = match first_prop(&props, "smb") {
+            Some(dir) => Some(SMB { dir: PathBuf::from(dir), smbserver: first_prop(&props, "smbserver").map(ToString::to_string) }),
+            None => None,
+        };
+
+        Ok(Self {
+            id,
+            ipv4: parse_optional_onoff(first_prop(&props, "ipv4"))?,
+            net: parse_optional_qipv4net(first_prop(&props, "net"))?,
+            host: parse_optional_ipv4(first_prop(&props, "host"))?,
+            ipv6: parse_optional_onoff(first_prop(&props, "ipv6"))?,
+            ipv6_net: parse_optional_qipv6net(first_prop(&props, "ipv6-net"))?,
+            ipv6_host: parse_optional_ipv6(first_prop(&props, "ipv6-host"))?,
+            restrict: parse_optional_onoff(first_prop(&props, "restrict"))?,
+            hostname: first_prop(&props, "hostname").map(ToString::to_string),
+            dhcpstart: parse_optional_ipv4(first_prop(&props, "dhcpstart"))?,
+            dns: parse_optional_ipv4(first_prop(&props, "dns"))?,
+            ipv6_dns: parse_optional_ipv6(first_prop(&props, "ipv6-dns"))?,
+            dnssearch: (!dnssearch.is_empty()).then_some(dnssearch),
+            domainname: first_prop(&props, "domainname").map(ToString::to_string),
+            tftp: first_prop(&props, "tftp").map(PathBuf::from),
+            tftp_server_name: first_prop(&props, "tftp-server-name").map(ToString::to_string),
+            bootfile: first_prop(&props, "bootfile").map(PathBuf::from),
+            smb,
+            hostfwd: (!hostfwd.is_empty()).then_some(hostfwd),
+            guestfwd: (!guestfwd.is_empty()).then_some(guestfwd),
+        })
     }
 }
 
@@ -644,7 +686,7 @@ impl ToCommand for StreamOverTcp {
         if let Some(server) = &self.server {
             args.push(format!("server={}", server.to_arg()));
         }
-        args.push("add.type=inet".to_string());
+        args.push("addr.type=inet".to_string());
         args.push(format!("addr.host={}", self.addr_host));
         args.push(format!("addr.port={}", self.addr_port));
         if let Some(to) = &self.to {
@@ -673,10 +715,24 @@ impl ToCommand for StreamOverTcp {
 }
 
 impl FromStr for StreamOverTcp {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "stream")?;
+        ensure_prop_value(&props, "addr.type", "inet")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            server: parse_optional_onoff(first_prop(&props, "server"))?,
+            addr_host: required_prop(&props, "addr.host")?.to_string(),
+            addr_port: required_prop(&props, "addr.port")?.parse::<u16>().map_err(|e| e.to_string())?,
+            to: parse_optional_u16(first_prop(&props, "to"))?,
+            numeric: parse_optional_onoff(first_prop(&props, "numeric"))?,
+            keep_alive: parse_optional_onoff(first_prop(&props, "keep-alive"))?,
+            mptcp: parse_optional_onoff(first_prop(&props, "mptcp"))?,
+            addr_ipv4: parse_optional_onoff(first_prop(&props, "addr.ipv4"))?,
+            addr_ipv6: parse_optional_onoff(first_prop(&props, "addr.ipv6"))?,
+            reconnect_ms: parse_optional_usize(first_prop(&props, "reconnect-ms"))?,
+        })
     }
 }
 
@@ -697,7 +753,7 @@ impl ToCommand for StreamOverUds {
         if let Some(server) = &self.server {
             args.push(format!("server={}", server.to_arg()));
         }
-        args.push("add.type=unix".to_string());
+        args.push("addr.type=unix".to_string());
         args.push(format!("addr.path={}", self.addr_path));
         if let Some(abstract_arg) = &self.abstract_arg {
             args.push(format!("abstract={}", abstract_arg.to_arg()));
@@ -713,10 +769,19 @@ impl ToCommand for StreamOverUds {
 }
 
 impl FromStr for StreamOverUds {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "stream")?;
+        ensure_prop_value(&props, "addr.type", "unix")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            server: parse_optional_onoff(first_prop(&props, "server"))?,
+            addr_path: required_prop(&props, "addr.path")?.to_string(),
+            abstract_arg: parse_optional_onoff(first_prop(&props, "abstract"))?,
+            tight: parse_optional_onoff(first_prop(&props, "tight"))?,
+            reconnect_ms: parse_optional_usize(first_prop(&props, "reconnect-ms"))?,
+        })
     }
 }
 
@@ -735,7 +800,7 @@ impl ToCommand for StreamOverFd {
         if let Some(server) = &self.server {
             args.push(format!("server={}", server.to_arg()));
         }
-        args.push("add.type=fd".to_string());
+        args.push("addr.type=fd".to_string());
         args.push(format!("addr.str={}", self.addr_str));
         if let Some(reconnect_ms) = self.reconnect_ms {
             args.push(format!("reconnect-ms={}", reconnect_ms));
@@ -745,10 +810,17 @@ impl ToCommand for StreamOverFd {
 }
 
 impl FromStr for StreamOverFd {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "stream")?;
+        ensure_prop_value(&props, "addr.type", "fd")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            server: parse_optional_onoff(first_prop(&props, "server"))?,
+            addr_str: required_prop(&props, "addr.str")?.to_string(),
+            reconnect_ms: parse_optional_usize(first_prop(&props, "reconnect-ms"))?,
+        })
     }
 }
 
@@ -770,10 +842,16 @@ impl ToCommand for Stream {
 }
 
 impl FromStr for Stream {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_props(s)?;
+        match first_prop(&props, "addr.type") {
+            Some("inet") => Ok(Self::StreamOverTcp(s.parse::<StreamOverTcp>()?)),
+            Some("unix") => Ok(Self::StreamOverUds(s.parse::<StreamOverUds>()?)),
+            Some("fd") => Ok(Self::StreamOverFd(s.parse::<StreamOverFd>()?)),
+            other => Err(format!("unsupported stream addr.type: {}", other.unwrap_or("<missing>"))),
+        }
     }
 }
 
@@ -804,10 +882,17 @@ impl ToCommand for DgramMulticast {
 }
 
 impl FromStr for DgramMulticast {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "dgram")?;
+        ensure_prop_value(&props, "remote.type", "inet")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            remote_host: required_prop(&props, "remote.host")?.to_string(),
+            remote_port: required_prop(&props, "remote.port")?.parse::<u16>().map_err(|e| e.to_string())?,
+            local_host: first_prop(&props, "local.host").map(ToString::to_string),
+        })
     }
 }
 
@@ -838,10 +923,17 @@ impl ToCommand for DgramMulticastUdpFd {
 }
 
 impl FromStr for DgramMulticastUdpFd {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "dgram")?;
+        ensure_prop_value(&props, "remote.type", "inet")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            remote_host: required_prop(&props, "remote.host")?.to_string(),
+            remote_port: required_prop(&props, "remote.port")?.parse::<u16>().map_err(|e| e.to_string())?,
+            local_str: first_prop(&props, "local.str").map(ToString::to_string),
+        })
     }
 }
 
@@ -876,10 +968,18 @@ impl ToCommand for DgramSocket {
 }
 
 impl FromStr for DgramSocket {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "dgram")?;
+        ensure_prop_value(&props, "local.type", "inet")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            local_host: required_prop(&props, "local.host")?.to_string(),
+            local_port: required_prop(&props, "local.port")?.parse::<usize>().map_err(|e| e.to_string())?,
+            remote_host: first_prop(&props, "remote.host").map(ToString::to_string),
+            remote_port: parse_optional_u16(first_prop(&props, "remote.port"))?,
+        })
     }
 }
 
@@ -907,10 +1007,16 @@ impl ToCommand for DgramUds {
 }
 
 impl FromStr for DgramUds {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "dgram")?;
+        ensure_prop_value(&props, "local.type", "unix")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            local_path: PathBuf::from(required_prop(&props, "local.path")?),
+            remote_path: first_prop(&props, "remote.path").map(PathBuf::from),
+        })
     }
 }
 
@@ -933,10 +1039,12 @@ impl ToCommand for DgramFd {
 }
 
 impl FromStr for DgramFd {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "dgram")?;
+        ensure_prop_value(&props, "local.type", "fd")?;
+        Ok(Self { id: required_prop(&props, "id")?.to_string(), local_str: required_prop(&props, "local.str")?.to_string() })
     }
 }
 
@@ -962,10 +1070,18 @@ impl ToCommand for Dgram {
 }
 
 impl FromStr for Dgram {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_props(s)?;
+        match (first_prop(&props, "local.type"), first_prop(&props, "remote.type")) {
+            (Some("fd"), Some("inet")) => Ok(Self::DgramMulticastUdpFd(s.parse::<DgramMulticastUdpFd>()?)),
+            (Some("fd"), _) => Ok(Self::DgramFd(s.parse::<DgramFd>()?)),
+            (Some("unix"), _) => Ok(Self::DgramUds(s.parse::<DgramUds>()?)),
+            (Some("inet"), _) => Ok(Self::DgramSocket(s.parse::<DgramSocket>()?)),
+            (None, Some("inet")) => Ok(Self::DgramMulticast(s.parse::<DgramMulticast>()?)),
+            _ => Err(format!("unsupported dgram backend: {s}")),
+        }
     }
 }
 
@@ -999,10 +1115,17 @@ impl ToCommand for Vde {
 }
 
 impl FromStr for Vde {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "vde")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            sock: first_prop(&props, "sock").map(PathBuf::from),
+            port: parse_optional_u16(first_prop(&props, "port"))?,
+            group: first_prop(&props, "group").map(ToString::to_string),
+            mode: first_prop(&props, "mode").map(ToString::to_string),
+        })
     }
 }
 
@@ -1025,10 +1148,15 @@ impl ToCommand for NetMap {
 }
 
 impl FromStr for NetMap {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "netmap")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            ifname: required_prop(&props, "ifname")?.to_string(),
+            devname: first_prop(&props, "devname").map(ToString::to_string),
+        })
     }
 }
 
@@ -1085,10 +1213,25 @@ impl ToCommand for AfXdp {
 }
 
 impl FromStr for AfXdp {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "af-xdp")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            ifname: required_prop(&props, "ifname")?.to_string(),
+            mode: match first_prop(&props, "mode") {
+                Some("native") => Some(NativeSkb::Native),
+                Some("skb") => Some(NativeSkb::Skb),
+                Some(other) => return Err(format!("invalid af-xdp mode: {other}")),
+                None => None,
+            },
+            force_copy: parse_optional_onoff(first_prop(&props, "force-copy"))?,
+            queues: parse_optional_usize(first_prop(&props, "queues"))?,
+            start_queue: parse_optional_usize(first_prop(&props, "start-queue"))?,
+            inhibit: parse_optional_onoff(first_prop(&props, "inhibit"))?,
+            sock_fds: first_prop(&props, "sock-fds").map(|v| v.split(':').map(|part| part.to_string()).collect()),
+        })
     }
 }
 
@@ -1233,10 +1376,18 @@ impl ToCommand for VmnetHost {
 }
 
 impl FromStr for VmnetHost {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "vmnet-host")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            isolated: parse_optional_onoff(first_prop(&props, "isolated"))?,
+            net_uuid: first_prop(&props, "net_uuid").map(ToString::to_string),
+            start_address: first_prop(&props, "start-address").map(ToString::to_string),
+            end_address: first_prop(&props, "end-address").map(ToString::to_string),
+            subnet_mask: first_prop(&props, "subnet-mask").map(ToString::to_string),
+        })
     }
 }
 
@@ -1274,10 +1425,18 @@ impl ToCommand for VmnetShared {
 }
 
 impl FromStr for VmnetShared {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "vmnet-shared")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            isolated: parse_optional_onoff(first_prop(&props, "isolated"))?,
+            nat66_prefix: first_prop(&props, "nat66-prefix").map(ToString::to_string),
+            start_address: first_prop(&props, "start-address").map(ToString::to_string),
+            end_address: first_prop(&props, "end-address").map(ToString::to_string),
+            subnet_mask: first_prop(&props, "subnet-mask").map(ToString::to_string),
+        })
     }
 }
 
@@ -1300,10 +1459,15 @@ impl ToCommand for VmnetBridged {
 }
 
 impl FromStr for VmnetBridged {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "vmnet-bridged")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            ifname: required_prop(&props, "ifname")?.to_string(),
+            isolated: parse_optional_onoff(first_prop(&props, "isolated"))?,
+        })
     }
 }
 
@@ -1408,6 +1572,9 @@ impl FromStr for NetDev {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.starts_with("user,") || s == "user" {
+            return Ok(Self::User(s.parse::<User>()?));
+        }
         if s.starts_with("tap,") || s == "tap" {
             return Ok(Self::Tap(s.parse::<Tap>()?));
         }
@@ -1417,11 +1584,35 @@ impl FromStr for NetDev {
         if s.starts_with("socket,") || s == "socket" {
             return Ok(Self::Socket(s.parse::<Socket>()?));
         }
+        if s.starts_with("stream,") || s == "stream" {
+            return Ok(Self::Stream(s.parse::<Stream>()?));
+        }
+        if s.starts_with("dgram,") || s == "dgram" {
+            return Ok(Self::Dgram(s.parse::<Dgram>()?));
+        }
+        if s.starts_with("vde,") || s == "vde" {
+            return Ok(Self::Vde(s.parse::<Vde>()?));
+        }
+        if s.starts_with("netmap,") || s == "netmap" {
+            return Ok(Self::Netmap(s.parse::<NetMap>()?));
+        }
+        if s.starts_with("af-xdp,") || s == "af-xdp" {
+            return Ok(Self::AfXdp(s.parse::<AfXdp>()?));
+        }
         if s.starts_with("vhost-user,") || s.starts_with("type=vhost-user,") || s == "vhost-user" || s == "type=vhost-user" {
             return Ok(Self::VhostUser(s.parse::<VhostUser>()?));
         }
         if s.starts_with("vhost-vdpa,") || s == "vhost-vdpa" {
             return Ok(Self::VhostVdpa(s.parse::<VhostVdpa>()?));
+        }
+        if s.starts_with("vmnet-host,") || s == "vmnet-host" {
+            return Ok(Self::VmnetHost(s.parse::<VmnetHost>()?));
+        }
+        if s.starts_with("vmnet-shared,") || s == "vmnet-shared" {
+            return Ok(Self::VmnetShared(s.parse::<VmnetShared>()?));
+        }
+        if s.starts_with("vmnet-bridged,") || s == "vmnet-bridged" {
+            return Ok(Self::VmnetBridged(s.parse::<VmnetBridged>()?));
         }
         if s.starts_with("hubport,") || s == "hubport" {
             return Ok(Self::Hubport(s.parse::<Hubport>()?));
@@ -1450,4 +1641,166 @@ fn parse_host_and_maybe_port(value: &str) -> Result<HostAndMaybePort, String> {
     }
 
     Ok(HostAndMaybePort { host: value.to_string(), port: None })
+}
+
+fn parse_props(s: &str) -> Result<std::collections::BTreeMap<String, Vec<String>>, String> {
+    let mut parts = s.split(DELIM_COMMA);
+    let _backend = parts.next().ok_or_else(|| "empty netdev argument".to_string())?;
+    let mut props = std::collections::BTreeMap::<String, Vec<String>>::new();
+
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid netdev option: {part}"))?;
+        props.entry(key.to_string()).or_default().push(value.to_string());
+    }
+
+    Ok(props)
+}
+
+fn parse_netdev_props(s: &str, backend_name: &str) -> Result<std::collections::BTreeMap<String, Vec<String>>, String> {
+    let actual = s.split(DELIM_COMMA).next().ok_or_else(|| "empty netdev argument".to_string())?;
+    if actual != backend_name {
+        return Err(format!("expected {backend_name} backend, got {actual}"));
+    }
+    parse_props(s)
+}
+
+fn required_prop<'a>(props: &'a std::collections::BTreeMap<String, Vec<String>>, key: &str) -> Result<&'a str, String> {
+    props.get(key).and_then(|values| values.first()).map(|s| s.as_str()).ok_or_else(|| format!("missing required option: {key}"))
+}
+
+fn ensure_prop_value(props: &std::collections::BTreeMap<String, Vec<String>>, key: &str, expected: &str) -> Result<(), String> {
+    let actual = required_prop(props, key)?;
+    if actual == expected {
+        Ok(())
+    } else {
+        Err(format!("expected {key}={expected}, got {actual}"))
+    }
+}
+
+fn first_prop<'a>(props: &'a std::collections::BTreeMap<String, Vec<String>>, key: &str) -> Option<&'a str> {
+    props.get(key).and_then(|values| values.first()).map(|s| s.as_str())
+}
+
+fn all_props<'a>(props: &'a std::collections::BTreeMap<String, Vec<String>>, key: &str) -> Vec<&'a str> {
+    props.get(key).map(|values| values.iter().map(|s| s.as_str()).collect()).unwrap_or_default()
+}
+
+fn parse_optional_onoff(value: Option<&str>) -> Result<Option<OnOff>, String> {
+    value
+        .map(|raw| raw.parse::<OnOff>().map_err(|_| format!("invalid on/off value: {raw}")))
+        .transpose()
+}
+
+fn parse_optional_usize(value: Option<&str>) -> Result<Option<usize>, String> {
+    value.map(|raw| raw.parse::<usize>().map_err(|e| e.to_string())).transpose()
+}
+
+fn parse_optional_u16(value: Option<&str>) -> Result<Option<u16>, String> {
+    value.map(|raw| raw.parse::<u16>().map_err(|e| e.to_string())).transpose()
+}
+
+fn parse_optional_ipv4(value: Option<&str>) -> Result<Option<Ipv4Addr>, String> {
+    value.map(|raw| raw.parse::<Ipv4Addr>().map_err(|e| e.to_string())).transpose()
+}
+
+fn parse_optional_ipv6(value: Option<&str>) -> Result<Option<Ipv6Addr>, String> {
+    value.map(|raw| raw.parse::<Ipv6Addr>().map_err(|e| e.to_string())).transpose()
+}
+
+fn parse_optional_qipv4net(value: Option<&str>) -> Result<Option<QIpv4Net>, String> {
+    value
+        .map(|raw| raw.parse::<ipnet::Ipv4Net>().map(|ip| QIpv4Net::builder().ip(ip).build()).map_err(|e| e.to_string()))
+        .transpose()
+}
+
+fn parse_optional_qipv6net(value: Option<&str>) -> Result<Option<QIpv6Net>, String> {
+    value
+        .map(|raw| raw.parse::<ipnet::Ipv6Net>().map(|ip| QIpv6Net::builder().ip(ip).build()).map_err(|e| e.to_string()))
+        .transpose()
+}
+
+fn parse_hostfwd(value: &str) -> Result<HostForward, String> {
+    let parts = value.split(';').collect::<Vec<_>>();
+    if parts.len() < 2 {
+        return Err(format!("invalid hostfwd: {value}"));
+    }
+
+    let mut idx = 0;
+    let protocol = match parts[0] {
+        "tcp" => {
+            idx = 1;
+            Some(TcpUdp::Tcp)
+        }
+        "udp" => {
+            idx = 1;
+            Some(TcpUdp::Udp)
+        }
+        _ => None,
+    };
+
+    let remaining = &parts[idx..];
+    let (hostaddr, hostport, guestaddr, guestport) = match remaining {
+        [host_range, guest_port] => {
+            let (hostaddr, hostport) = parse_optional_host_port_range(host_range)?;
+            let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
+            (hostaddr, hostport, None, guestport)
+        }
+        [host_range, guest_host, guest_port] => {
+            if host_range.ends_with('-') {
+                let (hostaddr, hostport) = parse_optional_host_port_range(host_range)?;
+                let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
+                (hostaddr, hostport, Some((*guest_host).to_string()), guestport)
+            } else if guest_host.ends_with('-') {
+                let hostport = guest_host.strip_suffix('-').ok_or_else(|| format!("invalid hostfwd host section: {guest_host}"))?.parse::<u16>().map_err(|e| e.to_string())?;
+                let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
+                (Some((*host_range).to_string()), hostport, None, guestport)
+            } else {
+                return Err(format!("invalid hostfwd: {value}"));
+            }
+        }
+        [host_addr, host_range, guest_host, guest_port] => {
+            let hostport = host_range.strip_suffix('-').ok_or_else(|| format!("invalid hostfwd host section: {host_range}"))?.parse::<u16>().map_err(|e| e.to_string())?;
+            let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
+            (Some((*host_addr).to_string()), hostport, Some((*guest_host).to_string()), guestport)
+        }
+        _ => return Err(format!("invalid hostfwd: {value}")),
+    };
+
+    Ok(HostForward { protocol, hostaddr, hostport, guestaddr, guestport })
+}
+
+fn parse_optional_host_port_range(value: &str) -> Result<(Option<String>, u16), String> {
+    let raw = value.strip_suffix('-').ok_or_else(|| format!("invalid hostfwd host section: {value}"))?;
+    if let Some((host, port)) = raw.rsplit_once(':') {
+        Ok(((!host.is_empty()).then_some(host.to_string()), port.parse::<u16>().map_err(|e| e.to_string())?))
+    } else {
+        Ok((None, raw.parse::<u16>().map_err(|e| e.to_string())?))
+    }
+}
+
+fn parse_guestfwd(value: &str) -> Result<GuestForward, String> {
+    let mut parts = value.split(':');
+    let proto = parts.next().ok_or_else(|| format!("invalid guestfwd: {value}"))?;
+    if proto != "tcp" {
+        return Err(format!("unsupported guestfwd protocol: {proto}"));
+    }
+    let server = parts.next().ok_or_else(|| format!("invalid guestfwd: {value}"))?.to_string();
+    let port = parts.next().ok_or_else(|| format!("invalid guestfwd: {value}"))?.parse::<u16>().map_err(|e| e.to_string())?;
+    let target = parts.collect::<Vec<_>>().join(":");
+    if target.is_empty() {
+        return Err(format!("invalid guestfwd target: {value}"));
+    }
+
+    let target = if let Some(device) = target.strip_prefix("device=") {
+        GuestForwardTarget::Device(device.parse::<CharDev>().map_err(|e| format!("invalid guestfwd device: {e}"))?)
+    } else if let Some(command) = target.strip_prefix("cmd:") {
+        let mut tokens = command.split_whitespace();
+        let cmd = tokens.next().ok_or_else(|| format!("invalid guestfwd command: {value}"))?.to_string();
+        let args = tokens.map(|token| token.to_string()).collect();
+        GuestForwardTarget::Cmd((cmd, args))
+    } else {
+        return Err(format!("unsupported guestfwd target: {target}"));
+    };
+
+    Ok(GuestForward { server, port, target })
 }

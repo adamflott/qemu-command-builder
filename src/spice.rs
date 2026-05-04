@@ -1,4 +1,5 @@
 use crate::common::{AutoNeverAlways, OnOff, OnOffDefaultOff, OnOffDefaultOn};
+use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
 use bon::Builder;
@@ -8,6 +9,7 @@ use std::str::FromStr;
 
 pub(crate) const ARG_SPICE: &str = "-spice";
 
+/// A SPICE channel name used by `tls-channel=` and `plaintext-channel=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Channel {
     Main,
@@ -30,6 +32,7 @@ impl ToArg for Channel {
         }
     }
 }
+/// SPICE image compression mode for `image-compression=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum ImageCompression {
     AutoGlz,
@@ -53,6 +56,7 @@ impl ToArg for ImageCompression {
         }
     }
 }
+/// Ternary SPICE policy used by `streaming-video=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 pub enum OffAllFilter {
     #[default]
@@ -219,7 +223,7 @@ impl ToCommand for Spice {
             args.push(format!("x509-cert-file={}", x509_cert_file.display()));
         }
         if let Some(x509_cacert_file) = &self.x509_cacert_file {
-            args.push(format!("x509-caert-file={}", x509_cacert_file.display()));
+            args.push(format!("x509-cacert-file={}", x509_cacert_file.display()));
         }
         if let Some(x509_dh_key_file) = &self.x509_dh_key_file {
             args.push(format!("x509-dh-key-file={}", x509_dh_key_file.display()));
@@ -261,14 +265,111 @@ impl ToCommand for Spice {
             args.push(format!("rendernode={}", rendernode.display()));
         }
 
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
 impl FromStr for Spice {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut value = Self::default();
+        for part in s.split(DELIM_COMMA).filter(|part| !part.is_empty()) {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid -spice option: {part}"))?;
+            match key {
+                "port" => value.port = Some(raw.parse::<u16>().map_err(|e| e.to_string())?),
+                "addr" => value.addr = Some(raw.to_string()),
+                "ipv4" => value.ipv4 = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid ipv4 value: {raw}"))?),
+                "ipv6" => value.ipv6 = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid ipv6 value: {raw}"))?),
+                "unix" => value.unix = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid unix value: {raw}"))?),
+                "password-secret" => value.password_secret = Some(raw.to_string()),
+                "sasl" => value.sasl = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid sasl value: {raw}"))?),
+                "disable-ticketing" => {
+                    value.disable_ticketing = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid disable-ticketing value: {raw}"))?)
+                }
+                "disable-copy-paste" => {
+                    value.disable_copy_paste = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid disable-copy-paste value: {raw}"))?)
+                }
+                "disable-agent-file-xfer" => {
+                    value.disable_agent_file_xfer =
+                        Some(raw.parse::<OnOff>().map_err(|_| format!("invalid disable-agent-file-xfer value: {raw}"))?)
+                }
+                "tls-port" => value.tls_port = Some(raw.parse::<u16>().map_err(|e| e.to_string())?),
+                "x509-dir" => value.x509_dir = Some(PathBuf::from(raw)),
+                "x509-key-file" => value.x509_key_file = Some(PathBuf::from(raw)),
+                "x509-key-password" => value.x509_key_password = Some(PathBuf::from(raw)),
+                "x509-cert-file" => value.x509_cert_file = Some(PathBuf::from(raw)),
+                "x509-cacert-file" => value.x509_cacert_file = Some(PathBuf::from(raw)),
+                "x509-dh-key-file" => value.x509_dh_key_file = Some(PathBuf::from(raw)),
+                "tls-ciphers" => value.tls_ciphers = Some(raw.to_string()),
+                "tls-channel" => value.tls_channel = Some(parse_channel(raw)?),
+                "plaintext-channel" => value.plaintext_channel = Some(parse_channel(raw)?),
+                "image-compression" => value.image_compression = Some(parse_image_compression(raw)?),
+                "jpeg-wan-compression" => {
+                    value.jpeg_wan_compression = Some(parse_auto_never_always(raw)?)
+                }
+                "zlib-glz-wan-compression" => {
+                    value.zlib_glz_wan_compression = Some(parse_auto_never_always(raw)?)
+                }
+                "streaming-video" => value.streaming_video = Some(parse_off_all_filter(raw)?),
+                "agent-mouse" => {
+                    value.agent_mouse = Some(raw.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid agent-mouse value: {raw}"))?)
+                }
+                "playback-compression" => {
+                    value.playback_compression =
+                        Some(raw.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid playback-compression value: {raw}"))?)
+                }
+                "seamless-migration" => {
+                    value.seamless_migration =
+                        Some(raw.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid seamless-migration value: {raw}"))?)
+                }
+                "gl" => value.gl = Some(raw.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid gl value: {raw}"))?),
+                "rendernode" => value.rendernode = Some(PathBuf::from(raw)),
+                other => return Err(format!("unsupported -spice option: {other}")),
+            }
+        }
+        Ok(value)
+    }
+}
+
+fn parse_channel(value: &str) -> Result<Channel, String> {
+    match value {
+        "main" => Ok(Channel::Main),
+        "display" => Ok(Channel::Display),
+        "cursor" => Ok(Channel::Cursor),
+        "inputs" => Ok(Channel::Inputs),
+        "record" => Ok(Channel::Record),
+        "playback" => Ok(Channel::Playback),
+        _ => Err(format!("invalid spice channel: {value}")),
+    }
+}
+
+fn parse_image_compression(value: &str) -> Result<ImageCompression, String> {
+    match value {
+        "auto_glz" => Ok(ImageCompression::AutoGlz),
+        "auto_lz" => Ok(ImageCompression::AutoLz),
+        "quic" => Ok(ImageCompression::Quic),
+        "glz" => Ok(ImageCompression::Glz),
+        "lz" => Ok(ImageCompression::Lz),
+        "off" => Ok(ImageCompression::Off),
+        _ => Err(format!("invalid image-compression value: {value}")),
+    }
+}
+
+fn parse_off_all_filter(value: &str) -> Result<OffAllFilter, String> {
+    match value {
+        "off" => Ok(OffAllFilter::Off),
+        "all" => Ok(OffAllFilter::All),
+        "filter" => Ok(OffAllFilter::Filter),
+        _ => Err(format!("invalid streaming-video value: {value}")),
+    }
+}
+
+fn parse_auto_never_always(value: &str) -> Result<AutoNeverAlways, String> {
+    match value {
+        "auto" => Ok(AutoNeverAlways::Auto),
+        "never" => Ok(AutoNeverAlways::Never),
+        "always" => Ok(AutoNeverAlways::Always),
+        _ => Err(format!("invalid auto/never/always value: {value}")),
     }
 }

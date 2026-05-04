@@ -2,6 +2,7 @@ use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
 
+use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToCommand;
 
 pub(crate) const ARG_NUMA: &str = "-numa";
@@ -38,6 +39,7 @@ pub struct NUMACPU {
     thread_id: Option<usize>,
 }
 
+/// HMAT hierarchy selector for `-numa hmat-lb,...`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NUMAHierarchy {
     Memory,
@@ -45,6 +47,7 @@ pub enum NUMAHierarchy {
     SecondLevel,
     ThirdLevel,
 }
+/// HMAT latency data type for `-numa hmat-lb,...`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NUMADataType {
     AccessLatency,
@@ -85,6 +88,10 @@ pub struct NUMAHMATCache {
     line: Option<usize>,
 }
 
+/// A supported `-numa` clause.
+///
+/// The parser accepts the same comma-separated forms that this crate
+/// renders for node, distance, CPU, and HMAT entries.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NUMA {
     NodeMem(NUMANodeMem),
@@ -166,7 +173,7 @@ impl ToCommand for NUMA {
                     NUMAHierarchy::SecondLevel => hmat_lb_args.push_str("second-level"),
                     NUMAHierarchy::ThirdLevel => hmat_lb_args.push_str("third-level"),
                 }
-                hmat_lb_args.push_str("data-type=");
+                hmat_lb_args.push_str(",data-type=");
                 match hmat_lb.data_type {
                     NUMADataType::AccessLatency => hmat_lb_args.push_str("access-latency"),
                     NUMADataType::ReadLatency => hmat_lb_args.push_str("read-latency"),
@@ -209,9 +216,189 @@ impl ToCommand for NUMA {
 }
 
 impl FromStr for NUMA {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(DELIM_COMMA);
+        let kind = parts.next().ok_or_else(|| "empty numa argument".to_string())?;
+
+        match kind {
+            "node" => {
+                let mut mem_size = None;
+                let mut memdev = None;
+                let mut cpu_first = None;
+                let mut cpu_last = None;
+                let mut node_id = None;
+                let mut initiator = None;
+
+                for part in parts {
+                    let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa node option: {part}"))?;
+                    match key {
+                        "mem" => mem_size = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "memdev" => memdev = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "cpu" => {
+                            if let Some((first, last)) = raw.split_once('-') {
+                                cpu_first = Some(first.parse::<usize>().map_err(|e| e.to_string())?);
+                                cpu_last = Some(last.parse::<usize>().map_err(|e| e.to_string())?);
+                            } else {
+                                cpu_first = Some(raw.parse::<usize>().map_err(|e| e.to_string())?);
+                            }
+                        }
+                        "nodeid" => node_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "initiator" => initiator = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        other => return Err(format!("unsupported numa node option: {other}")),
+                    }
+                }
+
+                if let Some(mem_id) = memdev {
+                    Ok(Self::NodeMemDev(NUMANodeMemDev { mem_id: Some(mem_id), cpu_first, cpu_last, node_id, initiator }))
+                } else {
+                    Ok(Self::NodeMem(NUMANodeMem { mem_size, cpu_first, cpu_last, node_id, initiator }))
+                }
+            }
+            "dist" => {
+                let mut src = None;
+                let mut dst = None;
+                let mut val = None;
+
+                for part in parts {
+                    let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa dist option: {part}"))?;
+                    match key {
+                        "src" => src = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "dst" => dst = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "val" => val = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        other => return Err(format!("unsupported numa dist option: {other}")),
+                    }
+                }
+
+                Ok(Self::Dist(NUMADist {
+                    src: src.ok_or_else(|| "numa dist requires src=".to_string())?,
+                    dst: dst.ok_or_else(|| "numa dist requires dst=".to_string())?,
+                    val: val.ok_or_else(|| "numa dist requires val=".to_string())?,
+                }))
+            }
+            "cpu" => {
+                let mut node_id = None;
+                let mut socket_id = None;
+                let mut core_id = None;
+                let mut thread_id = None;
+
+                for part in parts {
+                    let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa cpu option: {part}"))?;
+                    match key {
+                        "node-id" => node_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "socket-id" => socket_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "core-id" => core_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "thread-id" => thread_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        other => return Err(format!("unsupported numa cpu option: {other}")),
+                    }
+                }
+
+                Ok(Self::Cpu(NUMACPU {
+                    node_id: node_id.ok_or_else(|| "numa cpu requires node-id=".to_string())?,
+                    socket_id,
+                    core_id,
+                    thread_id,
+                }))
+            }
+            "hmat-lb" => {
+                let mut initiator = None;
+                let mut target = None;
+                let mut hierarchy = None;
+                let mut data_type = None;
+                let mut latency = None;
+                let mut bandwidth = None;
+
+                for part in parts {
+                    let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa hmat-lb option: {part}"))?;
+                    match key {
+                        "initiator" => initiator = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "target" => target = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "hierarchy" => hierarchy = Some(parse_numa_hierarchy(raw)?),
+                        "data-type" => data_type = Some(parse_numa_data_type(raw)?),
+                        "latency" => latency = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "bandwidth" => bandwidth = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        other => return Err(format!("unsupported numa hmat-lb option: {other}")),
+                    }
+                }
+
+                Ok(Self::HMATLB(NUMAHMATLb {
+                    initiator: initiator.ok_or_else(|| "numa hmat-lb requires initiator=".to_string())?,
+                    target: target.ok_or_else(|| "numa hmat-lb requires target=".to_string())?,
+                    hierarchy: hierarchy.ok_or_else(|| "numa hmat-lb requires hierarchy=".to_string())?,
+                    data_type: data_type.ok_or_else(|| "numa hmat-lb requires data-type=".to_string())?,
+                    latency,
+                    bandwidth,
+                }))
+            }
+            "hmat-cache" => {
+                let mut node_id = None;
+                let mut size = None;
+                let mut level = None;
+                let mut associativity = None;
+                let mut policy = None;
+                let mut line = None;
+
+                for part in parts {
+                    let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa hmat-cache option: {part}"))?;
+                    match key {
+                        "node-id" => node_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "size" => size = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "level" => level = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "associativity" => associativity = Some(parse_hmat_cache_associativity(raw)?),
+                        "policy" => policy = Some(parse_hmat_cache_policy(raw)?),
+                        "line" => line = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        other => return Err(format!("unsupported numa hmat-cache option: {other}")),
+                    }
+                }
+
+                Ok(Self::HMATCache(NUMAHMATCache {
+                    node_id: node_id.ok_or_else(|| "numa hmat-cache requires node-id=".to_string())?,
+                    size: size.ok_or_else(|| "numa hmat-cache requires size=".to_string())?,
+                    level: level.ok_or_else(|| "numa hmat-cache requires level=".to_string())?,
+                    associativity,
+                    policy,
+                    line,
+                }))
+            }
+            other => Err(format!("unsupported numa kind: {other}")),
+        }
+    }
+}
+
+fn parse_numa_hierarchy(value: &str) -> Result<NUMAHierarchy, String> {
+    match value {
+        "memory" => Ok(NUMAHierarchy::Memory),
+        "first-level" => Ok(NUMAHierarchy::FirstLevel),
+        "second-level" => Ok(NUMAHierarchy::SecondLevel),
+        "third-level" => Ok(NUMAHierarchy::ThirdLevel),
+        other => Err(format!("invalid numa hierarchy: {other}")),
+    }
+}
+
+fn parse_numa_data_type(value: &str) -> Result<NUMADataType, String> {
+    match value {
+        "access-latency" => Ok(NUMADataType::AccessLatency),
+        "read-latency" => Ok(NUMADataType::ReadLatency),
+        "write-latency" => Ok(NUMADataType::WriteLatency),
+        other => Err(format!("invalid numa data-type: {other}")),
+    }
+}
+
+fn parse_hmat_cache_associativity(value: &str) -> Result<HMATCacheAssociativity, String> {
+    match value {
+        "none" => Ok(HMATCacheAssociativity::None),
+        "direct" => Ok(HMATCacheAssociativity::Direct),
+        "complex" => Ok(HMATCacheAssociativity::Complex),
+        other => Err(format!("invalid hmat-cache associativity: {other}")),
+    }
+}
+
+fn parse_hmat_cache_policy(value: &str) -> Result<HMATCachePolicy, String> {
+    match value {
+        "none" => Ok(HMATCachePolicy::None),
+        "write-back" => Ok(HMATCachePolicy::WriteBack),
+        "write-through" => Ok(HMATCachePolicy::WriteThrough),
+        other => Err(format!("invalid hmat-cache policy: {other}")),
     }
 }

@@ -246,10 +246,23 @@ impl ToCommand for SmbiosType3 {
 }
 
 impl FromStr for SmbiosType3 {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut value = Self::default();
+        for part in s.split(',') {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid smbios type 3 option: {part}"))?;
+            match key {
+                "type" if raw == "3" => {}
+                "manufacturer" => value.manufacturer = Some(raw.to_string()),
+                "version" => value.version = Some(raw.to_string()),
+                "serial" => value.serial = Some(raw.to_string()),
+                "asset" => value.asset = Some(raw.to_string()),
+                "sku" => value.sku = Some(raw.to_string()),
+                other => return Err(format!("unsupported smbios type 3 option: {other}")),
+            }
+        }
+        Ok(value)
     }
 }
 
@@ -306,10 +319,28 @@ impl ToCommand for SmbiosType4 {
 }
 
 impl FromStr for SmbiosType4 {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut value = Self::default();
+        for part in s.split(',') {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid smbios type 4 option: {part}"))?;
+            match key {
+                "type" if raw == "4" => {}
+                "sock_pfx" => value.sock_pfx = Some(raw.to_string()),
+                "manufacturer" => value.manufacturer = Some(raw.to_string()),
+                "version" => value.version = Some(raw.to_string()),
+                "serial" => value.serial = Some(raw.to_string()),
+                "asset" => value.asset = Some(raw.to_string()),
+                "part" => value.part = Some(raw.to_string()),
+                "max-speed" => value.max_speed = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "current-speed" => value.current_speed = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "processor-family" => value.processor_family = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "processor-id" => value.processor_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                other => return Err(format!("unsupported smbios type 4 option: {other}")),
+            }
+        }
+        Ok(value)
     }
 }
 
@@ -342,10 +373,22 @@ impl ToCommand for SmbiosType8 {
 }
 
 impl FromStr for SmbiosType8 {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut value = Self::default();
+        for part in s.split(',') {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid smbios type 8 option: {part}"))?;
+            match key {
+                "type" if raw == "8" => {}
+                "external_reference" => value.external_reference = Some(raw.to_string()),
+                "internal_reference" => value.internal_reference = Some(raw.to_string()),
+                "connector_type" => value.connector_type = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "port_type" => value.port_type = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                other => return Err(format!("unsupported smbios type 8 option: {other}")),
+            }
+        }
+        Ok(value)
     }
 }
 
@@ -370,10 +413,20 @@ impl ToCommand for SmbiosType11 {
 }
 
 impl FromStr for SmbiosType11 {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut value = Self::default();
+        for part in s.split(',') {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid smbios type 11 option: {part}"))?;
+            match key {
+                "type" if raw == "11" => {}
+                "value" => value.value = Some(raw.to_string()),
+                "path" => value.path = Some(raw.to_string()),
+                other => return Err(format!("unsupported smbios type 11 option: {other}")),
+            }
+        }
+        Ok(value)
     }
 }
 
@@ -419,10 +472,25 @@ impl ToCommand for SmbiosType17 {
 }
 
 impl FromStr for SmbiosType17 {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut value = Self::default();
+        for part in s.split(',') {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid smbios type 17 option: {part}"))?;
+            match key {
+                "type" if raw == "17" => {}
+                "loc_pfx" => value.loc_pfx = Some(raw.to_string()),
+                "bank" => value.bank = Some(raw.to_string()),
+                "manufacturer" => value.manufacturer = Some(raw.to_string()),
+                "serial" => value.serial = Some(raw.to_string()),
+                "asset" => value.asset = Some(raw.to_string()),
+                "part" => value.part = Some(raw.to_string()),
+                "speed" => value.speed = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                other => return Err(format!("unsupported smbios type 17 option: {other}")),
+            }
+        }
+        Ok(value)
     }
 }
 
@@ -456,13 +524,29 @@ impl ToCommand for SmbiosType41 {
 }
 
 impl FromStr for SmbiosType41 {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut value = Self::default();
+        for part in s.split(',') {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid smbios type 41 option: {part}"))?;
+            match key {
+                "type" if raw == "41" => {}
+                "designation" => value.designation = Some(raw.to_string()),
+                "kind" => value.kind = Some(raw.to_string()),
+                "instance" => value.instance = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "pcidev" => value.pcidev = Some(raw.to_string()),
+                other => return Err(format!("unsupported smbios type 41 option: {other}")),
+            }
+        }
+        Ok(value)
     }
 }
 
+/// A supported `-smbios` payload.
+///
+/// The formatter emits the canonical QEMU comma-separated form for the
+/// selected SMBIOS record type or `file=` source.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Smbios {
     File(SmbiosFile),
@@ -473,6 +557,7 @@ pub enum Smbios {
     Type4(SmbiosType4),
     Type8(SmbiosType8),
     Type11(SmbiosType11),
+    Type17(SmbiosType17),
     Type41(SmbiosType41),
 }
 
@@ -490,6 +575,7 @@ impl ToCommand for Smbios {
             Smbios::Type4(type4) => type4.to_args(),
             Smbios::Type8(type8) => type8.to_args(),
             Smbios::Type11(type11) => type11.to_args(),
+            Smbios::Type17(type17) => type17.to_args(),
             Smbios::Type41(type41) => type41.to_args(),
         }
     }
@@ -502,6 +588,15 @@ impl FromStr for Smbios {
         if s.starts_with("file=") {
             return Ok(Self::File(s.parse::<SmbiosFile>()?));
         }
+        if s.starts_with("type=41") {
+            return Ok(Self::Type41(s.parse::<SmbiosType41>()?));
+        }
+        if s.starts_with("type=17") {
+            return Ok(Self::Type17(s.parse::<SmbiosType17>()?));
+        }
+        if s.starts_with("type=11") {
+            return Ok(Self::Type11(s.parse::<SmbiosType11>()?));
+        }
         if s.starts_with("type=0") {
             return Ok(Self::Type0(s.parse::<SmbiosType0>()?));
         }
@@ -510,6 +605,15 @@ impl FromStr for Smbios {
         }
         if s.starts_with("type=2") {
             return Ok(Self::Type2(s.parse::<SmbiosType2>()?));
+        }
+        if s.starts_with("type=3") {
+            return Ok(Self::Type3(s.parse::<SmbiosType3>()?));
+        }
+        if s.starts_with("type=4") {
+            return Ok(Self::Type4(s.parse::<SmbiosType4>()?));
+        }
+        if s.starts_with("type=8") {
+            return Ok(Self::Type8(s.parse::<SmbiosType8>()?));
         }
 
         Err(format!("unsupported smbios argument: {s}"))

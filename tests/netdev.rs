@@ -89,3 +89,30 @@ fn netdev_tap_still_round_trips() {
     assert_eq!("tap,id=net0,ifname=tap0,script=no,downscript=no,vhost=on,queues=8", rendered);
     assert_eq!(netdev, NetDev::from_str(&rendered).unwrap());
 }
+
+#[test]
+fn netdev_stream_tcp_round_trips() {
+    let rendered = "stream,id=stream0,server=on,addr.type=inet,addr.host=127.0.0.1,addr.port=4444,to=9,numeric=off,keep-alive=on,mptcp=off,addr.ipv4=on,addr.ipv6=off,reconnect-ms=1000";
+    let parsed = NetDev::from_str(rendered).unwrap();
+
+    assert_eq!(rendered, parsed.to_args()[0]);
+    assert_eq!(parsed, NetDev::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
+fn netdev_dgram_multicast_udp_fd_round_trips() {
+    let rendered = "dgram,id=dg0,remote.type=inet,remote.host=239.1.1.1,remote.port=1234,local.type=fd,local.str=fdset0";
+    let parsed = NetDev::from_str(rendered).unwrap();
+
+    assert_eq!(rendered, parsed.to_args()[0]);
+    assert_eq!(parsed, NetDev::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
+fn netdev_vmnet_shared_round_trips() {
+    let rendered = "vmnet-shared,id=vm0,isolated=off,nat66-prefix=fd00::/64,start-address=192.168.64.1,end-address=192.168.64.254,subnet-mask=255.255.255.0";
+    let parsed = NetDev::from_str(rendered).unwrap();
+
+    assert_eq!(rendered, parsed.to_args()[0]);
+    assert_eq!(parsed, NetDev::from_str(&parsed.to_args()[0]).unwrap());
+}

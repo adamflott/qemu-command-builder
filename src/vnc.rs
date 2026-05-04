@@ -1,4 +1,5 @@
 use crate::common::OnOff;
+use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
 use bon::Builder;
@@ -8,14 +9,16 @@ use std::str::FromStr;
 
 pub(crate) const ARG_VNC: &str = "-vnc";
 
+/// A VNC server endpoint for `-vnc`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum VNCDisplay {
     To(usize),
-    Host(usize),
+    Network { host: Option<String>, display: usize },
     Unix(PathBuf),
     None,
 }
 
+/// VNC display sharing policy for `share=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum AllowExclusiveForceSharedIgnore {
     AllowExclusive,
@@ -32,6 +35,10 @@ impl ToArg for AllowExclusiveForceSharedIgnore {
         }
     }
 }
+/// Configure the QEMU VNC server.
+///
+/// `Display` and `FromStr` round-trip the canonical comma-separated
+/// `-vnc` argument forms that this crate models.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VNC {
     display: VNCDisplay,
@@ -58,7 +65,7 @@ pub struct VNC {
     /// If no TLS credentials are provided, the websocket connection
     /// runs in unencrypted mode. If TLS credentials are provided, the
     /// websocket connection requires encrypted client connections.
-    websocket: Option<OnOff>,
+    websocket: Option<String>,
 
     /// Require that password based authentication is used for client
     /// connections.
@@ -191,8 +198,12 @@ impl ToCommand for VNC {
             VNCDisplay::To(l) => {
                 args.push(format!("to={}", l));
             }
-            VNCDisplay::Host(d) => {
-                args.push(format!("host={}", d));
+            VNCDisplay::Network { host, display } => {
+                if let Some(host) = host {
+                    args.push(format!("{}:{}", host, display));
+                } else {
+                    args.push(format!(":{}", display));
+                }
             }
             VNCDisplay::Unix(path) => {
                 args.push(format!("unix={}", path.display()));
@@ -206,7 +217,7 @@ impl ToCommand for VNC {
             args.push(format!("reverse={}", reverse.to_arg()));
         }
         if let Some(websocket) = &self.websocket {
-            args.push(format!("websocket={}", websocket.to_arg()));
+            args.push(format!("websocket={}", websocket));
         }
         if let Some(password) = &self.password {
             args.push(format!("password={}", password.to_arg()));
@@ -248,14 +259,70 @@ impl ToCommand for VNC {
             args.push(format!("power-control={}", power_control.to_arg()));
         }
 
-        args
+        vec![args.join(DELIM_COMMA)]
     }
 }
 
 impl FromStr for VNC {
-    type Err = ();
+    type Err = String;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split(DELIM_COMMA);
+        let display = parse_display(parts.next().ok_or_else(|| "empty -vnc argument".to_string())?)?;
+        let mut value = VNC::builder().display(display).build();
+
+        for part in parts {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid -vnc option: {part}"))?;
+            match key {
+                "reverse" => value.reverse = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid reverse value: {raw}"))?),
+                "websocket" => value.websocket = Some(raw.to_string()),
+                "password" => value.password = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid password value: {raw}"))?),
+                "password-secret" => value.password_secret = Some(raw.to_string()),
+                "tls-creds" => value.tls_creds = Some(raw.to_string()),
+                "tls-authz" => value.tls_authz = Some(raw.to_string()),
+                "sasl" => value.sasl = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid sasl value: {raw}"))?),
+                "sasl-authz" => value.sasl_authz = Some(raw.to_string()),
+                "acl" => value.acl = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid acl value: {raw}"))?),
+                "lossy" => value.lossy = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid lossy value: {raw}"))?),
+                "non-adaptive" => {
+                    value.non_adaptive = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid non-adaptive value: {raw}"))?)
+                }
+                "share" => value.share = Some(parse_share(raw)?),
+                "key-delay-ms" => value.key_delay_ms = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "audiodev" => value.audiodev = Some(raw.to_string()),
+                "power-control" => {
+                    value.power_control = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid power-control value: {raw}"))?)
+                }
+                other => return Err(format!("unsupported -vnc option: {other}")),
+            }
+        }
+        Ok(value)
+    }
+}
+
+fn parse_display(value: &str) -> Result<VNCDisplay, String> {
+    if let Some(limit) = value.strip_prefix("to=") {
+        return Ok(VNCDisplay::To(limit.parse::<usize>().map_err(|e| e.to_string())?));
+    }
+    if let Some(path) = value.strip_prefix("unix:") {
+        return Ok(VNCDisplay::Unix(PathBuf::from(path)));
+    }
+    if value == "none" {
+        return Ok(VNCDisplay::None);
+    }
+    if let Some((host, display)) = value.rsplit_once(':') {
+        let display = display.parse::<usize>().map_err(|e| e.to_string())?;
+        let host = if host.is_empty() { None } else { Some(host.to_string()) };
+        return Ok(VNCDisplay::Network { host, display });
+    }
+    Err(format!("unsupported vnc display: {value}"))
+}
+
+fn parse_share(value: &str) -> Result<AllowExclusiveForceSharedIgnore, String> {
+    match value {
+        "allow-exclusive" => Ok(AllowExclusiveForceSharedIgnore::AllowExclusive),
+        "force-shared" => Ok(AllowExclusiveForceSharedIgnore::ForceShared),
+        "ignore" => Ok(AllowExclusiveForceSharedIgnore::Ignore),
+        _ => Err(format!("invalid share value: {value}")),
     }
 }

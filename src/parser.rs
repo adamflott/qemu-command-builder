@@ -17,6 +17,7 @@ use crate::mon::{ARG_MON, Mon};
 use crate::msg::{ARG_MSG, Msg};
 use crate::name::{ARG_NAME, Name};
 use crate::netdev::{ARG_NETDEV, NetDev};
+use crate::numa::{ARG_NUMA, NUMA};
 use crate::parsers::{
     ARG_APPEND, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_CDROM, ARG_DAEMONIZE, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM, ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB, ARG_FULL_SCREEN, ARG_HDA,
     ARG_HDB, ARG_HDC, ARG_HDD, ARG_INITRD, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC, ARG_MTDBLOCK, ARG_NO_FD_BOOTCHK,
@@ -29,7 +30,9 @@ use crate::serial::{ARG_PARALLEL, ARG_SERIAL, SpecialDevice};
 use crate::shell_string::ShellString;
 use crate::smbios::{ARG_SMBIOS, Smbios};
 use crate::smp::{ARG_SMP, SMP};
+use crate::spice::{ARG_SPICE, Spice};
 use crate::vga::{ARG_VGA, VGA};
+use crate::vnc::{ARG_VNC, VNC};
 use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -171,14 +174,17 @@ impl FromStr for QemuInstanceForX86_64 {
                 ARG_PRECONFIG => q.preconfig = Some(true),
                 ARG_MON => ffs!(tokens, ARG_MON, Mon, q.mon),
                 ARG_NETDEV => ffs!(tokens, ARG_NETDEV, NetDev, q.netdev),
+                ARG_NUMA => ffs!(tokens, ARG_NUMA, NUMA, q.numa),
                 ARG_CHARDEV => ffs!(tokens, ARG_CHARDEV, CharDev, q.chardev),
                 ARG_SERIAL => ff!(tokens, ARG_SERIAL, SpecialDevice, q.serial),
                 ARG_PARALLEL => ffs!(tokens, ARG_PARALLEL, SpecialDevice, q.parallel),
                 ARG_SMBIOS => ffs!(tokens, ARG_SMBIOS, Smbios, q.smbios),
                 ARG_SMP => ff!(tokens, ARG_SMP, SMP, q.smp),
+                ARG_SPICE => ff!(tokens, ARG_SPICE, Spice, q.spice),
                 ARG_SNAPSHOT => q.snapshot = Some(true),
                 ARG_USB => q.usb = Some(true),
                 ARG_VGA => ff!(tokens, ARG_VGA, VGA, q.vga),
+                ARG_VNC => ff!(tokens, ARG_VNC, VNC, q.vnc),
                 ARG_WIN2K_HACK => q.win2k_hack = Some(true),
                 ARG_XEN_ATTACH => q.xen_attach = Some(true),
                 ARG_XEN_DOMID_RESTRICT => q.xen_domid_restrict = Some(true),
