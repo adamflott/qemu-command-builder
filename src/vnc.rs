@@ -1,4 +1,5 @@
 use crate::common::OnOff;
+use crate::parsers::ARG_VNC;
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
@@ -6,8 +7,6 @@ use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::path::PathBuf;
 use std::str::FromStr;
-
-pub(crate) const ARG_VNC: &str = "-vnc";
 
 /// A VNC server endpoint for `-vnc`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]

@@ -1,3 +1,4 @@
+use crate::parsers::ARG_AUDIODEV;
 use std::str::FromStr;
 
 use bon::Builder;
@@ -5,8 +6,6 @@ use proptest_derive::Arbitrary;
 
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToCommand;
-
-pub(crate) const ARG_AUDIODEV: &str = "-audiodev";
 
 /// A generic `prop` or `prop=value` entry for `-audiodev`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]

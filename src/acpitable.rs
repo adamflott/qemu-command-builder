@@ -1,3 +1,4 @@
+use crate::parsers::ARG_ACPITABLE;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -8,8 +9,6 @@ use crate::shell_string::ShellString;
 use crate::to_command::ToCommand;
 use bon::Builder;
 use proptest_derive::Arbitrary;
-
-pub(crate) const ARG_ACPITABLE: &str = "-acpitable";
 
 const KEY_SIG: &str = "sig=";
 const KEY_REV: &str = "rev=";

@@ -1,11 +1,10 @@
+use crate::parsers::ARG_NUMA;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
 
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToCommand;
-
-pub(crate) const ARG_NUMA: &str = "-numa";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct NUMANodeMem {

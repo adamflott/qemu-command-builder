@@ -1,3 +1,4 @@
+use crate::parsers::ARG_CHARDEV;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -7,8 +8,6 @@ use proptest_derive::Arbitrary;
 use crate::common::OnOff;
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_CHARDEV: &str = "-chardev";
 
 /// A QEMU `-chardev` backend.
 ///

@@ -1,3 +1,4 @@
+use crate::parsers::ARG_DRIVE;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -10,8 +11,6 @@ use crate::qao;
 use crate::shell_path::ShellPath;
 use crate::shell_string::ShellString;
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_DRIVE: &str = "-drive";
 
 const KEY_FILE: &str = "file=";
 const KEY_INTERFACE: &str = "if=";

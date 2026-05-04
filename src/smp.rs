@@ -1,3 +1,4 @@
+use crate::parsers::ARG_SMP;
 use crate::parsers::DELIM_COMMA;
 use crate::shell_string::ShellStringError;
 use crate::to_command::ToCommand;
@@ -9,8 +10,6 @@ use winnow::ascii::{dec_uint, digit1};
 use winnow::combinator::opt;
 use winnow::token::literal;
 use winnow::{ModalResult, Parser};
-
-pub(crate) const ARG_SMP: &str = "-smp";
 
 const KEY_MAXCPUS: &str = "maxcpus=";
 const KEY_DRAWERS: &str = "drawers=";

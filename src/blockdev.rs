@@ -1,3 +1,4 @@
+use crate::parsers::ARG_BLOCKDEV;
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
@@ -6,8 +7,6 @@ use proptest_derive::Arbitrary;
 
 use crate::common::{IgnoreUnmap, OnOff, OnOffUnmap};
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_BLOCKDEV: &str = "-blockdev";
 
 /// Define a new block driver node. Some of the options apply to all
 /// block drivers, other options are only accepted for a specific block

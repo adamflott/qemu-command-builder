@@ -1,3 +1,4 @@
+use crate::parsers::ARG_DISPLAY;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -5,8 +6,6 @@ use proptest_derive::Arbitrary;
 
 use crate::common::{OnOff, YesNo};
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_DISPLAY: &str = "-display";
 
 /// QEMU `-display` backend selection.
 ///

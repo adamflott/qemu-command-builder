@@ -1,3 +1,4 @@
+use crate::parsers::ARG_DEVICE;
 use crate::parsers::DELIM_COMMA;
 use crate::shell_string::ShellString;
 use crate::to_command::ToCommand;
@@ -5,8 +6,6 @@ use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::collections::BTreeMap;
 use std::str::FromStr;
-
-pub(crate) const ARG_DEVICE: &str = "-device";
 
 /// A generic `-device` property rendered after the device driver name.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]

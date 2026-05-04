@@ -1,56 +1,57 @@
-use crate::accel::{ARG_ACCEL, Accel};
-use crate::acpitable::{ARG_ACPITABLE, AcpiTable};
-use crate::action::{ARG_ACTION, Action};
-use crate::addfs::{ARG_ADD_FD, AddFd};
+use crate::accel::Accel;
+use crate::acpitable::AcpiTable;
+use crate::action::Action;
+use crate::addfs::AddFd;
 use crate::audio::Audio;
-use crate::audiodev::{ARG_AUDIODEV, AudioDev};
-use crate::blockdev::{ARG_BLOCKDEV, BlockDev};
-use crate::boot::{ARG_BOOT, Boot};
-use crate::chardev::{ARG_CHARDEV, CharDev};
-use crate::compact::{ARG_COMPAT, Compact};
-use crate::cpu::{ARG_CPU, CpuX86};
-use crate::device::{ARG_DEVICE, Device};
-use crate::display::{ARG_DISPLAY, QemuDisplay};
-use crate::drive::{ARG_DRIVE, Drive};
+use crate::audiodev::AudioDev;
+use crate::blockdev::BlockDev;
+use crate::boot::Boot;
+use crate::chardev::CharDev;
+use crate::compact::Compact;
+use crate::cpu::CpuX86;
+use crate::device::Device;
+use crate::display::QemuDisplay;
+use crate::drive::Drive;
 use crate::fsdev::FsDev;
 use crate::fw_cfg::FwCfg;
 use crate::global::Global;
 use crate::icount::Icount;
 use crate::incoming::Incoming;
 use crate::iscsi::Iscsi;
-use crate::machine::{ARG_MACHINE, MachineX86_64};
-use crate::memory::{ARG_MEMORY, Memory};
-use crate::mon::{ARG_MON, Mon};
-use crate::msg::{ARG_MSG, Msg};
-use crate::name::{ARG_NAME, Name};
-use crate::netdev::{ARG_NETDEV, NetDev};
-use crate::numa::{ARG_NUMA, NUMA};
+use crate::machine::MachineX86_64;
+use crate::memory::Memory;
+use crate::mon::Mon;
+use crate::msg::Msg;
+use crate::name::Name;
+use crate::netdev::NetDev;
+use crate::numa::NUMA;
 use crate::object::Object;
 use crate::overcommit::Overcommit;
 use crate::parsers::{
-    ARG_APPEND, ARG_AUDIO, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_CDROM, ARG_CHROOT, ARG_DAEMONIZE, ARG_DEBUGCON, ARG_DFILTER, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM,
-    ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB, ARG_FSDEV, ARG_FULL_SCREEN, ARG_FW_CFG, ARG_GDB, ARG_GLOBAL, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_ICOUNT, ARG_INCOMING, ARG_INITRD, ARG_ISCSI,
-    ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC, ARG_MONITOR, ARG_MTDBLOCK, ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT, ARG_NO_SHUTDOWN,
-    ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_OBJECT, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_OVERCOMMIT, ARG_PERFMAP, ARG_PFLASH, ARG_PIDFILE, ARG_PLUGIN, ARG_PRECONFIG, ARG_QMP,
-    ARG_QMP_PRETTY, ARG_READCONFIG, ARG_RUN_WITH, ARG_RUNAS, ARG_SANDBOX, ARG_SD, ARG_SEED, ARG_SET, ARG_SHIM, ARG_SNAPSHOT, ARG_TPMDEV, ARG_TRACE, ARG_USB, ARG_USBDEVICE, ARG_UUID, ARG_VIRTFS,
-    ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID_RESTRICT, ARG_XEN_ID,
+    ARG_ACCEL, ARG_ACPITABLE, ARG_ACTION, ARG_ADD_FD, ARG_APPEND, ARG_AUDIO, ARG_AUDIODEV, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_BLOCKDEV, ARG_BOOT, ARG_CDROM, ARG_CHARDEV, ARG_CHROOT, ARG_COMPAT,
+    ARG_CPU, ARG_DAEMONIZE, ARG_DEBUGCON, ARG_DEVICE, ARG_DFILTER, ARG_DISPLAY, ARG_DRIVE, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM, ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB, ARG_FSDEV,
+    ARG_FULL_SCREEN, ARG_FW_CFG, ARG_GDB, ARG_GLOBAL, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_ICOUNT, ARG_INCOMING, ARG_INITRD, ARG_ISCSI, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D,
+    ARG_LITTLE_S, ARG_LOADVM, ARG_MACHINE, ARG_MEM_PATH, ARG_MEM_PREALLOC, ARG_MEMORY, ARG_MON, ARG_MONITOR, ARG_MSG, ARG_MTDBLOCK, ARG_NAME, ARG_NETDEV, ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT,
+    ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_NUMA, ARG_OBJECT, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_OVERCOMMIT, ARG_PARALLEL, ARG_PERFMAP, ARG_PFLASH, ARG_PIDFILE,
+    ARG_PLUGIN, ARG_PRECONFIG, ARG_QMP, ARG_QMP_PRETTY, ARG_READCONFIG, ARG_RTC, ARG_RUN_WITH, ARG_RUNAS, ARG_SANDBOX, ARG_SD, ARG_SEED, ARG_SERIAL, ARG_SET, ARG_SHIM, ARG_SMBIOS, ARG_SMP,
+    ARG_SNAPSHOT, ARG_SPICE, ARG_TPMDEV, ARG_TRACE, ARG_USB, ARG_USBDEVICE, ARG_UUID, ARG_VGA, ARG_VIRTFS, ARG_VNC, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID_RESTRICT, ARG_XEN_ID,
 };
 use crate::plugin::Plugin;
-use crate::rtc::{ARG_RTC, Rtc};
+use crate::rtc::Rtc;
 use crate::runwith::RunWith;
 use crate::sandbox::Sandbox;
-use crate::serial::{ARG_PARALLEL, ARG_SERIAL, SpecialDevice};
+use crate::serial::SpecialDevice;
 use crate::set::Set;
 use crate::shell_string::ShellString;
-use crate::smbios::{ARG_SMBIOS, Smbios};
-use crate::smp::{ARG_SMP, SMP};
-use crate::spice::{ARG_SPICE, Spice};
+use crate::smbios::Smbios;
+use crate::smp::SMP;
+use crate::spice::Spice;
 use crate::tpmdev::TpmDev;
 use crate::trace::Trace;
 use crate::usb::USBDevice;
-use crate::vga::{ARG_VGA, VGA};
+use crate::vga::VGA;
 use crate::virtfs::Virtfs;
-use crate::vnc::{ARG_VNC, VNC};
+use crate::vnc::VNC;
 use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QUuid, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
 use std::path::PathBuf;
 use std::str::FromStr;

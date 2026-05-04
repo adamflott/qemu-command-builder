@@ -1,3 +1,4 @@
+use crate::parsers::ARG_RTC;
 use crate::parsers::DELIM_COMMA;
 use crate::shell_string::ShellStringError;
 use crate::to_command::{ToArg, ToCommand};
@@ -8,8 +9,6 @@ use chrono::NaiveDateTime;
 use proptest_derive::Arbitrary;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-
-pub(crate) const ARG_RTC: &str = "-rtc";
 
 const KEY_CLOCK: &str = "clock=";
 const KEY_DRIFT: &str = "driftfix=";

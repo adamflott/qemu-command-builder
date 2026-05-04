@@ -1,3 +1,4 @@
+use crate::parsers::ARG_MSG;
 use std::str::FromStr;
 
 use crate::common::OnOff;
@@ -7,8 +8,6 @@ use crate::shell_string::ShellStringError;
 use crate::to_command::ToCommand;
 use bon::Builder;
 use proptest_derive::Arbitrary;
-
-pub(crate) const ARG_MSG: &str = "-msg";
 
 const KEY_TIMESTAMP: &str = "timestamp=";
 const KEY_GUEST_NAME: &str = "guest-name=";

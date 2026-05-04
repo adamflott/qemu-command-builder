@@ -1,3 +1,4 @@
+use crate::parsers::ARG_MON;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -9,8 +10,6 @@ use crate::parsers::DELIM_COMMA;
 use crate::qao;
 use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_MON: &str = "-mon";
 
 const KEY_CHARDEV: &str = "chardev=";
 const KEY_ID: &str = "id=";

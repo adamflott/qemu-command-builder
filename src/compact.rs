@@ -1,3 +1,4 @@
+use crate::parsers::ARG_COMPAT;
 use std::str::FromStr;
 
 use bon::Builder;
@@ -6,8 +7,6 @@ use proptest_derive::Arbitrary;
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
-
-pub(crate) const ARG_COMPAT: &str = "-compat";
 
 /// Input policy values for `-compat` compatibility knobs.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]

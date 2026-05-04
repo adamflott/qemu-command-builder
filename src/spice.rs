@@ -1,4 +1,5 @@
 use crate::common::{AutoNeverAlways, OnOff, OnOffDefaultOff, OnOffDefaultOn};
+use crate::parsers::ARG_SPICE;
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
@@ -6,8 +7,6 @@ use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::path::PathBuf;
 use std::str::FromStr;
-
-pub(crate) const ARG_SPICE: &str = "-spice";
 
 /// A SPICE channel name used by `tls-channel=` and `plaintext-channel=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]

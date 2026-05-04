@@ -6,9 +6,6 @@ use std::str::FromStr;
 use crate::common::OnOff;
 use crate::to_command::{ToArg, ToCommand};
 
-pub(crate) const ARG_SERIAL: &str = "-serial";
-pub(crate) const ARG_PARALLEL: &str = "-parallel";
-
 /// A QEMU special character device target used by options such as
 /// `-serial`, `-parallel`, `-monitor`, and `-qmp`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]

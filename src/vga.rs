@@ -1,9 +1,8 @@
+use crate::parsers::ARG_VGA;
 use crate::to_command::ToCommand;
 use proptest_derive::Arbitrary;
 use std::fmt::Display;
 use std::str::FromStr;
-
-pub(crate) const ARG_VGA: &str = "-vga";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum VGA {

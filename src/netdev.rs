@@ -1,5 +1,6 @@
 use crate::chardev::CharDev;
 use crate::common::OnOff;
+use crate::parsers::ARG_NETDEV;
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
@@ -9,8 +10,6 @@ use proptest_derive::Arbitrary;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::PathBuf;
 use std::str::FromStr;
-
-pub(crate) const ARG_NETDEV: &str = "-netdev";
 
 /// A QEMU `-netdev` backend.
 ///

@@ -1,3 +1,4 @@
+use crate::parsers::ARG_BOOT;
 use std::str::FromStr;
 
 use bon::Builder;
@@ -13,8 +14,6 @@ use crate::parsers::DELIM_COMMA;
 use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
 use crate::to_command::ToCommand;
 use crate::{pco0, ppo0, qao};
-
-pub(crate) const ARG_BOOT: &str = "-boot";
 
 const KEY_ORDER: &str = "order=";
 const KEY_ONCE: &str = "once=";

@@ -1,3 +1,4 @@
+use crate::parsers::ARG_CPU;
 use std::collections::{BTreeMap, BTreeSet};
 use std::str::FromStr;
 
@@ -14,8 +15,6 @@ use crate::cpu_type::{CpuTypeAarch64, CpuTypeX86_64};
 use crate::parsers::{DELIM_COMMA, ascii_plus_more};
 use crate::shell_string::ShellStringError;
 use crate::{ToArg, ToCommand, qao};
-
-pub(crate) const ARG_CPU: &str = "-cpu";
 
 const KEY_MIGRATABLE: &str = "migratable=";
 

@@ -1,3 +1,4 @@
+use crate::parsers::ARG_ACTION;
 use std::str::FromStr;
 
 use bon::Builder;
@@ -5,8 +6,6 @@ use proptest_derive::Arbitrary;
 
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_ACTION: &str = "-action";
 
 const KEY_REBOOT: &str = "reboot=";
 const KEY_SHUTDOWN: &str = "shutdown=";

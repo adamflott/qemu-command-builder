@@ -1,3 +1,4 @@
+use crate::parsers::ARG_MACHINE;
 use std::str::FromStr;
 
 use bon::Builder;
@@ -9,8 +10,6 @@ use crate::parsers::{DELIM_COLON, DELIM_COMMA};
 use crate::qao;
 use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_MACHINE: &str = "-machine";
 
 const KEY_ACCEL: &str = "accel=";
 const KEY_TYPE: &str = "type=";

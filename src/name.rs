@@ -1,3 +1,4 @@
+use crate::parsers::ARG_NAME;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
@@ -7,8 +8,6 @@ use crate::parsers::DELIM_COMMA;
 use crate::qao;
 use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::ToCommand;
-
-pub(crate) const ARG_NAME: &str = "-name";
 
 const KEY_PROCESS: &str = "process=";
 const KEY_DEBUG_THREADS: &str = "debug-threads=";

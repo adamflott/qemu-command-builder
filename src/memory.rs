@@ -1,3 +1,4 @@
+use crate::parsers::ARG_MEMORY;
 use crate::parsers::DELIM_COMMA;
 use crate::qao;
 use crate::shell_string::ShellStringError;
@@ -6,8 +7,6 @@ use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::fmt::Display;
 use std::str::FromStr;
-
-pub(crate) const ARG_MEMORY: &str = "-m";
 
 const KEY_SIZE: &str = "size=";
 const KEY_SLOTS: &str = "slots=";

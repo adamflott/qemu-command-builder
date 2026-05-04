@@ -1,3 +1,4 @@
+use crate::parsers::ARG_SMBIOS;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::path::PathBuf;
@@ -6,8 +7,6 @@ use std::str::FromStr;
 use crate::common::OnOff;
 use crate::parsers::DELIM_COMMA;
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_SMBIOS: &str = "-smbios";
 
 /// Load SMBIOS entry from binary file.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]

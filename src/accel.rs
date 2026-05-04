@@ -1,3 +1,4 @@
+use crate::parsers::ARG_ACCEL;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::fmt::{Display, Formatter};
@@ -8,8 +9,6 @@ use crate::parsers::DELIM_COMMA;
 use crate::qao;
 use crate::shell_path::ShellPath;
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_ACCEL: &str = "-accel";
 
 const KEY_IGD_PASSTHRU: &str = "igd-passthru=";
 const KEY_KERNEL_IRQCHIP: &str = "kernel-irqchip=";
