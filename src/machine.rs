@@ -391,14 +391,107 @@ pub struct MachineAarch64 {
     pub m: Machine<MachineTypeAarch64>,
 }
 impl ToCommand for MachineAarch64 {
+    fn command(&self) -> String {
+        ARG_MACHINE.to_string()
+    }
+
     fn to_args(&self) -> Vec<String> {
-        todo!()
+        let mut args = vec![self.m.machine_type.to_arg().to_string()];
+
+        if let Some(accels) = &self.m.accel {
+            let accel_strs: Vec<&str> = accels.iter().map(|a| a.to_arg()).collect();
+            args.push(format!("{}{}", KEY_ACCEL, accel_strs.join(":")));
+        }
+        qao!(&self.m.dump_guest_core, args, KEY_DUMP_GUEST_CORE);
+        qao!(&self.m.mem_merge, args, KEY_MEM_MERGE);
+        qao!(&self.m.nvdimm, args, KEY_NVDIMM);
+        if let Some(memory_backend) = &self.m.memory_backend {
+            args.push(format!("{}{}", KEY_MEMORY_BACKEND, memory_backend.as_ref()));
+        }
+
+        vec![args.join(DELIM_COMMA)]
     }
 }
 impl FromStr for MachineAarch64 {
-    type Err = ();
+    type Err = ShellStringError;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        parse_machine_aarch64(s).map_err(ShellStringError::new)
     }
+}
+
+fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
+    let mut parts = s.split(DELIM_COMMA);
+    let first = parts.next().ok_or_else(|| "empty machine argument".to_string())?;
+
+    let mut machine_type = None;
+    let mut accel = None;
+    let mut dump_guest_core = None;
+    let mut mem_merge = None;
+    let mut nvdimm = None;
+    let mut memory_backend = None;
+
+    if let Some(value) = first.strip_prefix(KEY_TYPE) {
+        machine_type = Some(parse_machine_type_aarch64(value)?);
+    } else if first.contains('=') {
+        parse_machine_aarch64_option(first, &mut machine_type, &mut accel, &mut dump_guest_core, &mut mem_merge, &mut nvdimm, &mut memory_backend)?;
+    } else {
+        machine_type = Some(parse_machine_type_aarch64(first)?);
+    }
+
+    for part in parts {
+        parse_machine_aarch64_option(part, &mut machine_type, &mut accel, &mut dump_guest_core, &mut mem_merge, &mut nvdimm, &mut memory_backend)?;
+    }
+
+    let machine_type = machine_type.ok_or_else(|| "machine type is required".to_string())?;
+
+    Ok(MachineAarch64 {
+        m: Machine {
+            machine_type,
+            accel,
+            vmport: None,
+            dump_guest_core,
+            mem_merge,
+            aes_key_wrap: None,
+            dea_key_wrap: None,
+            nvdimm,
+            memory_encryption: None,
+            hmat: None,
+            aux_ram_share: None,
+            memory_backend,
+        },
+    })
+}
+
+fn parse_machine_aarch64_option(
+    part: &str,
+    machine_type: &mut Option<MachineTypeAarch64>,
+    accel: &mut Option<Vec<AccelType>>,
+    dump_guest_core: &mut Option<OnOffDefaultOn>,
+    mem_merge: &mut Option<OnOffDefaultOn>,
+    nvdimm: &mut Option<OnOffDefaultOff>,
+    memory_backend: &mut Option<ShellString>,
+) -> Result<(), String> {
+    let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid machine option: {part}"))?;
+    match key {
+        "type" => *machine_type = Some(parse_machine_type_aarch64(value)?),
+        "accel" => {
+            let accels = value
+                .split(DELIM_COLON)
+                .map(|v| v.parse::<AccelType>().map_err(|_| format!("invalid accel value: {v}")))
+                .collect::<Result<Vec<_>, _>>()?;
+            *accel = Some(accels);
+        }
+        "dump-guest-core" => *dump_guest_core = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid dump-guest-core value: {value}"))?),
+        "mem-merge" => *mem_merge = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid mem-merge value: {value}"))?),
+        "nvdimm" => *nvdimm = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid nvdimm value: {value}"))?),
+        "memory-backend" => *memory_backend = Some(ShellString::new(value)),
+        other => return Err(format!("unsupported aarch64 machine option: {other}")),
+    }
+
+    Ok(())
+}
+
+fn parse_machine_type_aarch64(value: &str) -> Result<MachineTypeAarch64, String> {
+    value.parse::<MachineTypeAarch64>().map_err(|_| format!("{value} is not a supported aarch64 machine type"))
 }

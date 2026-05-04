@@ -70,7 +70,7 @@ fn drive_parses_blockdev_style_cache_and_read_only_options() {
 
     assert_eq!(expected, parsed);
     assert_eq!(
-        "file=/devr/mapper/vg1-1,if=none,media=disk,cache.direct=on,aio=native,format=raw,id=drive-scsi-disk-0,readonly=off,auto-read-only=off",
+        "file=/dev/mapper/vg1-1,if=none,media=disk,cache.direct=on,aio=native,format=raw,id=drive-scsi-disk-0,readonly=off,auto-read-only=off",
         parsed.to_args()[0]
     );
     assert_eq!(parsed, Drive::from_str(&parsed.to_args()[0]).unwrap());
