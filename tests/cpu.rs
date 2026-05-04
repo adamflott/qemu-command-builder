@@ -31,6 +31,18 @@ mod test {
     }
 
     #[test]
+    fn cpu_parses_property_style_feature_states() {
+        let parsed = CpuX86::from_str("host,migratable=yes,-vmx,-svm,invpcid=off").unwrap();
+
+        let mut expected = CpuX86::new(CpuTypeX86_64::Host);
+        expected.migratable(YesNo::Yes);
+        expected.flags(BTreeSet::from([(CPUFlag::Vmx, OnOff::Off), (CPUFlag::Svm, OnOff::Off), (CPUFlag::Invpcid, OnOff::Off)]));
+
+        assert_eq!(parsed, expected);
+        assert_eq!(parsed.to_command(), vec!["-cpu".to_string(), "host,migratable=yes,-invpcid,-svm,-vmx".to_string()]);
+    }
+
+    #[test]
     fn cpu_parses_properties_and_flags_in_any_order_after_model() {
         let parsed = CpuX86::from_str("base,vmx,migratable=no,-3dnow").unwrap();
 

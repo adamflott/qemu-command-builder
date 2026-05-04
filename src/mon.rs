@@ -13,6 +13,7 @@ use crate::to_command::{ToArg, ToCommand};
 pub(crate) const ARG_MON: &str = "-mon";
 
 const KEY_CHARDEV: &str = "chardev=";
+const KEY_ID: &str = "id=";
 const KEY_MODE: &str = "mode=";
 const KEY_PRETTY: &str = "pretty=";
 
@@ -59,6 +60,9 @@ pub struct Mon {
     /// The backing chardev id or name.
     #[builder(into)]
     chardev: ShellString,
+    /// The monitor id.
+    #[builder(into)]
+    id: Option<ShellString>,
     /// The monitor protocol mode.
     mode: Option<ReadlineControl>,
     /// QMP pretty-printing toggle.
@@ -72,6 +76,7 @@ impl ToCommand for Mon {
     fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
         args.push(format!("{}{}", KEY_CHARDEV, self.chardev.as_ref()));
+        qao!(&self.id, args, KEY_ID);
         qao!(&self.mode, args, KEY_MODE);
         qao!(&self.pretty, args, KEY_PRETTY);
         vec![args.join(DELIM_COMMA)]
@@ -99,6 +104,7 @@ fn parse_mon(s: &str) -> Result<Mon, String> {
     };
 
     let mut mode = None;
+    let mut id = None;
     let mut pretty = None;
 
     for part in parts {
@@ -110,6 +116,9 @@ fn parse_mon(s: &str) -> Result<Mon, String> {
         let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid monitor option: {part}"))?;
         match key {
             "chardev" => return Err("chardev= is only valid as the first -mon component".to_string()),
+            "id" => {
+                id = Some(ShellString::new(value));
+            }
             "mode" => {
                 mode = Some(value.parse::<ReadlineControl>().map_err(|_| format!("invalid mode value: {value}"))?);
             }
@@ -120,5 +129,5 @@ fn parse_mon(s: &str) -> Result<Mon, String> {
         }
     }
 
-    Ok(Mon { chardev, mode, pretty })
+    Ok(Mon { chardev, id, mode, pretty })
 }

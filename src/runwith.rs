@@ -1,5 +1,5 @@
 use crate::common::OnOff;
-use crate::parsers::{DELIM_COLON, DELIM_COMMA};
+use crate::parsers::{ARG_RUN_WITH, DELIM_COLON, DELIM_COMMA};
 use crate::shell_path::{ShellPath, shell_path_until_comma};
 use crate::shell_string::{ShellString, ShellStringError, shell_string_until_comma};
 use crate::to_command::ToCommand;
@@ -12,8 +12,6 @@ use winnow::ascii::{alphanumeric1, dec_uint};
 use winnow::combinator::{alt, opt};
 use winnow::prelude::*;
 use winnow::token::literal;
-
-pub(crate) const ARG_RUN_WITH: &str = "-run-with";
 
 const KEY_ASYNC_TEARDOWN: &str = "async-teardown=";
 const KEY_CHROOT: &str = "chroot=";

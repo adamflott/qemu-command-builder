@@ -13,6 +13,21 @@ fn mon_displays_canonical_qemu_form() {
 }
 
 #[test]
+fn mon_parses_chardev_id_and_mode() {
+    let parsed = Mon::from_str("chardev=charmonitor,id=monitor,mode=control").unwrap();
+
+    let expected = Mon::builder()
+        .chardev(ShellString::from("charmonitor"))
+        .id(ShellString::from("monitor"))
+        .mode(ReadlineControl::Control)
+        .build();
+
+    assert_eq!(expected, parsed);
+    assert_eq!("chardev=charmonitor,id=monitor,mode=control", parsed.to_args()[0]);
+    assert_eq!(parsed, Mon::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
 fn mon_accepts_bare_chardev_name() {
     let parsed = Mon::from_str("mon0,mode=readline").unwrap();
 

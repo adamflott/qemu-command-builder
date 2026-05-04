@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::chardev::{CharDev, CharHub, CharNull, CharPipe, CharSocket, CharSocketTcp, CharStdio};
+use qemu_command_builder::chardev::{CharDev, CharHub, CharNull, CharPipe, CharSocket, CharSocketTcp, CharSocketUds, CharStdio};
 use qemu_command_builder::common::OnOff;
 use qemu_command_builder::to_command::ToCommand;
 use std::path::PathBuf;
@@ -21,6 +21,28 @@ fn chardev_round_trips_socket_tcp() {
 
     assert_eq!("socket,id=mon0,host=127.0.0.1,port=4444,server=on,wait=off", rendered);
     assert_eq!(chardev, CharDev::from_str(&rendered).unwrap());
+}
+
+#[test]
+fn chardev_socket_accepts_bare_server_nowait() {
+    let parsed = CharDev::from_str("socket,id=charmonitor,path=/vms/vm1/run/qemu.monitor,server,nowait,logfile=/vms/vm1/run/qemu_mon.log,logappend=off").unwrap();
+
+    let expected = CharDev::Socket(CharSocket::Uds(
+        CharSocketUds::builder()
+            .id("charmonitor")
+            .path(PathBuf::from("/vms/vm1/run/qemu.monitor"))
+            .server(OnOff::On)
+            .wait(OnOff::Off)
+            .logfile(PathBuf::from("/vms/vm1/run/qemu_mon.log"))
+            .logappend(OnOff::Off)
+            .build(),
+    ));
+
+    assert_eq!(expected, parsed);
+    assert_eq!(
+        "socket,id=charmonitor,path=/vms/vm1/run/qemu.monitor,server=on,wait=off,logfile=/vms/vm1/run/qemu_mon.log,logappend=off",
+        parsed.to_args()[0]
+    );
 }
 
 #[test]

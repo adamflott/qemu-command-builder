@@ -21,9 +21,12 @@ const KEY_INDEX: &str = "index=";
 const KEY_MEDIA: &str = "media=";
 const KEY_SNAPSHOT: &str = "snapshot=";
 const KEY_CACHE: &str = "cache=";
+const KEY_CACHE_DIRECT: &str = "cache.direct=";
 const KEY_ID: &str = "id=";
 const KEY_AIO: &str = "aio=";
 const KEY_FORMAT: &str = "format=";
+const KEY_ENCRYPT_FORMAT: &str = "encrypt.format=";
+const KEY_ENCRYPT_KEY_SECRET: &str = "encrypt.key-secret=";
 const KEY_RERROR: &str = "rerror=";
 const KEY_WERROR: &str = "werror=";
 const KEY_COPY_ON_READ: &str = "copy-on-read=";
@@ -41,8 +44,15 @@ const KEY_IOPS_RD_MAX: &str = "iops_rd_max=";
 const KEY_IOPS_WR_MAX: &str = "iops_wr_max=";
 const KEY_IOPS_SIZE: &str = "iops_size=";
 const KEY_GROUP: &str = "group=";
+const KEY_THROTTLING_BPS_TOTAL: &str = "throttling.bps-total=";
+const KEY_THROTTLING_BPS_TOTAL_MAX: &str = "throttling.bps-total-max=";
+const KEY_THROTTLING_BPS_TOTAL_MAX_LENGTH: &str = "throttling.bps-total-max-length=";
+const KEY_THROTTLING_IOPS_TOTAL: &str = "throttling.iops-total=";
+const KEY_THROTTLING_IOPS_TOTAL_MAX: &str = "throttling.iops-total-max=";
+const KEY_THROTTLING_IOPS_TOTAL_MAX_LENGTH: &str = "throttling.iops-total-max-length=";
 const KEY_DISCARD: &str = "discard=";
 const KEY_READ_ONLY: &str = "readonly=";
+const KEY_AUTO_READ_ONLY: &str = "auto-read-only=";
 const KEY_DETECT_ZEROES: &str = "detect-zeroes=";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
@@ -321,6 +331,9 @@ pub struct Drive {
     /// The default mode is ``cache=writeback``.
     pub cache: Option<DriveCacheType>,
 
+    /// Avoid the host page cache when enabled.
+    pub cache_direct: Option<OnOff>,
+
     /// aio is "threads", "native", or "io_uring" and selects between pthread
     /// based disk I/O, native Linux AIO, or Linux io_uring API.
     pub aio: Option<DriveAIOType>,
@@ -329,6 +342,12 @@ pub struct Drive {
     /// format. Can be used to specify format=raw to avoid interpreting
     /// an untrusted format header.
     pub format: Option<ShellString>,
+
+    /// Encryption format passed through to the block layer.
+    pub encrypt_format: Option<ShellString>,
+
+    /// Secret object id used as the encryption key.
+    pub encrypt_key_secret: Option<ShellString>,
 
     /// Specify which action to take on write and read errors. Valid
     /// actions are: "ignore" (ignore the error and try to continue),
@@ -348,6 +367,9 @@ pub struct Drive {
     /// the default value ``readonly=off`` does not work and the
     /// option must be specified explicitly.
     pub read_only: Option<OnOff>,
+
+    /// Allow QEMU to fall back to read-only usage when requested access fails.
+    pub auto_read_only: Option<OnOff>,
 
     /// `copy-on-read=` is `on` or `off` and enables whether to copy read
     /// backing file sectors into the image file.
@@ -405,6 +427,13 @@ pub struct Drive {
     /// limits by using many small disks instead of a single larger
     /// disk.
     pub group: Option<ShellString>,
+
+    pub throttling_bps_total: Option<usize>,
+    pub throttling_bps_total_max: Option<usize>,
+    pub throttling_bps_total_max_length: Option<usize>,
+    pub throttling_iops_total: Option<usize>,
+    pub throttling_iops_total_max: Option<usize>,
+    pub throttling_iops_total_max_length: Option<usize>,
 }
 
 impl ToCommand for Drive {
@@ -423,12 +452,16 @@ impl ToCommand for Drive {
             || self.media.is_some()
             || self.snapshot.is_some()
             || self.cache.is_some()
+            || self.cache_direct.is_some()
             || self.id.is_some()
             || self.aio.is_some()
             || self.format.is_some()
+            || self.encrypt_format.is_some()
+            || self.encrypt_key_secret.is_some()
             || self.rerror.is_some()
             || self.werror.is_some()
             || self.copy_on_read.is_some()
+            || self.auto_read_only.is_some()
             || self.bps.is_some()
             || self.bps_rd.is_some()
             || self.bps_wr.is_some()
@@ -443,6 +476,12 @@ impl ToCommand for Drive {
             || self.iops_wr_max.is_some()
             || self.iops_size.is_some()
             || self.group.is_some()
+            || self.throttling_bps_total.is_some()
+            || self.throttling_bps_total_max.is_some()
+            || self.throttling_bps_total_max_length.is_some()
+            || self.throttling_iops_total.is_some()
+            || self.throttling_iops_total_max.is_some()
+            || self.throttling_iops_total_max_length.is_some()
     }
     fn to_args(&self) -> Vec<String> {
         let mut args = vec![];
@@ -459,9 +498,16 @@ impl ToCommand for Drive {
         qao!(&self.media, args, KEY_MEDIA);
         qao!(&self.snapshot, args, KEY_SNAPSHOT);
         qao!(&self.cache, args, KEY_CACHE);
+        qao!(&self.cache_direct, args, KEY_CACHE_DIRECT);
         qao!(&self.aio, args, KEY_AIO);
         if let Some(format) = &self.format {
             args.push(format!("{}{}", KEY_FORMAT, format.as_ref()));
+        }
+        if let Some(encrypt_format) = &self.encrypt_format {
+            args.push(format!("{}{}", KEY_ENCRYPT_FORMAT, encrypt_format.as_ref()));
+        }
+        if let Some(encrypt_key_secret) = &self.encrypt_key_secret {
+            args.push(format!("{}{}", KEY_ENCRYPT_KEY_SECRET, encrypt_key_secret.as_ref()));
         }
         qao!(&self.rerror, args, KEY_RERROR);
         qao!(&self.werror, args, KEY_WERROR);
@@ -469,6 +515,7 @@ impl ToCommand for Drive {
             args.push(format!("{}{}", KEY_ID, id.as_ref()));
         }
         qao!(&self.read_only, args, KEY_READ_ONLY);
+        qao!(&self.auto_read_only, args, KEY_AUTO_READ_ONLY);
         qao!(&self.copy_on_read, args, KEY_COPY_ON_READ);
         qao!(&self.discard, args, KEY_DISCARD);
         qao!(&self.detect_zeroes, args, KEY_DETECT_ZEROES);
@@ -488,6 +535,12 @@ impl ToCommand for Drive {
         if let Some(group) = &self.group {
             args.push(format!("{}{}", KEY_GROUP, group.as_ref()));
         }
+        qao!(&self.throttling_bps_total, args, KEY_THROTTLING_BPS_TOTAL);
+        qao!(&self.throttling_bps_total_max, args, KEY_THROTTLING_BPS_TOTAL_MAX);
+        qao!(&self.throttling_bps_total_max_length, args, KEY_THROTTLING_BPS_TOTAL_MAX_LENGTH);
+        qao!(&self.throttling_iops_total, args, KEY_THROTTLING_IOPS_TOTAL);
+        qao!(&self.throttling_iops_total_max, args, KEY_THROTTLING_IOPS_TOTAL_MAX);
+        qao!(&self.throttling_iops_total_max_length, args, KEY_THROTTLING_IOPS_TOTAL_MAX_LENGTH);
 
         vec![args.join(DELIM_COMMA)]
     }
@@ -510,12 +563,16 @@ impl FromStr for Drive {
                 "media" => drive.media = Some(value.parse::<DriveMedia>().map_err(|_| format!("invalid media value: {value}"))?),
                 "snapshot" => drive.snapshot = Some(value.parse::<OnOff>().map_err(|_| format!("invalid snapshot value: {value}"))?),
                 "cache" => drive.cache = Some(value.parse::<DriveCacheType>().map_err(|_| format!("invalid cache value: {value}"))?),
+                "cache.direct" => drive.cache_direct = Some(value.parse::<OnOff>().map_err(|_| format!("invalid cache.direct value: {value}"))?),
                 "aio" => drive.aio = Some(value.parse::<DriveAIOType>().map_err(|_| format!("invalid aio value: {value}"))?),
                 "format" => drive.format = Some(ShellString::from_str(value)?),
+                "encrypt.format" => drive.encrypt_format = Some(ShellString::from_str(value)?),
+                "encrypt.key-secret" => drive.encrypt_key_secret = Some(ShellString::from_str(value)?),
                 "rerror" => drive.rerror = Some(value.parse::<DriveErrorAction>().map_err(|_| format!("invalid rerror value: {value}"))?),
                 "werror" => drive.werror = Some(value.parse::<DriveErrorAction>().map_err(|_| format!("invalid werror value: {value}"))?),
                 "id" => drive.id = Some(ShellString::from_str(value)?),
                 "readonly" | "read-only" => drive.read_only = Some(value.parse::<OnOff>().map_err(|_| format!("invalid readonly value: {value}"))?),
+                "auto-read-only" => drive.auto_read_only = Some(value.parse::<OnOff>().map_err(|_| format!("invalid auto-read-only value: {value}"))?),
                 "copy-on-read" => drive.copy_on_read = Some(value.parse::<OnOff>().map_err(|_| format!("invalid copy-on-read value: {value}"))?),
                 "discard" => drive.discard = Some(value.parse::<IgnoreUnmap>().map_err(|_| format!("invalid discard value: {value}"))?),
                 "detect-zeroes" => drive.detect_zeroes = Some(value.parse::<OnOffUnmap>().map_err(|_| format!("invalid detect-zeroes value: {value}"))?),
@@ -533,6 +590,12 @@ impl FromStr for Drive {
                 "iops_wr_max" => drive.iops_wr_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
                 "iops_size" => drive.iops_size = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
                 "group" => drive.group = Some(ShellString::from_str(value)?),
+                "throttling.bps-total" => drive.throttling_bps_total = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "throttling.bps-total-max" => drive.throttling_bps_total_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "throttling.bps-total-max-length" => drive.throttling_bps_total_max_length = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "throttling.iops-total" => drive.throttling_iops_total = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "throttling.iops-total-max" => drive.throttling_iops_total_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "throttling.iops-total-max-length" => drive.throttling_iops_total_max_length = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
                 other => return Err(format!("unsupported drive option: {other}")),
             }
         }

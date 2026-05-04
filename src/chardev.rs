@@ -693,7 +693,23 @@ fn parse_socket_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
     let mut tight = None;
 
     for part in parts {
-        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev socket option: {part}"))?;
+        let Some((key, value)) = part.split_once('=') else {
+            match part {
+                "server" => {
+                    server = Some(OnOff::On);
+                    continue;
+                }
+                "nowait" => {
+                    wait = Some(OnOff::Off);
+                    continue;
+                }
+                "wait" => {
+                    wait = Some(OnOff::On);
+                    continue;
+                }
+                _ => return Err(format!("invalid chardev socket option: {part}")),
+            }
+        };
         match key {
             "id" => id = Some(value.to_string()),
             "host" => host = Some(value.to_string()),

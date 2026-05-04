@@ -120,6 +120,13 @@ fn cpu_flag(s: &mut &str) -> ModalResult<(CPUFlag, OnOff)> {
     ))
 }
 
+fn cpu_flag_property(s: &mut &str) -> ModalResult<(CPUFlag, OnOff)> {
+    let flag = cpu_flag_parser.parse_to::<CPUFlag>().parse_next(s)?;
+    let _ = literal("=").parse_next(s)?;
+    let state = alphanumeric1.parse_to::<OnOff>().parse_next(s)?;
+    Ok((flag, state))
+}
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum CpuX86Item {
     Migratable(YesNo),
@@ -127,7 +134,12 @@ enum CpuX86Item {
 }
 
 fn cpu_x86_item(s: &mut &str) -> ModalResult<CpuX86Item> {
-    alt((migratable_item.map(CpuX86Item::Migratable), cpu_flag.map(|(flag, state)| CpuX86Item::Flag(flag, state)))).parse_next(s)
+    alt((
+        migratable_item.map(CpuX86Item::Migratable),
+        cpu_flag_property.map(|(flag, state)| CpuX86Item::Flag(flag, state)),
+        cpu_flag.map(|(flag, state)| CpuX86Item::Flag(flag, state)),
+    ))
+    .parse_next(s)
 }
 
 fn cpu_x86_64(s: &mut &str) -> ModalResult<CpuX86> {

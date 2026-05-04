@@ -53,6 +53,44 @@ fn drive_accepts_legacy_read_only_and_copy_on_read_input() {
 }
 
 #[test]
+fn drive_parses_blockdev_style_cache_and_read_only_options() {
+    let parsed = Drive::from_str("file=/dev/mapper/vg1-1,if=none,media=disk,id=drive-scsi-disk-0,aio=native,cache.direct=on,format=raw,read-only=off,auto-read-only=off").unwrap();
+
+    let expected = Drive::builder()
+        .file(ShellPath::from("/dev/mapper/vg1-1"))
+        .interface(DriveInterface::None)
+        .media(DriveMedia::Disk)
+        .cache_direct(OnOff::On)
+        .aio(DriveAIOType::Native)
+        .format(ShellString::from("raw"))
+        .id(ShellString::from("drive-scsi-disk-0"))
+        .read_only(OnOff::Off)
+        .auto_read_only(OnOff::Off)
+        .build();
+
+    assert_eq!(expected, parsed);
+    assert_eq!(
+        "file=/devr/mapper/vg1-1,if=none,media=disk,cache.direct=on,aio=native,format=raw,id=drive-scsi-disk-0,readonly=off,auto-read-only=off",
+        parsed.to_args()[0]
+    );
+    assert_eq!(parsed, Drive::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
+fn drive_parses_rbd_encryption_and_throttling_options() {
+    let parsed = Drive::from_str(
+        r#"file=rbd:block-volumes/144349:id=bs-cluster1-labkrk2:auth_supported=cephx;none:mon_host=[2600\:3c1f\:2\:3\:31\:\:704];[2600\:3c1f\:2\:3\:31\:\:705];[2600\:3c1f\:2\:3\:31\:\:706];[2600\:3c1f\:2\:3\:31\:\:707];[2600\:3c1f\:2\:3\:31\:\:708]:rbd_cache=true:rbd_cache_size=32000000,encrypt.format=luks2,encrypt.key-secret=secret-144349,if=none,media=disk,id=test6,aio=native,cache=writeback,format=rbd,throttling.bps-total=367001600,throttling.iops-total-max=12000,throttling.iops-total=8000,throttling.iops-total-max-length=60,throttling.bps-total-max=550502400,throttling.bps-total-max-length=60,read-only=off,auto-read-only=off"#,
+    )
+    .unwrap();
+
+    assert_eq!(
+        r#"file=rbd:block-volumes/144349:id=bs-cluster1-labkrk2:auth_supported=cephx;none:mon_host=[2600\:3c1f\:2\:3\:31\:\:704];[2600\:3c1f\:2\:3\:31\:\:705];[2600\:3c1f\:2\:3\:31\:\:706];[2600\:3c1f\:2\:3\:31\:\:707];[2600\:3c1f\:2\:3\:31\:\:708]:rbd_cache=true:rbd_cache_size=32000000,if=none,media=disk,cache=writeback,aio=native,format=rbd,encrypt.format=luks2,encrypt.key-secret=secret-144349,id=test6,readonly=off,auto-read-only=off,throttling.bps-total=367001600,throttling.bps-total-max=550502400,throttling.bps-total-max-length=60,throttling.iops-total=8000,throttling.iops-total-max=12000,throttling.iops-total-max-length=60"#,
+        parsed.to_args()[0]
+    );
+    assert_eq!(parsed, Drive::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
 fn drive_round_trips_throttling_and_group_options() {
     let drive = Drive::builder()
         .file(ShellPath::from("/tmp/disk.img"))
