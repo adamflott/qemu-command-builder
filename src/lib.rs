@@ -227,6 +227,8 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub trace: Option<Trace>,
     pub plugin: Option<Plugin>,
     pub run_with: Option<RunWith>,
+    // compat w/ qemu 7.x+
+    pub chroot: Option<PathBuf>,
     pub msg: Option<Msg>,
     pub dump_vmstate: Option<PathBuf>,
     pub enable_sync_profile: Option<bool>,
@@ -648,6 +650,9 @@ where
         }
         if let Some(run_with) = &self.run_with {
             cmd.append(&mut run_with.to_command());
+        }
+        if let Some(chroot) = &self.chroot {
+            cmd.push(chroot.display().to_string());
         }
         if let Some(msg) = &self.msg {
             cmd.append(&mut msg.to_command());

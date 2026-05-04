@@ -15,6 +15,7 @@ pub(crate) const ARG_BIG_D: &str = "-D";
 pub(crate) const ARG_BIG_S: &str = "-S";
 pub(crate) const ARG_BIOS: &str = "-bios";
 pub(crate) const ARG_CDROM: &str = "-cdrom";
+pub(crate) const ARG_CHROOT: &str = "-chroot";
 pub(crate) const ARG_DAEMONIZE: &str = "-daemonize";
 pub(crate) const ARG_DEBUGCON: &str = "-debugcon";
 pub(crate) const ARG_DFILTER: &str = "-dfilter";
