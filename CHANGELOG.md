@@ -1,8 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [10.0.3-5] - 2026-05-04
+
+- Implement many more options (thanks to codex)
+- Parse a command line string into an instance than be manipulated and displayed as a runnable command
+- Add support for Aarch64 machine type
+- Add tons of tests
 
 ## [10.0.3-0] - 2025-08-20
 
