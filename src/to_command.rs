@@ -1,4 +1,3 @@
-use proptest::prelude::Arbitrary;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::str::FromStr;
@@ -12,7 +11,7 @@ fn shell_escape_arg(arg: &str) -> String {
     format!("'{}'", escaped)
 }
 
-pub trait ToCommand: Debug + Clone + Hash + Ord + PartialOrd + Eq + PartialEq + FromStr + Arbitrary {
+pub trait ToCommand: Debug + Clone + Hash + Ord + PartialOrd + Eq + PartialEq + FromStr {
     fn has_args(&self) -> bool {
         true
     }
