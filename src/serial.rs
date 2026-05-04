@@ -234,11 +234,7 @@ impl FromStr for SpecialDevice {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Some(rest) = s.strip_prefix("vc:") {
             let (w, h, is_pixel) = if let Some((w, h)) = rest.split_once('x') {
-                if let Some(h) = h.strip_suffix('C') {
-                    (w.trim_end_matches('C'), h, false)
-                } else {
-                    (w, h, true)
-                }
+                if let Some(h) = h.strip_suffix('C') { (w.trim_end_matches('C'), h, false) } else { (w, h, true) }
             } else {
                 return Err(format!("invalid vc geometry: {rest}"));
             };
@@ -283,14 +279,17 @@ impl FromStr for SpecialDevice {
                 _ => return Err(format!("invalid udp endpoint: {remote}")),
             };
             let src = if let Some(local) = local {
-                let (src_ip, src_port) = local
-                    .rsplit_once(':')
-                    .ok_or_else(|| format!("invalid udp source endpoint: {local}"))?;
+                let (src_ip, src_port) = local.rsplit_once(':').ok_or_else(|| format!("invalid udp source endpoint: {local}"))?;
                 (Some(src_ip.to_string()), Some(src_port.parse::<u16>().map_err(|e| e.to_string())?))
             } else {
                 (None, None)
             };
-            return Ok(Self::Udp(Udp { remote_host, remote_port, src_ip: src.0, src_port: src.1 }));
+            return Ok(Self::Udp(Udp {
+                remote_host,
+                remote_port,
+                src_ip: src.0,
+                src_port: src.1,
+            }));
         }
         if let Some(rest) = s.strip_prefix("tcp:") {
             let mut parts = rest.split(',');

@@ -284,16 +284,9 @@ impl FromStr for Spice {
                 "unix" => value.unix = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid unix value: {raw}"))?),
                 "password-secret" => value.password_secret = Some(raw.to_string()),
                 "sasl" => value.sasl = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid sasl value: {raw}"))?),
-                "disable-ticketing" => {
-                    value.disable_ticketing = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid disable-ticketing value: {raw}"))?)
-                }
-                "disable-copy-paste" => {
-                    value.disable_copy_paste = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid disable-copy-paste value: {raw}"))?)
-                }
-                "disable-agent-file-xfer" => {
-                    value.disable_agent_file_xfer =
-                        Some(raw.parse::<OnOff>().map_err(|_| format!("invalid disable-agent-file-xfer value: {raw}"))?)
-                }
+                "disable-ticketing" => value.disable_ticketing = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid disable-ticketing value: {raw}"))?),
+                "disable-copy-paste" => value.disable_copy_paste = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid disable-copy-paste value: {raw}"))?),
+                "disable-agent-file-xfer" => value.disable_agent_file_xfer = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid disable-agent-file-xfer value: {raw}"))?),
                 "tls-port" => value.tls_port = Some(raw.parse::<u16>().map_err(|e| e.to_string())?),
                 "x509-dir" => value.x509_dir = Some(PathBuf::from(raw)),
                 "x509-key-file" => value.x509_key_file = Some(PathBuf::from(raw)),
@@ -305,24 +298,12 @@ impl FromStr for Spice {
                 "tls-channel" => value.tls_channel = Some(parse_channel(raw)?),
                 "plaintext-channel" => value.plaintext_channel = Some(parse_channel(raw)?),
                 "image-compression" => value.image_compression = Some(parse_image_compression(raw)?),
-                "jpeg-wan-compression" => {
-                    value.jpeg_wan_compression = Some(parse_auto_never_always(raw)?)
-                }
-                "zlib-glz-wan-compression" => {
-                    value.zlib_glz_wan_compression = Some(parse_auto_never_always(raw)?)
-                }
+                "jpeg-wan-compression" => value.jpeg_wan_compression = Some(parse_auto_never_always(raw)?),
+                "zlib-glz-wan-compression" => value.zlib_glz_wan_compression = Some(parse_auto_never_always(raw)?),
                 "streaming-video" => value.streaming_video = Some(parse_off_all_filter(raw)?),
-                "agent-mouse" => {
-                    value.agent_mouse = Some(raw.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid agent-mouse value: {raw}"))?)
-                }
-                "playback-compression" => {
-                    value.playback_compression =
-                        Some(raw.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid playback-compression value: {raw}"))?)
-                }
-                "seamless-migration" => {
-                    value.seamless_migration =
-                        Some(raw.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid seamless-migration value: {raw}"))?)
-                }
+                "agent-mouse" => value.agent_mouse = Some(raw.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid agent-mouse value: {raw}"))?),
+                "playback-compression" => value.playback_compression = Some(raw.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid playback-compression value: {raw}"))?),
+                "seamless-migration" => value.seamless_migration = Some(raw.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid seamless-migration value: {raw}"))?),
                 "gl" => value.gl = Some(raw.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid gl value: {raw}"))?),
                 "rendernode" => value.rendernode = Some(PathBuf::from(raw)),
                 other => return Err(format!("unsupported -spice option: {other}")),

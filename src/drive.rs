@@ -6,10 +6,10 @@ use proptest_derive::Arbitrary;
 
 use crate::common::{IgnoreUnmap, OnOff, OnOffUnmap};
 use crate::parsers::DELIM_COMMA;
+use crate::qao;
 use crate::shell_path::ShellPath;
 use crate::shell_string::ShellString;
 use crate::to_command::{ToArg, ToCommand};
-use crate::qao;
 
 pub(crate) const ARG_DRIVE: &str = "-drive";
 
@@ -515,16 +515,10 @@ impl FromStr for Drive {
                 "rerror" => drive.rerror = Some(value.parse::<DriveErrorAction>().map_err(|_| format!("invalid rerror value: {value}"))?),
                 "werror" => drive.werror = Some(value.parse::<DriveErrorAction>().map_err(|_| format!("invalid werror value: {value}"))?),
                 "id" => drive.id = Some(ShellString::from_str(value)?),
-                "readonly" | "read-only" => {
-                    drive.read_only = Some(value.parse::<OnOff>().map_err(|_| format!("invalid readonly value: {value}"))?)
-                }
-                "copy-on-read"  => {
-                    drive.copy_on_read = Some(value.parse::<OnOff>().map_err(|_| format!("invalid copy-on-read value: {value}"))?)
-                }
+                "readonly" | "read-only" => drive.read_only = Some(value.parse::<OnOff>().map_err(|_| format!("invalid readonly value: {value}"))?),
+                "copy-on-read" => drive.copy_on_read = Some(value.parse::<OnOff>().map_err(|_| format!("invalid copy-on-read value: {value}"))?),
                 "discard" => drive.discard = Some(value.parse::<IgnoreUnmap>().map_err(|_| format!("invalid discard value: {value}"))?),
-                "detect-zeroes" => {
-                    drive.detect_zeroes = Some(value.parse::<OnOffUnmap>().map_err(|_| format!("invalid detect-zeroes value: {value}"))?)
-                }
+                "detect-zeroes" => drive.detect_zeroes = Some(value.parse::<OnOffUnmap>().map_err(|_| format!("invalid detect-zeroes value: {value}"))?),
                 "bps" => drive.bps = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
                 "bps_rd" => drive.bps_rd = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
                 "bps_wr" => drive.bps_wr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),

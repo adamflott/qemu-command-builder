@@ -16,18 +16,14 @@ fn fsdev_local_displays_single_canonical_argument() {
             .build(),
     );
 
-    assert_eq!(
-        "local,id=fs0,path=/exports/share,security_model=mapped-xattr,writeout=immediate,readonly=on",
-        fsdev.to_args()[0]
-    );
+    assert_eq!("local,id=fs0,path=/exports/share,security_model=mapped-xattr,writeout=immediate,readonly=on", fsdev.to_args()[0]);
 }
 
 #[test]
 fn fsdev_local_round_trips_throttling_options() {
-    let parsed = FsDev::from_str(
-        "local,id=fs0,path=/exports/share,security_model=passthrough,throttling.bps-total=1024,throttling.bps-read-max=2048,throttling.iops-total-max=99,throttling.iops-size=4096",
-    )
-    .unwrap();
+    let parsed =
+        FsDev::from_str("local,id=fs0,path=/exports/share,security_model=passthrough,throttling.bps-total=1024,throttling.bps-read-max=2048,throttling.iops-total-max=99,throttling.iops-size=4096")
+            .unwrap();
 
     assert_eq!(
         "local,id=fs0,path=/exports/share,security_model=passthrough,throttling.bps-total=1024,throttling.bps-read-max=2048,throttling.iops-total-max=99,throttling.iops-size=4096",

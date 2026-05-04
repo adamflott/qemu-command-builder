@@ -1,15 +1,19 @@
 use pretty_assertions::assert_eq;
 use qemu_command_builder::common::OnOff;
-use qemu_command_builder::netdev::{
-    Bridge, HostAndMaybePort, HostAndPort, Hubport, NetDev, Socket, SocketRegular, Tap, VhostVdpa,
-};
+use qemu_command_builder::netdev::{Bridge, HostAndMaybePort, HostAndPort, Hubport, NetDev, Socket, SocketRegular, Tap, VhostVdpa};
 use qemu_command_builder::to_command::ToCommand;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 #[test]
 fn netdev_bridge_uses_br_key_and_round_trips() {
-    let bridge = NetDev::Bridge(Bridge::builder().id("n1".to_string()).bridge("qemubr0".to_string()).helper("/path/to/qemu-bridge-helper".to_string()).build());
+    let bridge = NetDev::Bridge(
+        Bridge::builder()
+            .id("n1".to_string())
+            .bridge("qemubr0".to_string())
+            .helper("/path/to/qemu-bridge-helper".to_string())
+            .build(),
+    );
 
     let rendered = bridge.to_args()[0].clone();
     assert_eq!("bridge,id=n1,br=qemubr0,helper=/path/to/qemu-bridge-helper", rendered);

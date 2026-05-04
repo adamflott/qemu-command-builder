@@ -22,14 +22,7 @@ fn rtc_parses_mixed_order_and_date_only_base() {
 
 #[test]
 fn serial_special_devices_round_trip_network_forms() {
-    let tcp = SpecialDevice::Tcp(
-        SerialTcp::builder()
-            .host("127.0.0.1".to_string())
-            .port(4444)
-            .server(OnOff::On)
-            .wait(OnOff::Off)
-            .build(),
-    );
+    let tcp = SpecialDevice::Tcp(SerialTcp::builder().host("127.0.0.1".to_string()).port(4444).server(OnOff::On).wait(OnOff::Off).build());
     let vc = SpecialDevice::VC(Some(SerialVc::builder().is_pixel(false).w(80).h(24).build()));
 
     assert_eq!("tcp:127.0.0.1:4444,server=on,wait=off", tcp.to_args()[0]);
@@ -49,10 +42,7 @@ fn tpmdev_round_trips_both_backends() {
     );
     let emulator = TpmDev::Emulator(Emulator::builder().id("tpm1".to_string()).chardev("chrtpm".to_string()).build());
 
-    assert_eq!(
-        "passthrough,id=tpm0,path=/dev/tpm0,cancel-path=/sys/class/misc/tpm0/device/cancel",
-        passthrough.to_args()[0]
-    );
+    assert_eq!("passthrough,id=tpm0,path=/dev/tpm0,cancel-path=/sys/class/misc/tpm0/device/cancel", passthrough.to_args()[0]);
     assert_eq!(passthrough, TpmDev::from_str(&passthrough.to_args()[0]).unwrap());
     assert_eq!("emulator,id=tpm1,chardev=chrtpm", emulator.to_args()[0]);
     assert_eq!(emulator, TpmDev::from_str(&emulator.to_args()[0]).unwrap());
@@ -100,10 +90,7 @@ fn incoming_round_trips_tcp_and_file() {
 
 #[test]
 fn iscsi_round_trips() {
-    let iscsi = Iscsi::from_str(
-        "user=alice,password-secret=sec0,header-digest=CRC32C,initiator-name=iqn.2026-05.test:id,id=sess0,timeout=30",
-    )
-    .unwrap();
+    let iscsi = Iscsi::from_str("user=alice,password-secret=sec0,header-digest=CRC32C,initiator-name=iqn.2026-05.test:id,id=sess0,timeout=30").unwrap();
     assert_eq!(
         "user=alice,password-secret=sec0,header-digest=CRC32C,initiator-name=iqn.2026-05.test:id,id=sess0,timeout=30",
         iscsi.to_args()[0]
@@ -121,9 +108,6 @@ fn sandbox_round_trips() {
         .resourcecontrol(AllowDeny::Deny)
         .build();
 
-    assert_eq!(
-        "on,obsolete=deny,elevateprivileges=children,spawn=allow,resourcecontrol=deny",
-        sandbox.to_args()[0]
-    );
+    assert_eq!("on,obsolete=deny,elevateprivileges=children,spawn=allow,resourcecontrol=deny", sandbox.to_args()[0]);
     assert_eq!(sandbox, Sandbox::from_str(&sandbox.to_args()[0]).unwrap());
 }

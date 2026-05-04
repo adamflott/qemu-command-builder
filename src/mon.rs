@@ -6,9 +6,9 @@ use proptest_derive::Arbitrary;
 
 use crate::common::OnOff;
 use crate::parsers::DELIM_COMMA;
+use crate::qao;
 use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::{ToArg, ToCommand};
-use crate::qao;
 
 pub(crate) const ARG_MON: &str = "-mon";
 

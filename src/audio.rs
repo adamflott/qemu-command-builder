@@ -28,10 +28,7 @@ impl AudioProperty {
 
     /// Creates a bare `key` property with no explicit value.
     pub fn flag(key: impl Into<String>) -> Self {
-        Self {
-            key: key.into(),
-            value: None,
-        }
+        Self { key: key.into(), value: None }
     }
 }
 

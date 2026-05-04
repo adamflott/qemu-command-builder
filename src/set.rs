@@ -29,6 +29,9 @@ impl FromStr for Set {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (group, value) = s.split_once('=').ok_or_else(|| format!("invalid -set argument: {s}"))?;
-        Ok(Self { group: group.to_string(), value: value.to_string() })
+        Ok(Self {
+            group: group.to_string(),
+            value: value.to_string(),
+        })
     }
 }

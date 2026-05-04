@@ -9,17 +9,15 @@ use std::str::FromStr;
 #[test]
 fn machine_displays_canonical_qemu_order() {
     let machine = MachineX86_64::builder()
-        .m(
-            Machine::builder()
-                .machine_type(MachineTypeX86_64::Q35)
-                .accel(vec![AccelType::Kvm, AccelType::Tcg])
-                .vmport(OnOffAuto::Auto)
-                .dump_guest_core(OnOffDefaultOn::Off)
-                .nvdimm(OnOffDefaultOff::On)
-                .memory_encryption(ShellString::from("sev0"))
-                .memory_backend(ShellString::from("pc.ram"))
-                .build(),
-        )
+        .m(Machine::builder()
+            .machine_type(MachineTypeX86_64::Q35)
+            .accel(vec![AccelType::Kvm, AccelType::Tcg])
+            .vmport(OnOffAuto::Auto)
+            .dump_guest_core(OnOffDefaultOn::Off)
+            .nvdimm(OnOffDefaultOff::On)
+            .memory_encryption(ShellString::from("sev0"))
+            .memory_backend(ShellString::from("pc.ram"))
+            .build())
         .build();
 
     assert_eq!(
@@ -30,10 +28,7 @@ fn machine_displays_canonical_qemu_order() {
 
 #[test]
 fn machine_parses_mixed_order_into_canonical_output() {
-    let parsed = MachineX86_64::from_str(
-        "q35,memory-backend=pc.ram,nvdimm=on,accel=kvm:tcg,memory-encryption=sev0,vmport=auto,dump-guest-core=off",
-    )
-    .unwrap();
+    let parsed = MachineX86_64::from_str("q35,memory-backend=pc.ram,nvdimm=on,accel=kvm:tcg,memory-encryption=sev0,vmport=auto,dump-guest-core=off").unwrap();
 
     assert_eq!(
         "q35,accel=kvm:tcg,vmport=auto,dump-guest-core=off,nvdimm=on,memory-encryption=sev0,memory-backend=pc.ram",

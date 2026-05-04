@@ -68,9 +68,7 @@ macro_rules! ffs {
                 Ok(p) => match $d {
                     Some(ref mut vs) => vs.push(p),
                     None => {
-                        let mut xx = Vec::new();
-                        xx.push(p);
-                        $d = Some(xx);
+                        $d = Some(vec![p]);
                     }
                 },
                 Err(parse_err) => {

@@ -284,15 +284,11 @@ impl FromStr for VNC {
                 "sasl-authz" => value.sasl_authz = Some(raw.to_string()),
                 "acl" => value.acl = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid acl value: {raw}"))?),
                 "lossy" => value.lossy = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid lossy value: {raw}"))?),
-                "non-adaptive" => {
-                    value.non_adaptive = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid non-adaptive value: {raw}"))?)
-                }
+                "non-adaptive" => value.non_adaptive = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid non-adaptive value: {raw}"))?),
                 "share" => value.share = Some(parse_share(raw)?),
                 "key-delay-ms" => value.key_delay_ms = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
                 "audiodev" => value.audiodev = Some(raw.to_string()),
-                "power-control" => {
-                    value.power_control = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid power-control value: {raw}"))?)
-                }
+                "power-control" => value.power_control = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid power-control value: {raw}"))?),
                 other => return Err(format!("unsupported -vnc option: {other}")),
             }
         }

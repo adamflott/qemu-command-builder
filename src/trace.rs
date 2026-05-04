@@ -1,9 +1,9 @@
+use crate::parsers::DELIM_COMMA;
 use crate::to_command::ToCommand;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::path::PathBuf;
 use std::str::FromStr;
-use crate::parsers::DELIM_COMMA;
 
 pub(crate) const ARG_TRACE: &str = "-trace";
 
@@ -47,20 +47,20 @@ impl FromStr for Trace {
         let mut file = None;
 
         let mut parts = s.split(DELIM_COMMA);
-        if let Some(first) = parts.next() {
-            if !first.is_empty() {
-                if let Some(value) = first.strip_prefix("enable=") {
-                    enable = Some(value.to_string());
-                } else if first.contains('=') {
-                    let (key, value) = first.split_once('=').ok_or_else(|| format!("invalid -trace option: {first}"))?;
-                    match key {
-                        "events" => events = Some(PathBuf::from(value)),
-                        "file" => file = Some(PathBuf::from(value)),
-                        other => return Err(format!("unsupported -trace option: {other}")),
-                    }
-                } else {
-                    enable = Some(first.to_string());
+        if let Some(first) = parts.next()
+            && !first.is_empty()
+        {
+            if let Some(value) = first.strip_prefix("enable=") {
+                enable = Some(value.to_string());
+            } else if first.contains('=') {
+                let (key, value) = first.split_once('=').ok_or_else(|| format!("invalid -trace option: {first}"))?;
+                match key {
+                    "events" => events = Some(PathBuf::from(value)),
+                    "file" => file = Some(PathBuf::from(value)),
+                    other => return Err(format!("unsupported -trace option: {other}")),
                 }
+            } else {
+                enable = Some(first.to_string());
             }
         }
 

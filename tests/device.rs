@@ -6,16 +6,9 @@ use std::str::FromStr;
 #[test]
 fn device_displays_driver_and_properties() {
     let mut device = Device::new("virtio-net-pci");
-    device
-        .add_prop("mac", "f2:3c:93:6e:bb:d4")
-        .add_prop("netdev", "net0")
-        .add_prop("vectors", "18")
-        .add_prop("mq", "on");
+    device.add_prop("mac", "f2:3c:93:6e:bb:d4").add_prop("netdev", "net0").add_prop("vectors", "18").add_prop("mq", "on");
 
-    assert_eq!(
-        "virtio-net-pci,mac=f2:3c:93:6e:bb:d4,mq=on,netdev=net0,vectors=18",
-        device.to_args()[0]
-    );
+    assert_eq!("virtio-net-pci,mac=f2:3c:93:6e:bb:d4,mq=on,netdev=net0,vectors=18", device.to_args()[0]);
 }
 
 #[test]

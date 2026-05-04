@@ -85,6 +85,14 @@ impl FromStr for Iscsi {
             }
         }
 
-        Ok(Self { user, password, password_secret, header_digest, initiator_name, id, timeout })
+        Ok(Self {
+            user,
+            password,
+            password_secret,
+            header_digest,
+            initiator_name,
+            id,
+            timeout,
+        })
     }
 }

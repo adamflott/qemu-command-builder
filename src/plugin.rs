@@ -56,6 +56,9 @@ impl FromStr for Plugin {
             args.push((key.to_string(), value.to_string()));
         }
 
-        Ok(Self { file, args: (!args.is_empty()).then_some(args) })
+        Ok(Self {
+            file,
+            args: (!args.is_empty()).then_some(args),
+        })
     }
 }

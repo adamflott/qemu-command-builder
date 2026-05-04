@@ -5,8 +5,8 @@ use bon::Builder;
 use proptest_derive::Arbitrary;
 
 use crate::common::OnOff;
-use crate::to_command::{ToArg, ToCommand};
 use crate::parsers::DELIM_COMMA;
+use crate::to_command::{ToArg, ToCommand};
 
 pub(crate) const ARG_INCOMING: &str = "-incoming";
 

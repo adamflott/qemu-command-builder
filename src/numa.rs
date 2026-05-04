@@ -251,9 +251,21 @@ impl FromStr for NUMA {
                 }
 
                 if let Some(mem_id) = memdev {
-                    Ok(Self::NodeMemDev(NUMANodeMemDev { mem_id: Some(mem_id), cpu_first, cpu_last, node_id, initiator }))
+                    Ok(Self::NodeMemDev(NUMANodeMemDev {
+                        mem_id: Some(mem_id),
+                        cpu_first,
+                        cpu_last,
+                        node_id,
+                        initiator,
+                    }))
                 } else {
-                    Ok(Self::NodeMem(NUMANodeMem { mem_size, cpu_first, cpu_last, node_id, initiator }))
+                    Ok(Self::NodeMem(NUMANodeMem {
+                        mem_size,
+                        cpu_first,
+                        cpu_last,
+                        node_id,
+                        initiator,
+                    }))
                 }
             }
             "dist" => {

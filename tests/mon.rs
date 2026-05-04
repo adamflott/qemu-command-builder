@@ -7,11 +7,7 @@ use std::str::FromStr;
 
 #[test]
 fn mon_displays_canonical_qemu_form() {
-    let mon = Mon::builder()
-        .chardev(ShellString::from("mon0"))
-        .mode(ReadlineControl::Control)
-        .pretty(OnOff::On)
-        .build();
+    let mon = Mon::builder().chardev(ShellString::from("mon0")).mode(ReadlineControl::Control).pretty(OnOff::On).build();
 
     assert_eq!("chardev=mon0,mode=control,pretty=on", mon.to_args()[0]);
 }

@@ -2,9 +2,9 @@ use std::str::FromStr;
 
 use crate::common::OnOff;
 use crate::parsers::DELIM_COMMA;
+use crate::qao;
 use crate::shell_string::ShellStringError;
 use crate::to_command::ToCommand;
-use crate::qao;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 
@@ -50,14 +50,8 @@ impl FromStr for Msg {
                 _ => {
                     let (key, value) = part.split_once('=').ok_or_else(|| ShellStringError::new(format!("invalid -msg option: {part}")))?;
                     match key {
-                        "timestamp" => {
-                            timestamp =
-                                Some(value.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid timestamp value: {value}")))?)
-                        }
-                        "guest-name" => {
-                            guest_name =
-                                Some(value.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid guest-name value: {value}")))?)
-                        }
+                        "timestamp" => timestamp = Some(value.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid timestamp value: {value}")))?),
+                        "guest-name" => guest_name = Some(value.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid guest-name value: {value}")))?),
                         other => return Err(ShellStringError::new(format!("unsupported -msg option: {other}"))),
                     }
                 }

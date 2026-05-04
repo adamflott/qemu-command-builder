@@ -39,9 +39,6 @@ fn icount_round_trips_record_replay_options() {
         .build();
 
     let rendered = icount.to_args()[0].clone();
-    assert_eq!(
-        "shift=auto,align=off,sleep=on,rr=record,rrfile=/tmp/replay.bin,rrsnapshot=snap0",
-        rendered
-    );
+    assert_eq!("shift=auto,align=off,sleep=on,rr=record,rrfile=/tmp/replay.bin,rrsnapshot=snap0", rendered);
     assert_eq!(icount, Icount::from_str(&rendered).unwrap());
 }

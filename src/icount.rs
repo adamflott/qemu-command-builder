@@ -121,6 +121,13 @@ impl FromStr for Icount {
             }
         }
 
-        Ok(Self { shift, align, sleep, rr, rrfile, rrsnapshot })
+        Ok(Self {
+            shift,
+            align,
+            sleep,
+            rr,
+            rrfile,
+            rrsnapshot,
+        })
     }
 }

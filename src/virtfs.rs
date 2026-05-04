@@ -125,10 +125,7 @@ impl FromStr for Virtfs {
                     match key {
                         "path" => path = Some(PathBuf::from(value)),
                         "mount_tag" => mount_tag = Some(value.to_string()),
-                        "security_model" => {
-                            security_mode =
-                                Some(value.parse::<SecurityModel>().map_err(|e| e.to_string())?)
-                        }
+                        "security_model" => security_mode = Some(value.parse::<SecurityModel>().map_err(|e| e.to_string())?),
                         "id" => id = Some(value.to_string()),
                         "writeout" => {
                             if value != "immediate" {

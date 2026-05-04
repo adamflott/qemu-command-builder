@@ -5,11 +5,7 @@ use std::str::FromStr;
 
 #[test]
 fn memory_displays_canonical_hotplug_form() {
-    let memory = Memory::builder()
-        .mem(MemoryUnit::GigaBytes(1))
-        .slots(3)
-        .maxmem(MemoryUnit::GigaBytes(4))
-        .build();
+    let memory = Memory::builder().mem(MemoryUnit::GigaBytes(1)).slots(3).maxmem(MemoryUnit::GigaBytes(4)).build();
 
     assert_eq!("1G,slots=3,maxmem=4G", memory.to_args()[0]);
 }

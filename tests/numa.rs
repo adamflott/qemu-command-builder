@@ -1,7 +1,7 @@
 use pretty_assertions::assert_eq;
+use qemu_command_builder::QemuInstanceForX86_64;
 use qemu_command_builder::numa::NUMA;
 use qemu_command_builder::to_command::ToCommand;
-use qemu_command_builder::QemuInstanceForX86_64;
 use std::str::FromStr;
 
 #[test]

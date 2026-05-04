@@ -50,10 +50,7 @@ fn overcommit_emits_qemu_keys_and_round_trips() {
 
 #[test]
 fn plugin_does_not_duplicate_command_and_round_trips() {
-    let plugin = Plugin::builder()
-        .file(PathBuf::from("/tmp/libtrace.so"))
-        .args(vec![("arg1".to_string(), "value1".to_string())])
-        .build();
+    let plugin = Plugin::builder().file(PathBuf::from("/tmp/libtrace.so")).args(vec![("arg1".to_string(), "value1".to_string())]).build();
 
     assert_eq!("file=/tmp/libtrace.so,arg1=value1", plugin.to_args()[0]);
     assert_eq!(plugin, Plugin::from_str("file=/tmp/libtrace.so,arg1=value1").unwrap());

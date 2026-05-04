@@ -1,10 +1,10 @@
 use pretty_assertions::assert_eq;
+use qemu_command_builder::QemuInstanceForX86_64;
 use qemu_command_builder::common::{AutoNeverAlways, OnOff, OnOffDefaultOff, OnOffDefaultOn};
 use qemu_command_builder::smbios::Smbios;
 use qemu_command_builder::spice::{Channel, ImageCompression, OffAllFilter, Spice};
 use qemu_command_builder::to_command::ToCommand;
-use qemu_command_builder::vnc::{AllowExclusiveForceSharedIgnore, VNCDisplay, VNC};
-use qemu_command_builder::QemuInstanceForX86_64;
+use qemu_command_builder::vnc::{AllowExclusiveForceSharedIgnore, VNC, VNCDisplay};
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -50,7 +50,10 @@ fn spice_round_trips_supported_properties() {
 #[test]
 fn vnc_round_trips_network_display_and_options() {
     let vnc = VNC::builder()
-        .display(VNCDisplay::Network { host: Some("localhost".to_string()), display: 0 })
+        .display(VNCDisplay::Network {
+            host: Some("localhost".to_string()),
+            display: 0,
+        })
         .reverse(OnOff::Off)
         .websocket("5700".to_string())
         .password(OnOff::On)

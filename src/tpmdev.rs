@@ -3,8 +3,8 @@ use proptest_derive::Arbitrary;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::to_command::ToCommand;
 use crate::parsers::DELIM_COMMA;
+use crate::to_command::ToCommand;
 
 pub(crate) const ARG_TPMDEV: &str = "-tpmdev";
 
@@ -53,7 +53,11 @@ impl FromStr for Passthrough {
                 other => return Err(format!("unsupported passthrough option: {other}")),
             }
         }
-        Ok(Self { id: id.ok_or_else(|| "passthrough requires id=".to_string())?, path, cancel_path })
+        Ok(Self {
+            id: id.ok_or_else(|| "passthrough requires id=".to_string())?,
+            path,
+            cancel_path,
+        })
     }
 }
 

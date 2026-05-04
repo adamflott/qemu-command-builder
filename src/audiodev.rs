@@ -32,11 +32,17 @@ pub struct AudioDev {
 
 impl AudioDev {
     pub fn new(driver: impl Into<String>) -> Self {
-        Self { driver: driver.into(), props: Vec::new() }
+        Self {
+            driver: driver.into(),
+            props: Vec::new(),
+        }
     }
 
     pub fn add_prop(&mut self, key: impl Into<String>, value: impl Into<String>) -> &mut Self {
-        self.props.push(AudioDevProperty { key: key.into(), value: Some(value.into()) });
+        self.props.push(AudioDevProperty {
+            key: key.into(),
+            value: Some(value.into()),
+        });
         self
     }
 
@@ -85,7 +91,10 @@ impl FromStr for AudioDev {
         let mut props = Vec::new();
         for part in parts {
             if let Some((key, value)) = part.split_once('=') {
-                props.push(AudioDevProperty { key: key.to_string(), value: Some(value.to_string()) });
+                props.push(AudioDevProperty {
+                    key: key.to_string(),
+                    value: Some(value.to_string()),
+                });
             } else {
                 props.push(AudioDevProperty { key: part.to_string(), value: None });
             }

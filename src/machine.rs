@@ -6,9 +6,9 @@ use proptest_derive::Arbitrary;
 use crate::common::*;
 use crate::machine_type::{MachineTypeAarch64, MachineTypeX86_64};
 use crate::parsers::{DELIM_COLON, DELIM_COMMA};
+use crate::qao;
 use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::{ToArg, ToCommand};
-use crate::qao;
 
 pub(crate) const ARG_MACHINE: &str = "-machine";
 
@@ -368,56 +368,14 @@ fn parse_machine_option(
             *accel = Some(accels);
         }
         "vmport" => *vmport = Some(value.parse::<OnOffAuto>().map_err(|_| format!("invalid vmport value: {value}"))?),
-        "dump-guest-core" => {
-            *dump_guest_core = Some(
-                value
-                    .parse::<OnOffDefaultOn>()
-                    .map_err(|_| format!("invalid dump-guest-core value: {value}"))?,
-            )
-        }
-        "mem-merge" => {
-            *mem_merge = Some(
-                value
-                    .parse::<OnOffDefaultOn>()
-                    .map_err(|_| format!("invalid mem-merge value: {value}"))?,
-            )
-        }
-        "aes-key-wrap" => {
-            *aes_key_wrap = Some(
-                value
-                    .parse::<OnOffDefaultOn>()
-                    .map_err(|_| format!("invalid aes-key-wrap value: {value}"))?,
-            )
-        }
-        "dea-key-wrap" => {
-            *dea_key_wrap = Some(
-                value
-                    .parse::<OnOffDefaultOn>()
-                    .map_err(|_| format!("invalid dea-key-wrap value: {value}"))?,
-            )
-        }
-        "nvdimm" => {
-            *nvdimm = Some(
-                value
-                    .parse::<OnOffDefaultOff>()
-                    .map_err(|_| format!("invalid nvdimm value: {value}"))?,
-            )
-        }
+        "dump-guest-core" => *dump_guest_core = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid dump-guest-core value: {value}"))?),
+        "mem-merge" => *mem_merge = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid mem-merge value: {value}"))?),
+        "aes-key-wrap" => *aes_key_wrap = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid aes-key-wrap value: {value}"))?),
+        "dea-key-wrap" => *dea_key_wrap = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid dea-key-wrap value: {value}"))?),
+        "nvdimm" => *nvdimm = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid nvdimm value: {value}"))?),
         "memory-encryption" => *memory_encryption = Some(ShellString::new(value)),
-        "hmat" => {
-            *hmat = Some(
-                value
-                    .parse::<OnOffDefaultOff>()
-                    .map_err(|_| format!("invalid hmat value: {value}"))?,
-            )
-        }
-        "aux-ram-share" => {
-            *aux_ram_share = Some(
-                value
-                    .parse::<OnOffDefaultOff>()
-                    .map_err(|_| format!("invalid aux-ram-share value: {value}"))?,
-            )
-        }
+        "hmat" => *hmat = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid hmat value: {value}"))?),
+        "aux-ram-share" => *aux_ram_share = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid aux-ram-share value: {value}"))?),
         "memory-backend" => *memory_backend = Some(ShellString::new(value)),
         other => return Err(format!("unsupported machine option: {other}")),
     }

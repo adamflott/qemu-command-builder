@@ -1,7 +1,7 @@
 use crate::parsers::DELIM_COMMA;
+use crate::qao;
 use crate::shell_string::ShellStringError;
 use crate::to_command::ToCommand;
-use crate::qao;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::fmt::Display;
@@ -93,19 +93,13 @@ impl FromStr for Memory {
 
 fn parse_memory_unit(s: &str) -> Result<MemoryUnit, String> {
     if let Some(amount) = s.strip_suffix('M') {
-        return Ok(MemoryUnit::MegaBytes(
-            amount.parse::<u64>().map_err(|e| format!("invalid memory amount: {e}"))?,
-        ));
+        return Ok(MemoryUnit::MegaBytes(amount.parse::<u64>().map_err(|e| format!("invalid memory amount: {e}"))?));
     }
     if let Some(amount) = s.strip_suffix('G') {
-        return Ok(MemoryUnit::GigaBytes(
-            amount.parse::<u64>().map_err(|e| format!("invalid memory amount: {e}"))?,
-        ));
+        return Ok(MemoryUnit::GigaBytes(amount.parse::<u64>().map_err(|e| format!("invalid memory amount: {e}"))?));
     }
 
-    Ok(MemoryUnit::Bytes(
-        s.parse::<u64>().map_err(|e| format!("invalid memory amount: {e}"))?,
-    ))
+    Ok(MemoryUnit::Bytes(s.parse::<u64>().map_err(|e| format!("invalid memory amount: {e}"))?))
 }
 
 fn parse_memory(s: &str) -> Result<Memory, String> {

@@ -4,9 +4,9 @@ use std::str::FromStr;
 
 use crate::common::OnOff;
 use crate::parsers::DELIM_COMMA;
+use crate::qao;
 use crate::shell_string::{ShellString, ShellStringError};
 use crate::to_command::ToCommand;
-use crate::qao;
 
 pub(crate) const ARG_NAME: &str = "-name";
 
@@ -57,14 +57,15 @@ impl FromStr for Name {
             let (key, value) = part.split_once('=').ok_or_else(|| ShellStringError::new(format!("invalid -name option: {part}")))?;
             match key {
                 "process" => process = Some(ShellString::new(value)),
-                "debug-threads" => {
-                    debug_threads =
-                        Some(value.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid debug-threads value: {value}")))?)
-                }
+                "debug-threads" => debug_threads = Some(value.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid debug-threads value: {value}")))?),
                 other => return Err(ShellStringError::new(format!("unsupported -name option: {other}"))),
             }
         }
 
-        Ok(Name { name: ShellString::new(first), process, debug_threads })
+        Ok(Name {
+            name: ShellString::new(first),
+            process,
+            debug_threads,
+        })
     }
 }

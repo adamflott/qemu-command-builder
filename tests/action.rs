@@ -12,11 +12,7 @@ fn action_displays_single_event() {
 
 #[test]
 fn action_round_trips_multiple_events() {
-    let action = Action::builder()
-        .reboot(RebootAction::Shutdown)
-        .shutdown(ShutdownAction::Pause)
-        .watchdog(WatchdogAction::Debug)
-        .build();
+    let action = Action::builder().reboot(RebootAction::Shutdown).shutdown(ShutdownAction::Pause).watchdog(WatchdogAction::Debug).build();
 
     let rendered = action.to_single_arg();
 

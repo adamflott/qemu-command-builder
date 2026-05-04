@@ -31,11 +31,7 @@ pub struct AddFd {
 impl AddFd {
     /// Creates an `-add-fd` mapping from a host file descriptor to a QEMU fd set.
     pub fn new(fd: usize, set: usize) -> Self {
-        Self {
-            fd,
-            set,
-            opaque: None,
-        }
+        Self { fd, set, opaque: None }
     }
 }
 

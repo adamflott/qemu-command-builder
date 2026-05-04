@@ -177,14 +177,8 @@ impl FromStr for Rtc {
             match key {
                 "base" => base = Some(value.parse::<RtcBase>().map_err(|_| ShellStringError::new(format!("invalid base value: {value}")))?),
                 "clock" => clock = Some(value.parse::<RtcClock>().map_err(|_| ShellStringError::new(format!("invalid clock value: {value}")))?),
-                "driftfix" => {
-                    drift_fix =
-                        Some(value.parse::<RtcDriftFix>().map_err(|_| ShellStringError::new(format!("invalid driftfix value: {value}")))?)
-                }
-                "drift" => {
-                    drift_fix =
-                        Some(value.parse::<RtcDriftFix>().map_err(|_| ShellStringError::new(format!("invalid drift value: {value}")))?)
-                }
+                "driftfix" => drift_fix = Some(value.parse::<RtcDriftFix>().map_err(|_| ShellStringError::new(format!("invalid driftfix value: {value}")))?),
+                "drift" => drift_fix = Some(value.parse::<RtcDriftFix>().map_err(|_| ShellStringError::new(format!("invalid drift value: {value}")))?),
                 other => return Err(ShellStringError::new(format!("unsupported -rtc option: {other}"))),
             }
         }

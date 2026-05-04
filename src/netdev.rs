@@ -226,10 +226,10 @@ impl FromStr for User {
             guestfwd.push(parse_guestfwd(value)?);
         }
 
-        let smb = match first_prop(&props, "smb") {
-            Some(dir) => Some(SMB { dir: PathBuf::from(dir), smbserver: first_prop(&props, "smbserver").map(ToString::to_string) }),
-            None => None,
-        };
+        let smb = first_prop(&props, "smb").map(|dir| SMB {
+            dir: PathBuf::from(dir),
+            smbserver: first_prop(&props, "smbserver").map(ToString::to_string),
+        });
 
         Ok(Self {
             id,
@@ -440,7 +440,11 @@ impl FromStr for Bridge {
             }
         }
 
-        Ok(Self { id: id.ok_or_else(|| "bridge netdev requires id=".to_string())?, bridge, helper })
+        Ok(Self {
+            id: id.ok_or_else(|| "bridge netdev requires id=".to_string())?,
+            bridge,
+            helper,
+        })
     }
 }
 
@@ -514,7 +518,12 @@ impl FromStr for SocketRegular {
             }
         }
 
-        Ok(Self { id: id.ok_or_else(|| "socket netdev requires id=".to_string())?, fd, listen, connection })
+        Ok(Self {
+            id: id.ok_or_else(|| "socket netdev requires id=".to_string())?,
+            fd,
+            listen,
+            connection,
+        })
     }
 }
 
@@ -571,7 +580,12 @@ impl FromStr for SocketMulticast {
             }
         }
 
-        Ok(Self { id: id.ok_or_else(|| "socket netdev requires id=".to_string())?, fd, mcast, localaddr })
+        Ok(Self {
+            id: id.ok_or_else(|| "socket netdev requires id=".to_string())?,
+            fd,
+            mcast,
+            localaddr,
+        })
     }
 }
 
@@ -628,7 +642,12 @@ impl FromStr for SocketUdpTunnel {
             }
         }
 
-        Ok(Self { id: id.ok_or_else(|| "socket netdev requires id=".to_string())?, fd, udp, localaddr })
+        Ok(Self {
+            id: id.ok_or_else(|| "socket netdev requires id=".to_string())?,
+            fd,
+            udp,
+            localaddr,
+        })
     }
 }
 
@@ -1028,13 +1047,7 @@ pub struct DgramFd {
 
 impl ToCommand for DgramFd {
     fn to_args(&self) -> Vec<String> {
-        vec![
-            ["dgram".to_string(),
-                format!("id={}", self.id.to_string()),
-                "local.type=fd".to_string(),
-                format!("local.str={}", self.local_str)]
-            .join(DELIM_COMMA),
-        ]
+        vec![["dgram".to_string(), format!("id={}", self.id), "local.type=fd".to_string(), format!("local.str={}", self.local_str)].join(DELIM_COMMA)]
     }
 }
 
@@ -1044,7 +1057,10 @@ impl FromStr for DgramFd {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let props = parse_netdev_props(s, "dgram")?;
         ensure_prop_value(&props, "local.type", "fd")?;
-        Ok(Self { id: required_prop(&props, "id")?.to_string(), local_str: required_prop(&props, "local.str")?.to_string() })
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            local_str: required_prop(&props, "local.str")?.to_string(),
+        })
     }
 }
 
@@ -1338,7 +1354,11 @@ impl FromStr for VhostVdpa {
             }
         }
 
-        Ok(Self { id: id.ok_or_else(|| "vhost-vdpa netdev requires id=".to_string())?, vhostdev, vhostfd })
+        Ok(Self {
+            id: id.ok_or_else(|| "vhost-vdpa netdev requires id=".to_string())?,
+            vhostdev,
+            vhostfd,
+        })
     }
 }
 
@@ -1631,13 +1651,13 @@ fn parse_host_and_port(value: &str) -> Result<HostAndPort, String> {
 }
 
 fn parse_host_and_maybe_port(value: &str) -> Result<HostAndMaybePort, String> {
-    if let Some((host, port)) = value.rsplit_once(':') {
-        if !port.is_empty() {
-            return Ok(HostAndMaybePort {
-                host: host.to_string(),
-                port: Some(port.parse::<u16>().map_err(|e| e.to_string())?),
-            });
-        }
+    if let Some((host, port)) = value.rsplit_once(':')
+        && !port.is_empty()
+    {
+        return Ok(HostAndMaybePort {
+            host: host.to_string(),
+            port: Some(port.parse::<u16>().map_err(|e| e.to_string())?),
+        });
     }
 
     Ok(HostAndMaybePort { host: value.to_string(), port: None })
@@ -1665,16 +1685,16 @@ fn parse_netdev_props(s: &str, backend_name: &str) -> Result<std::collections::B
 }
 
 fn required_prop<'a>(props: &'a std::collections::BTreeMap<String, Vec<String>>, key: &str) -> Result<&'a str, String> {
-    props.get(key).and_then(|values| values.first()).map(|s| s.as_str()).ok_or_else(|| format!("missing required option: {key}"))
+    props
+        .get(key)
+        .and_then(|values| values.first())
+        .map(|s| s.as_str())
+        .ok_or_else(|| format!("missing required option: {key}"))
 }
 
 fn ensure_prop_value(props: &std::collections::BTreeMap<String, Vec<String>>, key: &str, expected: &str) -> Result<(), String> {
     let actual = required_prop(props, key)?;
-    if actual == expected {
-        Ok(())
-    } else {
-        Err(format!("expected {key}={expected}, got {actual}"))
-    }
+    if actual == expected { Ok(()) } else { Err(format!("expected {key}={expected}, got {actual}")) }
 }
 
 fn first_prop<'a>(props: &'a std::collections::BTreeMap<String, Vec<String>>, key: &str) -> Option<&'a str> {
@@ -1686,9 +1706,7 @@ fn all_props<'a>(props: &'a std::collections::BTreeMap<String, Vec<String>>, key
 }
 
 fn parse_optional_onoff(value: Option<&str>) -> Result<Option<OnOff>, String> {
-    value
-        .map(|raw| raw.parse::<OnOff>().map_err(|_| format!("invalid on/off value: {raw}")))
-        .transpose()
+    value.map(|raw| raw.parse::<OnOff>().map_err(|_| format!("invalid on/off value: {raw}"))).transpose()
 }
 
 fn parse_optional_usize(value: Option<&str>) -> Result<Option<usize>, String> {
@@ -1751,7 +1769,11 @@ fn parse_hostfwd(value: &str) -> Result<HostForward, String> {
                 let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
                 (hostaddr, hostport, Some((*guest_host).to_string()), guestport)
             } else if guest_host.ends_with('-') {
-                let hostport = guest_host.strip_suffix('-').ok_or_else(|| format!("invalid hostfwd host section: {guest_host}"))?.parse::<u16>().map_err(|e| e.to_string())?;
+                let hostport = guest_host
+                    .strip_suffix('-')
+                    .ok_or_else(|| format!("invalid hostfwd host section: {guest_host}"))?
+                    .parse::<u16>()
+                    .map_err(|e| e.to_string())?;
                 let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
                 (Some((*host_range).to_string()), hostport, None, guestport)
             } else {
@@ -1759,14 +1781,24 @@ fn parse_hostfwd(value: &str) -> Result<HostForward, String> {
             }
         }
         [host_addr, host_range, guest_host, guest_port] => {
-            let hostport = host_range.strip_suffix('-').ok_or_else(|| format!("invalid hostfwd host section: {host_range}"))?.parse::<u16>().map_err(|e| e.to_string())?;
+            let hostport = host_range
+                .strip_suffix('-')
+                .ok_or_else(|| format!("invalid hostfwd host section: {host_range}"))?
+                .parse::<u16>()
+                .map_err(|e| e.to_string())?;
             let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
             (Some((*host_addr).to_string()), hostport, Some((*guest_host).to_string()), guestport)
         }
         _ => return Err(format!("invalid hostfwd: {value}")),
     };
 
-    Ok(HostForward { protocol, hostaddr, hostport, guestaddr, guestport })
+    Ok(HostForward {
+        protocol,
+        hostaddr,
+        hostport,
+        guestaddr,
+        guestport,
+    })
 }
 
 fn parse_optional_host_port_range(value: &str) -> Result<(Option<String>, u16), String> {

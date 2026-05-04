@@ -28,10 +28,7 @@ fn drive_displays_qemu_readonly_and_copy_on_read_keys() {
 
 #[test]
 fn drive_parses_mixed_order_into_canonical_output() {
-    let parsed = Drive::from_str(
-        "detect-zeroes=unmap,werror=enospc,file=/tmp/disk.img,copy-on-read=off,readonly=on,discard=unmap,if=virtio",
-    )
-    .unwrap();
+    let parsed = Drive::from_str("detect-zeroes=unmap,werror=enospc,file=/tmp/disk.img,copy-on-read=off,readonly=on,discard=unmap,if=virtio").unwrap();
 
     assert_eq!(
         "file=/tmp/disk.img,if=virtio,werror=enospc,readonly=on,copy-on-read=off,discard=unmap,detect-zeroes=unmap",

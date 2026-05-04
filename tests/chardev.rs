@@ -1,7 +1,5 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::chardev::{
-    CharDev, CharHub, CharNull, CharPipe, CharSocket, CharSocketTcp, CharStdio,
-};
+use qemu_command_builder::chardev::{CharDev, CharHub, CharNull, CharPipe, CharSocket, CharSocketTcp, CharStdio};
 use qemu_command_builder::common::OnOff;
 use qemu_command_builder::to_command::ToCommand;
 use std::path::PathBuf;
@@ -27,13 +25,7 @@ fn chardev_round_trips_socket_tcp() {
 
 #[test]
 fn chardev_pipe_includes_required_path() {
-    let chardev = CharDev::Pipe(
-        CharPipe::builder()
-            .id("pipe0".to_string())
-            .path(PathBuf::from("/tmp/pipe"))
-            .mux(OnOff::Off)
-            .build(),
-    );
+    let chardev = CharDev::Pipe(CharPipe::builder().id("pipe0".to_string()).path(PathBuf::from("/tmp/pipe")).mux(OnOff::Off).build());
 
     let rendered = chardev.to_args()[0].clone();
 
@@ -43,12 +35,7 @@ fn chardev_pipe_includes_required_path() {
 
 #[test]
 fn chardev_pty_round_trips_optional_path() {
-    let chardev = CharDev::Pty(
-        qemu_command_builder::chardev::CharPty::builder()
-            .id("pty0".to_string())
-            .path(PathBuf::from("/tmp/pty"))
-            .build(),
-    );
+    let chardev = CharDev::Pty(qemu_command_builder::chardev::CharPty::builder().id("pty0".to_string()).path(PathBuf::from("/tmp/pty")).build());
 
     let rendered = chardev.to_args()[0].clone();
 
@@ -58,12 +45,7 @@ fn chardev_pty_round_trips_optional_path() {
 
 #[test]
 fn chardev_hub_serializes_chardev_indexes_correctly() {
-    let chardev = CharDev::Hub(
-        CharHub::builder()
-            .id("hub0".to_string())
-            .chardevs(vec![(0, "pty0".to_string()), (1, "vc0".to_string())])
-            .build(),
-    );
+    let chardev = CharDev::Hub(CharHub::builder().id("hub0".to_string()).chardevs(vec![(0, "pty0".to_string()), (1, "vc0".to_string())]).build());
 
     let rendered = chardev.to_args()[0].clone();
 
@@ -90,13 +72,7 @@ fn chardev_null_preserves_common_options() {
 
 #[test]
 fn chardev_stdio_still_round_trips() {
-    let chardev = CharDev::Stdio(
-        CharStdio::builder()
-            .id("serial0".to_string())
-            .mux(OnOff::Off)
-            .signal(OnOff::Off)
-            .build(),
-    );
+    let chardev = CharDev::Stdio(CharStdio::builder().id("serial0".to_string()).mux(OnOff::Off).signal(OnOff::Off).build());
 
     let rendered = chardev.to_args()[0].clone();
 

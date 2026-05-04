@@ -128,6 +128,12 @@ impl FromStr for Sandbox {
             }
         }
 
-        Ok(Self { mode, obsolete, elevateprivileges, spawn, resourcecontrol })
+        Ok(Self {
+            mode,
+            obsolete,
+            elevateprivileges,
+            spawn,
+            resourcecontrol,
+        })
     }
 }

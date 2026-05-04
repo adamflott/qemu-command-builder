@@ -36,7 +36,11 @@ impl FromStr for Global {
             && !left.contains(',')
             && let Some((driver, property)) = left.rsplit_once('.')
         {
-            return Ok(Self { driver: driver.to_string(), property: property.to_string(), value: value.to_string() });
+            return Ok(Self {
+                driver: driver.to_string(),
+                property: property.to_string(),
+                value: value.to_string(),
+            });
         }
 
         let mut driver = None;
