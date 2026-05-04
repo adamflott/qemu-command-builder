@@ -5,10 +5,8 @@ use bon::Builder;
 use proptest_derive::Arbitrary;
 
 use crate::common::OnOff;
-use crate::parsers::DELIM_COMMA;
+use crate::parsers::{ARG_ICOUNT, DELIM_COMMA};
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_ICOUNT: &str = "-icount";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Shift {

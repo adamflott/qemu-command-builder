@@ -1,8 +1,7 @@
+use crate::parsers::ARG_USBDEVICE;
 use crate::to_command::ToCommand;
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
-
-pub(crate) const ARG_USBDEVICE: &str = "-usbdevice";
 
 /// Legacy `-usbdevice` device names accepted by QEMU.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]

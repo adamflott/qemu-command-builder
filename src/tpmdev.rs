@@ -3,10 +3,8 @@ use proptest_derive::Arbitrary;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::parsers::DELIM_COMMA;
+use crate::parsers::{ARG_TPMDEV, DELIM_COMMA};
 use crate::to_command::ToCommand;
-
-pub(crate) const ARG_TPMDEV: &str = "-tpmdev";
 
 /// A `-tpmdev passthrough,...` backend.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]

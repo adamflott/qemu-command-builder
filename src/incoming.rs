@@ -5,10 +5,8 @@ use bon::Builder;
 use proptest_derive::Arbitrary;
 
 use crate::common::OnOff;
-use crate::parsers::DELIM_COMMA;
+use crate::parsers::{ARG_INCOMING, DELIM_COMMA};
 use crate::to_command::{ToArg, ToCommand};
-
-pub(crate) const ARG_INCOMING: &str = "-incoming";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Tcp {

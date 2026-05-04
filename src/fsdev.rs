@@ -1,11 +1,9 @@
-use crate::parsers::DELIM_COMMA;
+use crate::parsers::{ARG_FSDEV, DELIM_COMMA};
 use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::path::PathBuf;
 use std::str::FromStr;
-
-pub(crate) const ARG_FSDEV: &str = "-fsdev";
 
 /// QEMU `security_model=` values for `-fsdev local`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]

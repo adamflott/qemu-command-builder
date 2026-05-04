@@ -1,11 +1,9 @@
 use std::str::FromStr;
 
-use crate::parsers::DELIM_COMMA;
+use crate::parsers::{ARG_AUDIO, DELIM_COMMA};
 use crate::to_command::ToCommand;
 use bon::Builder;
 use proptest_derive::Arbitrary;
-
-pub(crate) const ARG_AUDIO: &str = "-audio";
 
 const KEY_DRIVER: &str = "driver=";
 const KEY_MODEL: &str = "model=";

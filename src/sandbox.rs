@@ -1,11 +1,9 @@
 use crate::common::OnOff;
-use crate::parsers::DELIM_COMMA;
+use crate::parsers::{ARG_SANDBOX, DELIM_COMMA};
 use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
-
-pub(crate) const ARG_SANDBOX: &str = "-sandbox";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum AllowDeny {

@@ -1,10 +1,8 @@
-use crate::parsers::DELIM_COMMA;
+use crate::parsers::{ARG_OBJECT, DELIM_COMMA};
 use crate::to_command::ToCommand;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
-
-pub(crate) const ARG_OBJECT: &str = "-object";
 
 /// A generic QEMU `-object typename[,prop=value,...]` definition.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]

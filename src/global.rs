@@ -3,10 +3,8 @@ use std::str::FromStr;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 
-use crate::parsers::DELIM_COMMA;
+use crate::parsers::{ARG_GLOBAL, DELIM_COMMA};
 use crate::to_command::ToCommand;
-
-pub(crate) const ARG_GLOBAL: &str = "-global";
 
 /// Set default value of driver's property prop to value
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]

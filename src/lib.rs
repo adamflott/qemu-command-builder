@@ -93,10 +93,11 @@ use crate::numa::NUMA;
 use crate::object::Object;
 use crate::overcommit::Overcommit;
 use crate::parsers::{
-    ARG_APPEND, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_CDROM, ARG_DAEMONIZE, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM, ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB, ARG_FULL_SCREEN, ARG_G,
-    ARG_GDB, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_INITRD, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC, ARG_MTDBLOCK,
-    ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT, ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_PERFMAP, ARG_PFLASH, ARG_PIDFILE, ARG_PRECONFIG,
-    ARG_READCONFIG, ARG_SD, ARG_SEED, ARG_SHIM, ARG_SNAPSHOT, ARG_USB, ARG_UUID, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID_RESTRICT, ARG_XEN_ID, DELIM_COMMA,
+    ARG_APPEND, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_CDROM, ARG_DAEMONIZE, ARG_DEBUGCON, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM, ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB,
+    ARG_FULL_SCREEN, ARG_G, ARG_GDB, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_INITRD, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC,
+    ARG_MONITOR, ARG_MTDBLOCK, ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT, ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_PERFMAP, ARG_PFLASH,
+    ARG_PIDFILE, ARG_PRECONFIG, ARG_QMP, ARG_QMP_PRETTY, ARG_READCONFIG, ARG_SD, ARG_SEED, ARG_SHIM, ARG_SNAPSHOT, ARG_USB, ARG_UUID, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID_RESTRICT,
+    ARG_XEN_ID, DELIM_COMMA,
 };
 use crate::plugin::Plugin;
 use crate::rtc::Rtc;
@@ -487,15 +488,15 @@ where
             }
         }
         if let Some(monitor) = &self.monitor {
-            cmd.push("-monitor".to_string());
+            cmd.push(ARG_MONITOR.to_string());
             cmd.append(&mut monitor.to_command());
         }
         if let Some(qmp) = &self.qmp {
-            cmd.push("-qmp".to_string());
+            cmd.push(ARG_QMP.to_string());
             cmd.append(&mut qmp.to_command());
         }
         if let Some(qmp_pretty) = &self.qmp_pretty {
-            cmd.push("-qmp-pretty".to_string());
+            cmd.push(ARG_QMP_PRETTY.to_string());
             cmd.append(&mut qmp_pretty.to_command());
         }
         if let Some(mons) = &self.mon {
@@ -504,7 +505,7 @@ where
             }
         }
         if let Some(debugcon) = &self.debugcon {
-            cmd.push("-debugcon".to_string());
+            cmd.push(ARG_DEBUGCON.to_string());
             cmd.append(&mut debugcon.to_command());
         }
         if let Some(pidfile) = &self.pidfile {

@@ -1,9 +1,8 @@
 use crate::common::OnOff;
+use crate::parsers::ARG_OVERCOMMIT;
 use crate::to_command::{ToArg, ToCommand};
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
-
-pub(crate) const ARG_OVERCOMMIT: &str = "-overcommit";
 
 /// Supported values for `mem-lock=`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]

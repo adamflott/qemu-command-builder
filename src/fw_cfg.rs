@@ -3,10 +3,8 @@ use proptest_derive::Arbitrary;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use crate::parsers::DELIM_COMMA;
+use crate::parsers::{ARG_FW_CFG, DELIM_COMMA};
 use crate::to_command::ToCommand;
-
-pub(crate) const ARG_FW_CFG: &str = "-fw_cfg";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum StringOrPathBuf {
