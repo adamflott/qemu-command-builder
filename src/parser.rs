@@ -1,6 +1,6 @@
 use crate::args::accel::Accel;
 use crate::args::acpitable::AcpiTable;
-use crate::args::action::Action;
+use crate::args::action::{Action, WatchdogAction};
 use crate::args::addfs::AddFd;
 use crate::args::audio::Audio;
 use crate::args::audiodev::AudioDev;
@@ -47,7 +47,8 @@ use crate::parsers::{
     ARG_LITTLE_S, ARG_LOADVM, ARG_MACHINE, ARG_MEM_PATH, ARG_MEM_PREALLOC, ARG_MEMORY, ARG_MON, ARG_MONITOR, ARG_MSG, ARG_MTDBLOCK, ARG_NAME, ARG_NETDEV, ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT,
     ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_NUMA, ARG_OBJECT, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_OVERCOMMIT, ARG_PARALLEL, ARG_PERFMAP, ARG_PFLASH, ARG_PIDFILE,
     ARG_PLUGIN, ARG_PRECONFIG, ARG_QMP, ARG_QMP_PRETTY, ARG_READCONFIG, ARG_RTC, ARG_RUN_WITH, ARG_RUNAS, ARG_SANDBOX, ARG_SD, ARG_SEED, ARG_SERIAL, ARG_SET, ARG_SHIM, ARG_SMBIOS, ARG_SMP,
-    ARG_SNAPSHOT, ARG_SPICE, ARG_TPMDEV, ARG_TRACE, ARG_USB, ARG_USBDEVICE, ARG_UUID, ARG_VGA, ARG_VIRTFS, ARG_VNC, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID_RESTRICT, ARG_XEN_ID,
+    ARG_SNAPSHOT, ARG_SPICE, ARG_TPMDEV, ARG_TRACE, ARG_USB, ARG_USBDEVICE, ARG_UUID, ARG_VGA, ARG_VIRTFS, ARG_VNC, ARG_WATCHDOG_ACTION, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID_RESTRICT,
+    ARG_XEN_ID,
 };
 use crate::shell_string::ShellString;
 use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QUuid, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
@@ -194,7 +195,7 @@ where
             ARG_OPTION_ROM => ff!(tokens, ARG_OPTION_ROM, PathBuf, q.option_rom),
             ARG_RTC => ff!(tokens, ARG_RTC, Rtc, q.rtc),
             ARG_ICOUNT => ff!(tokens, ARG_ICOUNT, Icount, q.icount),
-            // watchdog
+            ARG_WATCHDOG_ACTION => ff!(tokens, ARG_WATCHDOG_ACTION, WatchdogAction, q.watchdog_action),
             ARG_ECHR => ff!(tokens, ARG_ECHR, String, q.echr),
             ARG_INCOMING => ffs!(tokens, ARG_INCOMING, Incoming, q.incoming),
             ARG_ONLY_MIGRATABLE => q.only_migratable = Some(true),

@@ -111,6 +111,7 @@ pub(crate) const ARG_UUID: &str = "-uuid";
 pub(crate) const ARG_VGA: &str = "-vga";
 pub(crate) const ARG_VIRTFS: &str = "-virtfs";
 pub(crate) const ARG_VNC: &str = "-vnc";
+pub(crate) const ARG_WATCHDOG_ACTION: &str = "-watchdog-action";
 pub(crate) const ARG_WIN2K_HACK: &str = "-win2k-hack";
 pub(crate) const ARG_XEN_ATTACH: &str = "-xen-attach";
 pub(crate) const ARG_XEN_DOMID_RESTRICT: &str = "-xen-domid-restrict";
