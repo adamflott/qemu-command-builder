@@ -46,6 +46,34 @@ fn machine_accepts_type_prefix_alias() {
 }
 
 #[test]
+fn machine_accepts_qemu_11_properties() {
+    let parsed = MachineX86_64::from_str("q35,accel=nitro:mshv:tcg,spcr=off,igvm-cfg=igvm0,sgx-epc.0.memdev=epc0,sgx-epc.0.node=1").unwrap();
+
+    assert_eq!("q35,accel=nitro:mshv:tcg,spcr=off,igvm-cfg=igvm0,sgx-epc.0.memdev=epc0,sgx-epc.0.node=1", parsed.to_args()[0]);
+    assert_eq!(parsed, MachineX86_64::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
+fn machine_accepts_cxl_fixed_memory_windows() {
+    let parsed = MachineX86_64::from_str("q35,cxl-fmw.0.targets.1=cxl.1,cxl-fmw.0.interleave-granularity=512,cxl-fmw.0.targets.0=cxl.0,cxl-fmw.0.size=128G").unwrap();
+
+    assert_eq!(
+        "q35,cxl-fmw.0.targets.0=cxl.0,cxl-fmw.0.targets.1=cxl.1,cxl-fmw.0.size=128G,cxl-fmw.0.interleave-granularity=512",
+        parsed.to_args()[0]
+    );
+    assert_eq!(parsed, MachineX86_64::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
+fn machine_rejects_incomplete_cxl_fixed_memory_windows() {
+    let missing_size = MachineX86_64::from_str("q35,cxl-fmw.0.targets.0=cxl.0").unwrap_err().to_string();
+    assert!(missing_size.contains("cxl-fmw.0 requires size"));
+
+    let missing_target = MachineX86_64::from_str("q35,cxl-fmw.0.size=128G").unwrap_err().to_string();
+    assert!(missing_target.contains("cxl-fmw.0 requires at least one target"));
+}
+
+#[test]
 fn machine_aarch64_displays_canonical_qemu_order() {
     let machine = MachineAarch64::builder()
         .m(Machine::builder()
@@ -63,9 +91,9 @@ fn machine_aarch64_displays_canonical_qemu_order() {
 
 #[test]
 fn machine_aarch64_parses_supported_options() {
-    let parsed = MachineAarch64::from_str("type=virt,memory-backend=virt.ram,nvdimm=on,accel=kvm:tcg,dump-guest-core=off,mem-merge=on").unwrap();
+    let parsed = MachineAarch64::from_str("type=virt,memory-backend=virt.ram,nvdimm=on,accel=kvm:tcg,dump-guest-core=off,mem-merge=on,spcr=on").unwrap();
 
-    assert_eq!("virt,accel=kvm:tcg,dump-guest-core=off,mem-merge=on,nvdimm=on,memory-backend=virt.ram", parsed.to_args()[0]);
+    assert_eq!("virt,accel=kvm:tcg,dump-guest-core=off,mem-merge=on,nvdimm=on,spcr=on,memory-backend=virt.ram", parsed.to_args()[0]);
     assert_eq!(parsed, MachineAarch64::from_str(&parsed.to_args()[0]).unwrap());
 }
 

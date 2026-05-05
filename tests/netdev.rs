@@ -95,6 +95,34 @@ fn netdev_tap_still_round_trips() {
 }
 
 #[test]
+fn netdev_passt_round_trips_qemu_11_backend() {
+    let rendered =
+        "passt,id=net0,path=/usr/bin/passt,quiet=off,vhost-user=on,mtu=1500,address=192.0.2.15,dhcp-dns=off,tcp=on,udp=off,ipv4=on,ipv6=off,tcp-ports=8080:80,param=--trace,param=--log=trace.log";
+    let parsed = NetDev::from_str(rendered).unwrap();
+
+    assert_eq!(rendered, parsed.to_args()[0]);
+    assert_eq!(parsed, NetDev::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
+fn netdev_user_hostfwd_accepts_unix_host_socket() {
+    let rendered = "user,id=n1,hostfwd=unix:/tmp/vm-:23";
+    let parsed = NetDev::from_str(rendered).unwrap();
+
+    assert_eq!(rendered, parsed.to_args()[0]);
+    assert_eq!(parsed, NetDev::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
+fn netdev_af_xdp_round_trips_qemu_11_map_options() {
+    let rendered = "af-xdp,id=n1,ifname=eth0,queues=2,inhibit=on,map-path=/sys/fs/bpf/xsks_map,map-start-index=4";
+    let parsed = NetDev::from_str(rendered).unwrap();
+
+    assert_eq!(rendered, parsed.to_args()[0]);
+    assert_eq!(parsed, NetDev::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
 fn netdev_stream_tcp_round_trips() {
     let rendered = "stream,id=stream0,server=on,addr.type=inet,addr.host=127.0.0.1,addr.port=4444,to=9,numeric=off,keep-alive=on,mptcp=off,addr.ipv4=on,addr.ipv6=off,reconnect-ms=1000";
     let parsed = NetDev::from_str(rendered).unwrap();

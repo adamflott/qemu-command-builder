@@ -21,6 +21,7 @@ const KEY_EAGER_SPLIT_SIZE: &str = "eager-split-size=";
 const KEY_NOTIFY_VMEXIT: &str = "notify-vmexit=";
 const KEY_THREAD: &str = "thread=";
 const KEY_DEVICE: &str = "device=";
+const KEY_HYPERV: &str = "hyperv=";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
 /// QEMU `kernel-irqchip=` values for `-accel`.
@@ -204,6 +205,10 @@ pub struct Accel {
     // option can be used to pass the KVM device to use via a file descriptor
     // by setting the value to ``/dev/fdset/NN``.
     device: Option<ShellPath>,
+
+    /// For the WHPX backend, determines whether to enable Hyper-V
+    /// enlightenments.
+    hyperv: Option<OnOffAuto>,
 }
 
 impl Accel {
@@ -222,6 +227,7 @@ impl Accel {
             notify_vmexit: None,
             thread: None,
             device: None,
+            hyperv: None,
         }
     }
 }
@@ -247,6 +253,7 @@ impl ToCommand for Accel {
         if let Some(device) = &self.device {
             args.push(format!("{}{}", KEY_DEVICE, device.as_ref()));
         }
+        qao!(&self.hyperv, args, KEY_HYPERV);
 
         vec![args.join(DELIM_COMMA)]
     }
@@ -302,6 +309,9 @@ impl FromStr for Accel {
                 }
                 "device" => {
                     accel.device = Some(ShellPath::from(value));
+                }
+                "hyperv" => {
+                    accel.hyperv = Some(value.parse::<OnOffAuto>().map_err(|_| format!("invalid hyperv value: {value}"))?);
                 }
                 other => return Err(format!("unsupported accel option: {other}")),
             }

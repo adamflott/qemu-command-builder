@@ -300,10 +300,14 @@ pub enum AccelType {
     Xen,
     /// Hypervisor.framework acceleration.
     Hvf,
+    /// Amazon Nitro Enclaves acceleration.
+    Nitro,
     /// NetBSD NVMM acceleration.
     Nvmm,
     /// Windows Hypervisor Platform acceleration.
     Whpx,
+    /// Microsoft Hypervisor acceleration.
+    Mshv,
     /// Tiny Code Generator emulation.
     #[default]
     Tcg,
@@ -315,8 +319,10 @@ impl ToArg for AccelType {
             AccelType::Kvm => "kvm",
             AccelType::Xen => "xen",
             AccelType::Hvf => "hvf",
+            AccelType::Nitro => "nitro",
             AccelType::Nvmm => "nvmm",
             AccelType::Whpx => "whpx",
+            AccelType::Mshv => "mshv",
             AccelType::Tcg => "tcg",
         }
     }
@@ -330,8 +336,10 @@ impl FromStr for AccelType {
             "kvm" => Ok(AccelType::Kvm),
             "xen" => Ok(AccelType::Xen),
             "hvf" => Ok(AccelType::Hvf),
+            "nitro" => Ok(AccelType::Nitro),
             "nvmm" => Ok(AccelType::Nvmm),
             "whpx" => Ok(AccelType::Whpx),
+            "mshv" => Ok(AccelType::Mshv),
             "tcg" => Ok(AccelType::Tcg),
             _ => Err(()),
         }

@@ -15,6 +15,7 @@ use winnow::token::literal;
 
 const KEY_ASYNC_TEARDOWN: &str = "async-teardown=";
 const KEY_CHROOT: &str = "chroot=";
+const KEY_EXIT_WITH_PARENT: &str = "exit-with-parent=";
 const KEY_USER: &str = "user=";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
@@ -26,12 +27,13 @@ pub enum UserOrIds {
 pub struct RunWith {
     async_teardown: Option<OnOff>,
     chroot: Option<ShellPath>,
+    exit_with_parent: Option<OnOff>,
     user: Option<UserOrIds>,
 }
 
 impl ToCommand for RunWith {
     fn has_args(&self) -> bool {
-        self.async_teardown.is_some() || self.chroot.is_some() || self.user.is_some()
+        self.async_teardown.is_some() || self.chroot.is_some() || self.exit_with_parent.is_some() || self.user.is_some()
     }
     fn command(&self) -> String {
         ARG_RUN_WITH.to_string()
@@ -43,6 +45,7 @@ impl ToCommand for RunWith {
         if let Some(chroot) = &self.chroot {
             args.push(format!("{}{}", KEY_CHROOT, chroot.as_ref()));
         }
+        qao!(&self.exit_with_parent, args, KEY_EXIT_WITH_PARENT);
 
         if let Some(user) = &self.user {
             match user {
@@ -68,6 +71,7 @@ impl FromStr for RunWith {
 
 pco0!(async_teardown, alphanumeric1, OnOff, KEY_ASYNC_TEARDOWN);
 pco0!(chroot, shell_path_until_comma, ShellPath, KEY_CHROOT);
+pco0!(exit_with_parent, alphanumeric1, OnOff, KEY_EXIT_WITH_PARENT);
 
 fn user(s: &mut &str) -> ModalResult<UserOrIds> {
     let _ = opt(literal(DELIM_COMMA)).parse_next(s)?;
@@ -90,6 +94,12 @@ fn user_id(s: &mut &str) -> ModalResult<UserOrIds> {
 pub fn run_with(s: &mut &str) -> ModalResult<RunWith> {
     let async_teardown = opt(async_teardown).parse_next(s)?;
     let chroot = opt(chroot).parse_next(s)?;
+    let exit_with_parent = opt(exit_with_parent).parse_next(s)?;
     let user = opt(user).parse_next(s)?;
-    Ok(RunWith { async_teardown, chroot, user })
+    Ok(RunWith {
+        async_teardown,
+        chroot,
+        exit_with_parent,
+        user,
+    })
 }

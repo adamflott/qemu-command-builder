@@ -3,6 +3,7 @@ use qemu_command_builder::args::fsdev::SecurityModel;
 use qemu_command_builder::args::incoming::Incoming;
 use qemu_command_builder::args::iscsi::Iscsi;
 use qemu_command_builder::args::rtc::Rtc;
+use qemu_command_builder::args::runwith::RunWith;
 use qemu_command_builder::args::sandbox::{AllowDeny, AllowDenyChildren, Sandbox};
 use qemu_command_builder::args::serial::{SpecialDevice, Tcp as SerialTcp, VC as SerialVc};
 use qemu_command_builder::args::tpmdev::{Emulator, Passthrough, TpmDev};
@@ -110,4 +111,12 @@ fn sandbox_round_trips() {
 
     assert_eq!("on,obsolete=deny,elevateprivileges=children,spawn=allow,resourcecontrol=deny", sandbox.to_args()[0]);
     assert_eq!(sandbox, Sandbox::from_str(&sandbox.to_args()[0]).unwrap());
+}
+
+#[test]
+fn run_with_round_trips_exit_with_parent() {
+    let run_with = RunWith::from_str("async-teardown=on,chroot=/vmroot,exit-with-parent=on,user=1000:1000").unwrap();
+
+    assert_eq!("async-teardown=on,chroot=/vmroot,exit-with-parent=on,user=1000:1000", run_with.to_args()[0]);
+    assert_eq!(run_with, RunWith::from_str(&run_with.to_args()[0]).unwrap());
 }

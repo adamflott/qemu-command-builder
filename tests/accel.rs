@@ -39,6 +39,16 @@ fn accel_parses_optional_accel_prefix() {
 }
 
 #[test]
+fn accel_accepts_qemu_11_backends_and_hyperv() {
+    assert_eq!("nitro", Accel::from_str("nitro").unwrap().to_single_arg());
+    assert_eq!("mshv", Accel::from_str("mshv").unwrap().to_single_arg());
+
+    let parsed = Accel::from_str("whpx,hyperv=auto").unwrap();
+    assert_eq!("whpx,hyperv=auto", parsed.to_single_arg());
+    assert_eq!(parsed, Accel::from_str(&parsed.to_single_arg()).unwrap());
+}
+
+#[test]
 fn accel_round_trips_all_supported_properties() {
     let accel = Accel::builder()
         .accel_type(AccelType::Tcg)

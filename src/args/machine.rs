@@ -21,8 +21,10 @@ const KEY_DEA_KEY_WRAP: &str = "dea-key-wrap=";
 const KEY_NVDIMM: &str = "nvdimm=";
 const KEY_MEMORY_ENCRYPTION: &str = "memory-encryption=";
 const KEY_HMAT: &str = "hmat=";
+const KEY_SPCR: &str = "spcr=";
 const KEY_AUX_RAM_SHARE: &str = "aux-ram-share=";
 const KEY_MEMORY_BACKEND: &str = "memory-backend=";
+const KEY_IGVM_CFG: &str = "igvm-cfg=";
 
 /// Supported `interleave-granularity=` values for `cxl-fmw`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Arbitrary)]
@@ -50,6 +52,24 @@ impl ToArg for Granularity {
         }
     }
 }
+
+impl FromStr for Granularity {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "256" => Ok(Self::G256),
+            "512" => Ok(Self::G512),
+            "1k" => Ok(Self::G1k),
+            "2k" => Ok(Self::G2k),
+            "4k" => Ok(Self::G4k),
+            "8k" => Ok(Self::G8k),
+            "16k" => Ok(Self::G16k),
+            other => Err(format!("invalid cxl-fmw interleave-granularity: {other}")),
+        }
+    }
+}
+
 /// A CXL fixed memory window definition for `-machine`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CxlFmw {
@@ -63,6 +83,13 @@ pub struct CxlFmw {
 pub struct SmpCache {
     cache: String,
     topology: String,
+}
+
+/// An SGX EPC section definition for `-machine sgx-epc.N.*`.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
+pub struct SgxEpc {
+    memdev: ShellString,
+    node: usize,
 }
 
 /// Architecture-specific machine types accepted by this crate.
@@ -140,6 +167,10 @@ pub struct Machine<T> {
     /// (HMAT) support. The default is off.
     hmat: Option<OnOffDefaultOff>,
 
+    /// Enables or disables ACPI Serial Port Console Redirection Table
+    /// (SPCR) support. The default is on.
+    spcr: Option<OnOffDefaultOn>,
+
     /// Allocate auxiliary guest RAM as an anonymous file that is
     /// shareable with an external process.  This option applies to
     /// memory allocated as a side effect of creating various devices.
@@ -152,54 +183,14 @@ pub struct Machine<T> {
     /// Allows to use a memory backend as main RAM.
     memory_backend: Option<ShellString>,
 
-                                         /*
-                                           /// Define a CXL Fixed Memory Window (CFMW).
-                                           ///
-                                           /// Described in the CXL 2.0 ECN: CEDT CFMWS & QTG _DSM.
-                                           ///
-                                           /// They are regions of Host Physical Addresses (HPA) on a system which
-                                           /// may be interleaved across one or more CXL host bridges.  The system
-                                           /// software will assign particular devices into these windows and
-                                           /// configure the downstream Host-managed Device Memory (HDM) decoders
-                                           /// in root ports, switch ports and devices appropriately to meet the
-                                           /// interleave requirements before enabling the memory devices.
-                                           ///
-                                           /// ``targets.X=target`` provides the mapping to CXL host bridges
-                                           /// which may be identified by the id provided in the -device entry.
-                                           /// Multiple entries are needed to specify all the targets when
-                                           /// the fixed memory window represents interleaved memory. X is the
-                                           /// target index from 0.
-                                           ///
-                                           /// ``size=size`` sets the size of the CFMW. This must be a multiple of
-                                           /// 256MiB. The region will be aligned to 256MiB but the location is
-                                           /// platform and configuration dependent.
-                                           ///
-                                           /// ``interleave-granularity=granularity`` sets the granularity of
-                                           /// interleave. Default 256 (bytes). Only 256, 512, 1k, 2k,
-                                           /// 4k, 8k and 16k granularities supported.
-                                         // TOOD  cxl_fmw: Option<CxlFmw>,
+    /// CXL fixed memory windows.
+    cxl_fmw: Option<Vec<CxlFmw>>,
 
-                                           /// Define cache properties for SMP system.
-                                           ///
-                                           /// ``cache=cachename`` specifies the cache that the properties will be
-                                           /// applied on. This field is the combination of cache level and cache
-                                           /// type. It supports ``l1d`` (L1 data cache), ``l1i`` (L1 instruction
-                                           /// cache), ``l2`` (L2 unified cache) and ``l3`` (L3 unified cache).
-                                           ///
-                                           /// ``topology=topologylevel`` sets the cache topology level. It accepts
-                                           /// CPU topology levels including ``core``, ``module``, ``cluster``, ``die``,
-                                           /// ``socket``, ``book``, ``drawer`` and a special value ``default``. If
-                                           /// ``default`` is set, then the cache topology will follow the architecture's
-                                           /// default cache topology model. If another topology level is set, the cache
-                                           /// will be shared at corresponding CPU topology level. For example,
-                                           /// ``topology=core`` makes the cache shared by all threads within a core.
-                                           /// The omitting cache will default to using the ``default`` level.
-                                           ///
-                                           /// The default cache topology model for an i386 PC machine is as follows:
-                                           /// ``l1d``, ``l1i``, and ``l2`` caches are per ``core``, while the ``l3``
-                                           /// cache is per ``die``.
-                                           */
-                                         // TODO   smp_cache: Option<Vec<SmpCache>>,
+    /// IGVM configuration object to use for initial guest state.
+    igvm_cfg: Option<ShellString>,
+
+    /// SGX EPC sections.
+    sgx_epc: Option<Vec<SgxEpc>>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
@@ -230,28 +221,22 @@ impl ToCommand for MachineX86_64 {
             args.push(format!("{}{}", KEY_MEMORY_ENCRYPTION, memory_encryption.as_ref()));
         }
         qao!(&self.m.hmat, args, KEY_HMAT);
+        qao!(&self.m.spcr, args, KEY_SPCR);
         qao!(&self.m.aux_ram_share, args, KEY_AUX_RAM_SHARE);
         if let Some(memory_backend) = &self.m.memory_backend {
             args.push(format!("{}{}", KEY_MEMORY_BACKEND, memory_backend.as_ref()));
         }
+        push_cxl_fmw_args(&mut args, &self.m.cxl_fmw);
+        if let Some(igvm_cfg) = &self.m.igvm_cfg {
+            args.push(format!("{}{}", KEY_IGVM_CFG, igvm_cfg.as_ref()));
+        }
+        if let Some(sgx_epcs) = &self.m.sgx_epc {
+            for (idx, sgx_epc) in sgx_epcs.iter().enumerate() {
+                args.push(format!("sgx-epc.{}.memdev={}", idx, sgx_epc.memdev.as_ref()));
+                args.push(format!("sgx-epc.{}.node={}", idx, sgx_epc.node));
+            }
+        }
 
-        /*
-        if let Some(cxl_fmw) = &self.m.cxl_fmw {
-            for (idx, target) in cxl_fmw.targets.iter().enumerate() {
-                args.push(format!("cxl-fmw.0.targets.{}={}", idx, target));
-            }
-            args.push(format!("cxl-fmw.0.size={}", cxl_fmw.size));
-            if let Some(granularity) = &cxl_fmw.interleave_granularity {
-                args.push(format!("cxl-fmw.0.interleave-granularity={}", granularity.to_arg()));
-            }
-        }
-        if let Some(smp_caches) = &self.m.smp_cache {
-            for (idx, smp_cache) in smp_caches.iter().enumerate() {
-                args.push(format!("smp-cache.{}.cache={}", idx, smp_cache.cache));
-                args.push(format!("smp-cache.{}.topology={}", idx, smp_cache.topology));
-            }
-        }
-         */
         vec![args.join(DELIM_COMMA)]
     }
 }
@@ -278,8 +263,12 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
     let mut nvdimm = None;
     let mut memory_encryption = None;
     let mut hmat = None;
+    let mut spcr = None;
     let mut aux_ram_share = None;
     let mut memory_backend = None;
+    let mut cxl_fmw = std::collections::BTreeMap::<usize, CxlFmwParts>::new();
+    let mut igvm_cfg = None;
+    let mut sgx_epc = std::collections::BTreeMap::<usize, (Option<ShellString>, Option<usize>)>::new();
 
     if let Some(value) = first.strip_prefix(KEY_TYPE) {
         machine_type = Some(parse_machine_type(value)?);
@@ -296,8 +285,12 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
             &mut nvdimm,
             &mut memory_encryption,
             &mut hmat,
+            &mut spcr,
             &mut aux_ram_share,
             &mut memory_backend,
+            &mut cxl_fmw,
+            &mut igvm_cfg,
+            &mut sgx_epc,
         )?;
     } else {
         machine_type = Some(parse_machine_type(first)?);
@@ -316,12 +309,18 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
             &mut nvdimm,
             &mut memory_encryption,
             &mut hmat,
+            &mut spcr,
             &mut aux_ram_share,
             &mut memory_backend,
+            &mut cxl_fmw,
+            &mut igvm_cfg,
+            &mut sgx_epc,
         )?;
     }
 
     let machine_type = machine_type.ok_or_else(|| "machine type is required".to_string())?;
+    let cxl_fmw = build_cxl_fmw(cxl_fmw)?;
+    let sgx_epc = build_sgx_epc(sgx_epc)?;
 
     Ok(MachineX86_64 {
         m: Machine {
@@ -335,8 +334,12 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
             nvdimm,
             memory_encryption,
             hmat,
+            spcr,
             aux_ram_share,
             memory_backend,
+            cxl_fmw,
+            igvm_cfg,
+            sgx_epc,
         },
     })
 }
@@ -354,8 +357,12 @@ fn parse_machine_option(
     nvdimm: &mut Option<OnOffDefaultOff>,
     memory_encryption: &mut Option<ShellString>,
     hmat: &mut Option<OnOffDefaultOff>,
+    spcr: &mut Option<OnOffDefaultOn>,
     aux_ram_share: &mut Option<OnOffDefaultOff>,
     memory_backend: &mut Option<ShellString>,
+    cxl_fmw: &mut std::collections::BTreeMap<usize, CxlFmwParts>,
+    igvm_cfg: &mut Option<ShellString>,
+    sgx_epc: &mut std::collections::BTreeMap<usize, (Option<ShellString>, Option<usize>)>,
 ) -> Result<(), String> {
     let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid machine option: {part}"))?;
     match key {
@@ -375,8 +382,12 @@ fn parse_machine_option(
         "nvdimm" => *nvdimm = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid nvdimm value: {value}"))?),
         "memory-encryption" => *memory_encryption = Some(ShellString::new(value)),
         "hmat" => *hmat = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid hmat value: {value}"))?),
+        "spcr" => *spcr = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid spcr value: {value}"))?),
         "aux-ram-share" => *aux_ram_share = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid aux-ram-share value: {value}"))?),
         "memory-backend" => *memory_backend = Some(ShellString::new(value)),
+        _ if key.starts_with("cxl-fmw.") => parse_cxl_fmw_option(key, value, cxl_fmw)?,
+        "igvm-cfg" => *igvm_cfg = Some(ShellString::new(value)),
+        _ if key.starts_with("sgx-epc.") => parse_sgx_epc_option(key, value, sgx_epc)?,
         other => return Err(format!("unsupported machine option: {other}")),
     }
 
@@ -406,8 +417,19 @@ impl ToCommand for MachineAarch64 {
         qao!(&self.m.dump_guest_core, args, KEY_DUMP_GUEST_CORE);
         qao!(&self.m.mem_merge, args, KEY_MEM_MERGE);
         qao!(&self.m.nvdimm, args, KEY_NVDIMM);
+        qao!(&self.m.spcr, args, KEY_SPCR);
         if let Some(memory_backend) = &self.m.memory_backend {
             args.push(format!("{}{}", KEY_MEMORY_BACKEND, memory_backend.as_ref()));
+        }
+        push_cxl_fmw_args(&mut args, &self.m.cxl_fmw);
+        if let Some(igvm_cfg) = &self.m.igvm_cfg {
+            args.push(format!("{}{}", KEY_IGVM_CFG, igvm_cfg.as_ref()));
+        }
+        if let Some(sgx_epcs) = &self.m.sgx_epc {
+            for (idx, sgx_epc) in sgx_epcs.iter().enumerate() {
+                args.push(format!("sgx-epc.{}.memdev={}", idx, sgx_epc.memdev.as_ref()));
+                args.push(format!("sgx-epc.{}.node={}", idx, sgx_epc.node));
+            }
         }
 
         vec![args.join(DELIM_COMMA)]
@@ -430,21 +452,51 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
     let mut dump_guest_core = None;
     let mut mem_merge = None;
     let mut nvdimm = None;
+    let mut spcr = None;
     let mut memory_backend = None;
+    let mut cxl_fmw = std::collections::BTreeMap::<usize, CxlFmwParts>::new();
+    let mut igvm_cfg = None;
+    let mut sgx_epc = std::collections::BTreeMap::<usize, (Option<ShellString>, Option<usize>)>::new();
 
     if let Some(value) = first.strip_prefix(KEY_TYPE) {
         machine_type = Some(parse_machine_type_aarch64(value)?);
     } else if first.contains('=') {
-        parse_machine_aarch64_option(first, &mut machine_type, &mut accel, &mut dump_guest_core, &mut mem_merge, &mut nvdimm, &mut memory_backend)?;
+        parse_machine_aarch64_option(
+            first,
+            &mut machine_type,
+            &mut accel,
+            &mut dump_guest_core,
+            &mut mem_merge,
+            &mut nvdimm,
+            &mut spcr,
+            &mut memory_backend,
+            &mut cxl_fmw,
+            &mut igvm_cfg,
+            &mut sgx_epc,
+        )?;
     } else {
         machine_type = Some(parse_machine_type_aarch64(first)?);
     }
 
     for part in parts {
-        parse_machine_aarch64_option(part, &mut machine_type, &mut accel, &mut dump_guest_core, &mut mem_merge, &mut nvdimm, &mut memory_backend)?;
+        parse_machine_aarch64_option(
+            part,
+            &mut machine_type,
+            &mut accel,
+            &mut dump_guest_core,
+            &mut mem_merge,
+            &mut nvdimm,
+            &mut spcr,
+            &mut memory_backend,
+            &mut cxl_fmw,
+            &mut igvm_cfg,
+            &mut sgx_epc,
+        )?;
     }
 
     let machine_type = machine_type.ok_or_else(|| "machine type is required".to_string())?;
+    let cxl_fmw = build_cxl_fmw(cxl_fmw)?;
+    let sgx_epc = build_sgx_epc(sgx_epc)?;
 
     Ok(MachineAarch64 {
         m: Machine {
@@ -458,12 +510,17 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
             nvdimm,
             memory_encryption: None,
             hmat: None,
+            spcr,
             aux_ram_share: None,
             memory_backend,
+            cxl_fmw,
+            igvm_cfg,
+            sgx_epc,
         },
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn parse_machine_aarch64_option(
     part: &str,
     machine_type: &mut Option<MachineTypeAarch64>,
@@ -471,7 +528,11 @@ fn parse_machine_aarch64_option(
     dump_guest_core: &mut Option<OnOffDefaultOn>,
     mem_merge: &mut Option<OnOffDefaultOn>,
     nvdimm: &mut Option<OnOffDefaultOff>,
+    spcr: &mut Option<OnOffDefaultOn>,
     memory_backend: &mut Option<ShellString>,
+    cxl_fmw: &mut std::collections::BTreeMap<usize, CxlFmwParts>,
+    igvm_cfg: &mut Option<ShellString>,
+    sgx_epc: &mut std::collections::BTreeMap<usize, (Option<ShellString>, Option<usize>)>,
 ) -> Result<(), String> {
     let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid machine option: {part}"))?;
     match key {
@@ -486,11 +547,128 @@ fn parse_machine_aarch64_option(
         "dump-guest-core" => *dump_guest_core = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid dump-guest-core value: {value}"))?),
         "mem-merge" => *mem_merge = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid mem-merge value: {value}"))?),
         "nvdimm" => *nvdimm = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid nvdimm value: {value}"))?),
+        "spcr" => *spcr = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid spcr value: {value}"))?),
         "memory-backend" => *memory_backend = Some(ShellString::new(value)),
+        _ if key.starts_with("cxl-fmw.") => parse_cxl_fmw_option(key, value, cxl_fmw)?,
+        "igvm-cfg" => *igvm_cfg = Some(ShellString::new(value)),
+        _ if key.starts_with("sgx-epc.") => parse_sgx_epc_option(key, value, sgx_epc)?,
         other => return Err(format!("unsupported aarch64 machine option: {other}")),
     }
 
     Ok(())
+}
+
+#[derive(Debug, Default)]
+struct CxlFmwParts {
+    targets: std::collections::BTreeMap<usize, String>,
+    size: Option<String>,
+    interleave_granularity: Option<Granularity>,
+}
+
+fn push_cxl_fmw_args(args: &mut Vec<String>, cxl_fmw: &Option<Vec<CxlFmw>>) {
+    if let Some(cxl_fmws) = cxl_fmw {
+        for (idx, cxl_fmw) in cxl_fmws.iter().enumerate() {
+            for (target_idx, target) in cxl_fmw.targets.iter().enumerate() {
+                args.push(format!("cxl-fmw.{}.targets.{}={}", idx, target_idx, target));
+            }
+            args.push(format!("cxl-fmw.{}.size={}", idx, cxl_fmw.size));
+            if let Some(granularity) = &cxl_fmw.interleave_granularity {
+                args.push(format!("cxl-fmw.{}.interleave-granularity={}", idx, granularity.to_arg()));
+            }
+        }
+    }
+}
+
+fn parse_cxl_fmw_option(key: &str, value: &str, cxl_fmw: &mut std::collections::BTreeMap<usize, CxlFmwParts>) -> Result<(), String> {
+    let mut parts = key.split('.');
+    let prefix = parts.next();
+    let index = parts.next().ok_or_else(|| format!("invalid CXL FMW option: {key}"))?;
+    if prefix != Some("cxl-fmw") {
+        return Err(format!("invalid CXL FMW option: {key}"));
+    }
+
+    let index = index.parse::<usize>().map_err(|e| format!("invalid CXL FMW index: {e}"))?;
+    let entry = cxl_fmw.entry(index).or_default();
+
+    match parts.next() {
+        Some("targets") => {
+            let target_index = parts.next().ok_or_else(|| format!("invalid CXL FMW target option: {key}"))?;
+            if parts.next().is_some() {
+                return Err(format!("invalid CXL FMW target option: {key}"));
+            }
+            let target_index = target_index.parse::<usize>().map_err(|e| format!("invalid CXL FMW target index: {e}"))?;
+            entry.targets.insert(target_index, value.to_string());
+        }
+        Some("size") => {
+            if parts.next().is_some() {
+                return Err(format!("invalid CXL FMW size option: {key}"));
+            }
+            entry.size = Some(value.to_string());
+        }
+        Some("interleave-granularity") => {
+            if parts.next().is_some() {
+                return Err(format!("invalid CXL FMW interleave-granularity option: {key}"));
+            }
+            entry.interleave_granularity = Some(value.parse::<Granularity>()?);
+        }
+        Some(other) => return Err(format!("unsupported CXL FMW option: {other}")),
+        None => return Err(format!("invalid CXL FMW option: {key}")),
+    }
+
+    Ok(())
+}
+
+fn build_cxl_fmw(cxl_fmw: std::collections::BTreeMap<usize, CxlFmwParts>) -> Result<Option<Vec<CxlFmw>>, String> {
+    if cxl_fmw.is_empty() {
+        return Ok(None);
+    }
+
+    let mut windows = Vec::new();
+    for (index, parts) in cxl_fmw {
+        if parts.targets.is_empty() {
+            return Err(format!("cxl-fmw.{index} requires at least one target"));
+        }
+        windows.push(CxlFmw {
+            targets: parts.targets.into_values().collect(),
+            size: parts.size.ok_or_else(|| format!("cxl-fmw.{index} requires size"))?,
+            interleave_granularity: parts.interleave_granularity,
+        });
+    }
+    Ok(Some(windows))
+}
+
+fn parse_sgx_epc_option(key: &str, value: &str, sgx_epc: &mut std::collections::BTreeMap<usize, (Option<ShellString>, Option<usize>)>) -> Result<(), String> {
+    let mut parts = key.split('.');
+    let prefix = parts.next();
+    let index = parts.next().ok_or_else(|| format!("invalid SGX EPC option: {key}"))?;
+    let field = parts.next().ok_or_else(|| format!("invalid SGX EPC option: {key}"))?;
+    if prefix != Some("sgx-epc") || parts.next().is_some() {
+        return Err(format!("invalid SGX EPC option: {key}"));
+    }
+
+    let index = index.parse::<usize>().map_err(|e| format!("invalid SGX EPC index: {e}"))?;
+    let entry = sgx_epc.entry(index).or_default();
+    match field {
+        "memdev" => entry.0 = Some(ShellString::new(value)),
+        "node" => entry.1 = Some(value.parse::<usize>().map_err(|e| format!("invalid SGX EPC node: {e}"))?),
+        other => return Err(format!("unsupported SGX EPC option: {other}")),
+    }
+    Ok(())
+}
+
+fn build_sgx_epc(sgx_epc: std::collections::BTreeMap<usize, (Option<ShellString>, Option<usize>)>) -> Result<Option<Vec<SgxEpc>>, String> {
+    if sgx_epc.is_empty() {
+        return Ok(None);
+    }
+
+    let mut entries = Vec::new();
+    for (index, (memdev, node)) in sgx_epc {
+        entries.push(SgxEpc {
+            memdev: memdev.ok_or_else(|| format!("sgx-epc.{index} requires memdev"))?,
+            node: node.ok_or_else(|| format!("sgx-epc.{index} requires node"))?,
+        });
+    }
+    Ok(Some(entries))
 }
 
 fn parse_machine_type_aarch64(value: &str) -> Result<MachineTypeAarch64, String> {

@@ -28,6 +28,7 @@ pub enum TcpUdp {
     #[default]
     Tcp,
     Udp,
+    Unix,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
@@ -61,7 +62,8 @@ impl FromStr for ScriptOrNot {
 pub struct HostForward {
     protocol: Option<TcpUdp>,
     hostaddr: Option<String>,
-    hostport: u16,
+    hostport: Option<u16>,
+    hostpath: Option<String>,
     guestaddr: Option<String>,
     guestport: u16,
 }
@@ -161,26 +163,43 @@ impl ToCommand for User {
         }
         if let Some(hostfwds) = &self.hostfwd {
             for hostfwd in hostfwds {
-                let mut subargs = vec![];
-                if let Some(proto) = &hostfwd.protocol {
-                    match proto {
-                        TcpUdp::Tcp => {
-                            subargs.push("tcp".to_string());
-                        }
-                        TcpUdp::Udp => {
-                            subargs.push("udp".to_string());
-                        }
+                let mut value = String::new();
+                match &hostfwd.protocol {
+                    Some(TcpUdp::Tcp) => value.push_str("tcp:"),
+                    Some(TcpUdp::Udp) => value.push_str("udp:"),
+                    Some(TcpUdp::Unix) => value.push_str("unix:"),
+                    None => {}
+                }
+
+                if matches!(hostfwd.protocol, Some(TcpUdp::Unix)) {
+                    if let Some(hostpath) = &hostfwd.hostpath {
+                        value.push_str(hostpath);
                     }
+                    value.push('-');
+                    if let Some(guestaddr) = &hostfwd.guestaddr {
+                        value.push_str(guestaddr);
+                    }
+                    value.push(':');
+                    value.push_str(&hostfwd.guestport.to_string());
+                } else {
+                    if let Some(hostaddr) = &hostfwd.hostaddr {
+                        value.push_str(hostaddr);
+                    }
+                    if hostfwd.hostaddr.is_some() || hostfwd.hostport.is_some() {
+                        value.push(':');
+                    }
+                    if let Some(hostport) = hostfwd.hostport {
+                        value.push_str(&hostport.to_string());
+                    }
+                    value.push('-');
+                    if let Some(guestaddr) = &hostfwd.guestaddr {
+                        value.push_str(guestaddr);
+                    }
+                    value.push(':');
+                    value.push_str(&hostfwd.guestport.to_string());
                 }
-                if let Some(hostaddr) = &hostfwd.hostaddr {
-                    subargs.push(hostaddr.to_string());
-                }
-                subargs.push(format!("{}-", hostfwd.hostport));
-                if let Some(guestaddr) = &hostfwd.guestaddr {
-                    subargs.push(guestaddr.to_string());
-                }
-                subargs.push(format!("{}", hostfwd.guestport));
-                args.push(subargs.join(";"));
+
+                args.push(format!("hostfwd={value}"));
             }
         }
         if let Some(guestfwds) = &self.guestfwd {
@@ -198,7 +217,7 @@ impl ToCommand for User {
                         subargs.push(format!("cmd:{} {}", cmd, args.join(" ")));
                     }
                 }
-                args.push(subargs.join(":"));
+                args.push(format!("guestfwd={}", subargs.join(":")));
             }
         }
         vec![args.join(DELIM_COMMA)]
@@ -1199,6 +1218,8 @@ pub struct AfXdp {
     start_queue: Option<usize>,
     inhibit: Option<OnOff>,
     sock_fds: Option<Vec<String>>,
+    map_path: Option<PathBuf>,
+    map_start_index: Option<usize>,
 }
 
 impl ToCommand for AfXdp {
@@ -1223,6 +1244,12 @@ impl ToCommand for AfXdp {
         if let Some(sock_fds) = &self.sock_fds {
             args.push(format!("sock-fds={}", sock_fds.join(":")));
         }
+        if let Some(map_path) = &self.map_path {
+            args.push(format!("map-path={}", map_path.display()));
+        }
+        if let Some(map_start_index) = self.map_start_index {
+            args.push(format!("map-start-index={}", map_start_index));
+        }
         vec![args.join(DELIM_COMMA)]
     }
 }
@@ -1246,6 +1273,155 @@ impl FromStr for AfXdp {
             start_queue: parse_optional_usize(first_prop(&props, "start-queue"))?,
             inhibit: parse_optional_onoff(first_prop(&props, "inhibit"))?,
             sock_fds: first_prop(&props, "sock-fds").map(|v| v.split(':').map(|part| part.to_string()).collect()),
+            map_path: first_prop(&props, "map-path").map(PathBuf::from),
+            map_start_index: parse_optional_usize(first_prop(&props, "map-start-index"))?,
+        })
+    }
+}
+
+/// A `-netdev passt,...` backend.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
+pub struct Passt {
+    id: String,
+    path: Option<PathBuf>,
+    quiet: Option<OnOff>,
+    vhost_user: Option<OnOff>,
+    mtu: Option<usize>,
+    address: Option<String>,
+    netmask: Option<String>,
+    mac: Option<String>,
+    gateway: Option<String>,
+    interface: Option<String>,
+    outbound: Option<String>,
+    outbound_if4: Option<String>,
+    outbound_if6: Option<String>,
+    dns: Option<String>,
+    search: Option<String>,
+    fqdn: Option<String>,
+    dhcp_dns: Option<OnOff>,
+    dhcp_search: Option<OnOff>,
+    map_host_loopback: Option<String>,
+    map_guest_addr: Option<String>,
+    dns_forward: Option<String>,
+    dns_host: Option<String>,
+    tcp: Option<OnOff>,
+    udp: Option<OnOff>,
+    icmp: Option<OnOff>,
+    dhcp: Option<OnOff>,
+    ndp: Option<OnOff>,
+    dhcpv6: Option<OnOff>,
+    ra: Option<OnOff>,
+    freebind: Option<OnOff>,
+    ipv4: Option<OnOff>,
+    ipv6: Option<OnOff>,
+    tcp_ports: Option<String>,
+    udp_ports: Option<String>,
+    param: Option<Vec<String>>,
+}
+
+impl ToCommand for Passt {
+    fn to_args(&self) -> Vec<String> {
+        let mut args = vec!["passt".to_string(), format!("id={}", self.id)];
+
+        if let Some(path) = &self.path {
+            args.push(format!("path={}", path.display()));
+        }
+        if let Some(quiet) = &self.quiet {
+            args.push(format!("quiet={}", quiet.to_arg()));
+        }
+        if let Some(vhost_user) = &self.vhost_user {
+            args.push(format!("vhost-user={}", vhost_user.to_arg()));
+        }
+        if let Some(mtu) = self.mtu {
+            args.push(format!("mtu={}", mtu));
+        }
+        push_opt_string(&mut args, "address", &self.address);
+        push_opt_string(&mut args, "netmask", &self.netmask);
+        push_opt_string(&mut args, "mac", &self.mac);
+        push_opt_string(&mut args, "gateway", &self.gateway);
+        push_opt_string(&mut args, "interface", &self.interface);
+        push_opt_string(&mut args, "outbound", &self.outbound);
+        push_opt_string(&mut args, "outbound-if4", &self.outbound_if4);
+        push_opt_string(&mut args, "outbound-if6", &self.outbound_if6);
+        push_opt_string(&mut args, "dns", &self.dns);
+        push_opt_string(&mut args, "search", &self.search);
+        push_opt_string(&mut args, "fqdn", &self.fqdn);
+        if let Some(dhcp_dns) = &self.dhcp_dns {
+            args.push(format!("dhcp-dns={}", dhcp_dns.to_arg()));
+        }
+        if let Some(dhcp_search) = &self.dhcp_search {
+            args.push(format!("dhcp-search={}", dhcp_search.to_arg()));
+        }
+        push_opt_string(&mut args, "map-host-loopback", &self.map_host_loopback);
+        push_opt_string(&mut args, "map-guest-addr", &self.map_guest_addr);
+        push_opt_string(&mut args, "dns-forward", &self.dns_forward);
+        push_opt_string(&mut args, "dns-host", &self.dns_host);
+        push_opt_onoff(&mut args, "tcp", &self.tcp);
+        push_opt_onoff(&mut args, "udp", &self.udp);
+        push_opt_onoff(&mut args, "icmp", &self.icmp);
+        push_opt_onoff(&mut args, "dhcp", &self.dhcp);
+        push_opt_onoff(&mut args, "ndp", &self.ndp);
+        push_opt_onoff(&mut args, "dhcpv6", &self.dhcpv6);
+        push_opt_onoff(&mut args, "ra", &self.ra);
+        push_opt_onoff(&mut args, "freebind", &self.freebind);
+        push_opt_onoff(&mut args, "ipv4", &self.ipv4);
+        push_opt_onoff(&mut args, "ipv6", &self.ipv6);
+        push_opt_string(&mut args, "tcp-ports", &self.tcp_ports);
+        push_opt_string(&mut args, "udp-ports", &self.udp_ports);
+        if let Some(params) = &self.param {
+            for param in params {
+                args.push(format!("param={}", param));
+            }
+        }
+
+        vec![args.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for Passt {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let props = parse_netdev_props(s, "passt")?;
+        Ok(Self {
+            id: required_prop(&props, "id")?.to_string(),
+            path: first_prop(&props, "path").map(PathBuf::from),
+            quiet: parse_optional_onoff(first_prop(&props, "quiet"))?,
+            vhost_user: parse_optional_onoff(first_prop(&props, "vhost-user"))?,
+            mtu: parse_optional_usize(first_prop(&props, "mtu"))?,
+            address: first_prop(&props, "address").map(ToString::to_string),
+            netmask: first_prop(&props, "netmask").map(ToString::to_string),
+            mac: first_prop(&props, "mac").map(ToString::to_string),
+            gateway: first_prop(&props, "gateway").map(ToString::to_string),
+            interface: first_prop(&props, "interface").map(ToString::to_string),
+            outbound: first_prop(&props, "outbound").map(ToString::to_string),
+            outbound_if4: first_prop(&props, "outbound-if4").map(ToString::to_string),
+            outbound_if6: first_prop(&props, "outbound-if6").map(ToString::to_string),
+            dns: first_prop(&props, "dns").map(ToString::to_string),
+            search: first_prop(&props, "search").map(ToString::to_string),
+            fqdn: first_prop(&props, "fqdn").map(ToString::to_string),
+            dhcp_dns: parse_optional_onoff(first_prop(&props, "dhcp-dns"))?,
+            dhcp_search: parse_optional_onoff(first_prop(&props, "dhcp-search"))?,
+            map_host_loopback: first_prop(&props, "map-host-loopback").map(ToString::to_string),
+            map_guest_addr: first_prop(&props, "map-guest-addr").map(ToString::to_string),
+            dns_forward: first_prop(&props, "dns-forward").map(ToString::to_string),
+            dns_host: first_prop(&props, "dns-host").map(ToString::to_string),
+            tcp: parse_optional_onoff(first_prop(&props, "tcp"))?,
+            udp: parse_optional_onoff(first_prop(&props, "udp"))?,
+            icmp: parse_optional_onoff(first_prop(&props, "icmp"))?,
+            dhcp: parse_optional_onoff(first_prop(&props, "dhcp"))?,
+            ndp: parse_optional_onoff(first_prop(&props, "ndp"))?,
+            dhcpv6: parse_optional_onoff(first_prop(&props, "dhcpv6"))?,
+            ra: parse_optional_onoff(first_prop(&props, "ra"))?,
+            freebind: parse_optional_onoff(first_prop(&props, "freebind"))?,
+            ipv4: parse_optional_onoff(first_prop(&props, "ipv4"))?,
+            ipv6: parse_optional_onoff(first_prop(&props, "ipv6"))?,
+            tcp_ports: first_prop(&props, "tcp-ports").map(ToString::to_string),
+            udp_ports: first_prop(&props, "udp-ports").map(ToString::to_string),
+            param: {
+                let params = all_props(&props, "param").into_iter().map(ToString::to_string).collect::<Vec<_>>();
+                (!params.is_empty()).then_some(params)
+            },
         })
     }
 }
@@ -1544,6 +1720,7 @@ impl FromStr for Hubport {
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NetDev {
     User(User),
+    Passt(Passt),
     // TODO L2tpv3,
     Tap(Tap),
     Bridge(Bridge),
@@ -1568,6 +1745,7 @@ impl ToCommand for NetDev {
     fn to_args(&self) -> Vec<String> {
         match self {
             NetDev::User(user) => user.to_args(),
+            NetDev::Passt(passt) => passt.to_args(),
             //NetDev::L2tpv3 => {}
             NetDev::Tap(tap) => tap.to_args(),
             NetDev::Bridge(bridge) => bridge.to_args(),
@@ -1593,6 +1771,9 @@ impl FromStr for NetDev {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.starts_with("user,") || s == "user" {
             return Ok(Self::User(s.parse::<User>()?));
+        }
+        if s.starts_with("passt,") || s == "passt" {
+            return Ok(Self::Passt(s.parse::<Passt>()?));
         }
         if s.starts_with("tap,") || s == "tap" {
             return Ok(Self::Tap(s.parse::<Tap>()?));
@@ -1704,6 +1885,18 @@ fn all_props<'a>(props: &'a std::collections::BTreeMap<String, Vec<String>>, key
     props.get(key).map(|values| values.iter().map(|s| s.as_str()).collect()).unwrap_or_default()
 }
 
+fn push_opt_string(args: &mut Vec<String>, key: &str, value: &Option<String>) {
+    if let Some(value) = value {
+        args.push(format!("{key}={value}"));
+    }
+}
+
+fn push_opt_onoff(args: &mut Vec<String>, key: &str, value: &Option<OnOff>) {
+    if let Some(value) = value {
+        args.push(format!("{key}={}", value.to_arg()));
+    }
+}
+
 fn parse_optional_onoff(value: Option<&str>) -> Result<Option<OnOff>, String> {
     value.map(|raw| raw.parse::<OnOff>().map_err(|_| format!("invalid on/off value: {raw}"))).transpose()
 }
@@ -1737,75 +1930,56 @@ fn parse_optional_qipv6net(value: Option<&str>) -> Result<Option<QIpv6Net>, Stri
 }
 
 fn parse_hostfwd(value: &str) -> Result<HostForward, String> {
-    let parts = value.split(';').collect::<Vec<_>>();
-    if parts.len() < 2 {
-        return Err(format!("invalid hostfwd: {value}"));
+    let (protocol, rest) = if let Some(rest) = value.strip_prefix("tcp:") {
+        (Some(TcpUdp::Tcp), rest)
+    } else if let Some(rest) = value.strip_prefix("udp:") {
+        (Some(TcpUdp::Udp), rest)
+    } else if let Some(rest) = value.strip_prefix("unix:") {
+        (Some(TcpUdp::Unix), rest)
+    } else {
+        (None, value)
+    };
+
+    if matches!(protocol, Some(TcpUdp::Unix)) {
+        let (hostpath, guest_range) = rest.split_once('-').ok_or_else(|| format!("invalid hostfwd: {value}"))?;
+        let (guestaddr, guestport) = parse_guest_host_port(guest_range)?;
+        return Ok(HostForward {
+            protocol,
+            hostaddr: None,
+            hostport: None,
+            hostpath: Some(hostpath.to_string()),
+            guestaddr,
+            guestport,
+        });
     }
 
-    let mut idx = 0;
-    let protocol = match parts[0] {
-        "tcp" => {
-            idx = 1;
-            Some(TcpUdp::Tcp)
-        }
-        "udp" => {
-            idx = 1;
-            Some(TcpUdp::Udp)
-        }
-        _ => None,
-    };
-
-    let remaining = &parts[idx..];
-    let (hostaddr, hostport, guestaddr, guestport) = match remaining {
-        [host_range, guest_port] => {
-            let (hostaddr, hostport) = parse_optional_host_port_range(host_range)?;
-            let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
-            (hostaddr, hostport, None, guestport)
-        }
-        [host_range, guest_host, guest_port] => {
-            if host_range.ends_with('-') {
-                let (hostaddr, hostport) = parse_optional_host_port_range(host_range)?;
-                let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
-                (hostaddr, hostport, Some((*guest_host).to_string()), guestport)
-            } else if guest_host.ends_with('-') {
-                let hostport = guest_host
-                    .strip_suffix('-')
-                    .ok_or_else(|| format!("invalid hostfwd host section: {guest_host}"))?
-                    .parse::<u16>()
-                    .map_err(|e| e.to_string())?;
-                let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
-                (Some((*host_range).to_string()), hostport, None, guestport)
-            } else {
-                return Err(format!("invalid hostfwd: {value}"));
-            }
-        }
-        [host_addr, host_range, guest_host, guest_port] => {
-            let hostport = host_range
-                .strip_suffix('-')
-                .ok_or_else(|| format!("invalid hostfwd host section: {host_range}"))?
-                .parse::<u16>()
-                .map_err(|e| e.to_string())?;
-            let guestport = guest_port.parse::<u16>().map_err(|e| e.to_string())?;
-            (Some((*host_addr).to_string()), hostport, Some((*guest_host).to_string()), guestport)
-        }
-        _ => return Err(format!("invalid hostfwd: {value}")),
-    };
+    let (host_range, guest_range) = rest.split_once('-').ok_or_else(|| format!("invalid hostfwd: {value}"))?;
+    let (hostaddr, hostport) = parse_optional_host_port_range(host_range)?;
+    let (guestaddr, guestport) = parse_guest_host_port(guest_range)?;
 
     Ok(HostForward {
         protocol,
         hostaddr,
-        hostport,
+        hostport: Some(hostport),
+        hostpath: None,
         guestaddr,
         guestport,
     })
 }
 
 fn parse_optional_host_port_range(value: &str) -> Result<(Option<String>, u16), String> {
-    let raw = value.strip_suffix('-').ok_or_else(|| format!("invalid hostfwd host section: {value}"))?;
-    if let Some((host, port)) = raw.rsplit_once(':') {
+    if let Some((host, port)) = value.rsplit_once(':') {
         Ok(((!host.is_empty()).then_some(host.to_string()), port.parse::<u16>().map_err(|e| e.to_string())?))
     } else {
-        Ok((None, raw.parse::<u16>().map_err(|e| e.to_string())?))
+        Ok((None, value.parse::<u16>().map_err(|e| e.to_string())?))
+    }
+}
+
+fn parse_guest_host_port(value: &str) -> Result<(Option<String>, u16), String> {
+    if let Some((host, port)) = value.rsplit_once(':') {
+        Ok(((!host.is_empty()).then_some(host.to_string()), port.parse::<u16>().map_err(|e| e.to_string())?))
+    } else {
+        Ok((None, value.parse::<u16>().map_err(|e| e.to_string())?))
     }
 }
 
