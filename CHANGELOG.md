@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [10.0.3-6] - 2026-05-04
+
+- Add -g, -watchdog-action
+- Refactor args into `args/`
+ 
 ## [10.0.3-5] - 2026-05-04
 
 - Implement many more options (thanks to codex)
