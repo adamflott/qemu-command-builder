@@ -52,7 +52,7 @@ use crate::parsers::{
     ARG_XEN_ID,
 };
 use crate::shell_string::ShellString;
-use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QUuid, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
+use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QUuid, QemuCommand, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
 use std::path::PathBuf;
 use std::str::FromStr;
 use winnow::Result;
@@ -223,7 +223,7 @@ where
     Ok(())
 }
 
-fn parse_qemu_command_line<Machine: std::str::FromStr, Cpu: std::str::FromStr>(bin_name: &str, s: &str, q: &mut QemuInstanceBase<Machine, Cpu>) -> Result<(), String>
+fn _parse_qemu_command_line<Machine: std::str::FromStr, Cpu: std::str::FromStr>(bin_name: &str, s: &str, q: &mut QemuInstanceBase<Machine, Cpu>) -> Result<(), String>
 where
     <Cpu as FromStr>::Err: std::fmt::Display,
     <Machine as FromStr>::Err: std::fmt::Display,
@@ -239,7 +239,7 @@ where
             if path.contains(bin_name) {
                 q.qemu_binary = PathBuf::from(path);
             } else {
-                return Err(format!("{} not found in string", bin_name));
+                return Err(format!("{} not found in string {}", bin_name, path));
             }
         }
     }
@@ -254,7 +254,7 @@ impl FromStr for QemuInstanceForX86_64 {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut q = QemuInstanceBase::builder().qemu_binary(PathBuf::from("")).build();
-        parse_qemu_command_line(QEMU_BIN_X86_64, s, &mut q)?;
+        _parse_qemu_command_line(QEMU_BIN_X86_64, s, &mut q)?;
         Ok(q)
     }
 }
@@ -264,7 +264,22 @@ impl FromStr for QemuInstanceForAarch64 {
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         let mut q = QemuInstanceBase::builder().qemu_binary(PathBuf::from("")).build();
-        parse_qemu_command_line(QEMU_BIN_AARCH64, s, &mut q)?;
+        _parse_qemu_command_line(QEMU_BIN_AARCH64, s, &mut q)?;
         Ok(q)
+    }
+}
+
+pub fn parse_qemu_command_line(cmd: &str) -> Result<QemuCommand, String> {
+    match cmd.split_once(" ") {
+        None => Err(String::from("No next token for determining binary name")),
+        Some((bin, _rest)) => {
+            if bin.ends_with(QEMU_BIN_AARCH64) {
+                return QemuInstanceForAarch64::from_str(cmd).map(QemuCommand::Aarch64);
+            }
+            if bin.ends_with(QEMU_BIN_X86_64) {
+                return QemuInstanceForX86_64::from_str(cmd).map(QemuCommand::X86_64);
+            }
+            Err(format!("binary {} is an unsupported architecture", bin))
+        }
     }
 }

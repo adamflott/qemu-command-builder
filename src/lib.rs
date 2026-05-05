@@ -62,6 +62,7 @@ use crate::args::usb::USBDevice;
 use crate::args::vga::VGA;
 use crate::args::virtfs::Virtfs;
 use crate::args::vnc::VNC;
+use crate::parser::parse_qemu_command_line;
 use crate::parsers::{
     ARG_APPEND, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_CDROM, ARG_DAEMONIZE, ARG_DEBUGCON, ARG_DFILTER, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM, ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB,
     ARG_FULL_SCREEN, ARG_GDB, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_INITRD, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC,
@@ -442,7 +443,7 @@ where
         }
         if let Some(monitor) = &self.monitor {
             cmd.push(ARG_MONITOR.to_string());
-            cmd.append(&mut monitor.to_command());
+            cmd.append(&mut monitor.to_args());
         }
         if let Some(qmp) = &self.qmp {
             cmd.push(ARG_QMP.to_string());
@@ -639,6 +640,36 @@ where
 
 pub type QemuInstanceForX86_64 = QemuInstanceBase<MachineX86_64, CpuX86>;
 pub type QemuInstanceForAarch64 = QemuInstanceBase<MachineAarch64, CpuAarch64>;
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum QemuCommand {
+    X86_64(QemuInstanceBase<MachineX86_64, CpuX86>),
+    Aarch64(QemuInstanceBase<MachineAarch64, CpuAarch64>),
+}
+
+impl ToCommand for QemuCommand {
+    fn to_args(&self) -> Vec<String> {
+        match self {
+            QemuCommand::X86_64(instance) => instance.to_args(),
+            QemuCommand::Aarch64(instance) => instance.to_args(),
+        }
+    }
+
+    fn to_command(&self) -> Vec<String> {
+        match self {
+            QemuCommand::X86_64(instance) => instance.to_command(),
+            QemuCommand::Aarch64(instance) => instance.to_command(),
+        }
+    }
+}
+
+impl FromStr for QemuCommand {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        parse_qemu_command_line(s)
+    }
+}
 
 pub struct QUuid {}
 

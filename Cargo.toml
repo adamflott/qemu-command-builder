@@ -24,3 +24,7 @@ winnow = "1.0.2"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
+
+[[bin]]
+name = "parse_qemu_command"
+path = "src/bin/parse_qemu_command.rs"
