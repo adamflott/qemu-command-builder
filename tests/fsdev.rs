@@ -1,12 +1,12 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::fsdev::{FsDev, FsDevLocal, FsDevSynth, SecurityModel};
+use qemu_command_builder::args::fsdev::{FsDev, FsDevLocal, FsDevSynth, SecurityModel};
 use qemu_command_builder::to_command::ToCommand;
 use std::path::PathBuf;
 use std::str::FromStr;
 
 #[test]
 fn fsdev_local_displays_single_canonical_argument() {
-    let fsdev = FsDev::Local(
+    let fsdev = FsDev::Local(Box::new(
         FsDevLocal::builder()
             .id("fs0".to_string())
             .path(PathBuf::from("/exports/share"))
@@ -14,7 +14,7 @@ fn fsdev_local_displays_single_canonical_argument() {
             .writeout(())
             .readonly(())
             .build(),
-    );
+    ));
 
     assert_eq!("local,id=fs0,path=/exports/share,security_model=mapped-xattr,writeout=immediate,readonly=on", fsdev.to_args()[0]);
 }

@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::blockdev::BlockDev;
+use qemu_command_builder::args::blockdev::BlockDev;
 use qemu_command_builder::common::{OnOff, OnOffUnmap};
 use qemu_command_builder::to_command::ToCommand;
 use std::collections::BTreeMap;

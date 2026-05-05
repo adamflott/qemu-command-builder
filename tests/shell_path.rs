@@ -1,6 +1,6 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::drive::Drive;
-use qemu_command_builder::runwith::{RunWith, UserOrIds};
+use qemu_command_builder::args::drive::Drive;
+use qemu_command_builder::args::runwith::{RunWith, UserOrIds};
 use qemu_command_builder::shell_path::ShellPath;
 use qemu_command_builder::shell_string::ShellString;
 use qemu_command_builder::to_command::ToCommand;

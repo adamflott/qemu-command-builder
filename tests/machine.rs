@@ -1,7 +1,7 @@
 use pretty_assertions::assert_eq;
+use qemu_command_builder::args::machine::{Machine, MachineAarch64, MachineX86_64};
+use qemu_command_builder::args::machine_type::{MachineTypeAarch64, MachineTypeX86_64};
 use qemu_command_builder::common::{AccelType, OnOffAuto, OnOffDefaultOff, OnOffDefaultOn};
-use qemu_command_builder::machine::{Machine, MachineAarch64, MachineX86_64};
-use qemu_command_builder::machine_type::{MachineTypeAarch64, MachineTypeX86_64};
 use qemu_command_builder::shell_string::ShellString;
 use qemu_command_builder::to_command::ToCommand;
 use std::str::FromStr;

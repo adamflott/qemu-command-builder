@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::acpitable::{AcpiTable, AcpiTableData};
+use qemu_command_builder::args::acpitable::{AcpiTable, AcpiTableData};
 use qemu_command_builder::shell_path::ShellPath;
 use qemu_command_builder::shell_string::ShellString;
 use qemu_command_builder::to_command::ToCommand;

@@ -1,9 +1,9 @@
 #[cfg(test)]
 mod test {
+    use qemu_command_builder::args::cpu::CpuX86;
+    use qemu_command_builder::args::cpu_flags::CPUFlag;
+    use qemu_command_builder::args::cpu_type::CpuTypeX86_64;
     use qemu_command_builder::common::{OnOff, YesNo};
-    use qemu_command_builder::cpu::CpuX86;
-    use qemu_command_builder::cpu_flags::CPUFlag;
-    use qemu_command_builder::cpu_type::CpuTypeX86_64;
     use qemu_command_builder::to_command::ToCommand;
     use std::collections::BTreeSet;
     use std::str::FromStr;

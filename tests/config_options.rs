@@ -1,8 +1,8 @@
 use pretty_assertions::assert_eq;
+use qemu_command_builder::args::fw_cfg::FwCfg;
+use qemu_command_builder::args::global::Global;
+use qemu_command_builder::args::icount::{Icount, RecordReplay, Shift};
 use qemu_command_builder::common::OnOff;
-use qemu_command_builder::fw_cfg::FwCfg;
-use qemu_command_builder::global::Global;
-use qemu_command_builder::icount::{Icount, RecordReplay, Shift};
 use qemu_command_builder::to_command::ToCommand;
 use std::path::PathBuf;
 use std::str::FromStr;

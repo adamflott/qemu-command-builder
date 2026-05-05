@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::chardev::{CharDev, CharHub, CharNull, CharPipe, CharSocket, CharSocketTcp, CharSocketUds, CharStdio};
+use qemu_command_builder::args::chardev::{CharDev, CharHub, CharNull, CharPipe, CharSocket, CharSocketTcp, CharSocketUds, CharStdio};
 use qemu_command_builder::common::OnOff;
 use qemu_command_builder::to_command::ToCommand;
 use std::path::PathBuf;
@@ -57,7 +57,7 @@ fn chardev_pipe_includes_required_path() {
 
 #[test]
 fn chardev_pty_round_trips_optional_path() {
-    let chardev = CharDev::Pty(qemu_command_builder::chardev::CharPty::builder().id("pty0".to_string()).path(PathBuf::from("/tmp/pty")).build());
+    let chardev = CharDev::Pty(qemu_command_builder::args::chardev::CharPty::builder().id("pty0".to_string()).path(PathBuf::from("/tmp/pty")).build());
 
     let rendered = chardev.to_args()[0].clone();
 

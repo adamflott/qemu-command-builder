@@ -9,9 +9,9 @@ use winnow::combinator::{alt, opt, preceded, separated};
 use winnow::prelude::*;
 use winnow::token::{literal, take_while};
 
+use crate::args::cpu_flags::CPUFlag;
+use crate::args::cpu_type::{CpuTypeAarch64, CpuTypeX86_64};
 use crate::common::{OnOff, YesNo};
-use crate::cpu_flags::CPUFlag;
-use crate::cpu_type::{CpuTypeAarch64, CpuTypeX86_64};
 use crate::parsers::{DELIM_COMMA, ascii_plus_more};
 use crate::shell_string::ShellStringError;
 use crate::{ToArg, ToCommand, qao};

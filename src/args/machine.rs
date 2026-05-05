@@ -4,8 +4,8 @@ use std::str::FromStr;
 use bon::Builder;
 use proptest_derive::Arbitrary;
 
+use crate::args::machine_type::{MachineTypeAarch64, MachineTypeX86_64};
 use crate::common::*;
-use crate::machine_type::{MachineTypeAarch64, MachineTypeX86_64};
 use crate::parsers::{DELIM_COLON, DELIM_COMMA};
 use crate::qao;
 use crate::shell_string::{ShellString, ShellStringError};

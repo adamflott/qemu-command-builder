@@ -1,6 +1,6 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::addfs::AddFd;
-use qemu_command_builder::boot::Boot;
+use qemu_command_builder::args::addfs::AddFd;
+use qemu_command_builder::args::boot::Boot;
 use qemu_command_builder::shell_string::ShellString;
 use qemu_command_builder::to_command::ToCommand;
 use std::str::FromStr;

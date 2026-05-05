@@ -1,6 +1,6 @@
 use pretty_assertions::assert_eq;
+use qemu_command_builder::args::netdev::{Bridge, HostAndMaybePort, HostAndPort, Hubport, NetDev, Socket, SocketRegular, Tap, VhostVdpa};
 use qemu_command_builder::common::OnOff;
-use qemu_command_builder::netdev::{Bridge, HostAndMaybePort, HostAndPort, Hubport, NetDev, Socket, SocketRegular, Tap, VhostVdpa};
 use qemu_command_builder::to_command::ToCommand;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -82,8 +82,8 @@ fn netdev_tap_still_round_trips() {
         Tap::builder()
             .id("net0".to_string())
             .ifname("tap0".to_string())
-            .script(qemu_command_builder::netdev::ScriptOrNot::None)
-            .downscript(qemu_command_builder::netdev::ScriptOrNot::None)
+            .script(qemu_command_builder::args::netdev::ScriptOrNot::None)
+            .downscript(qemu_command_builder::args::netdev::ScriptOrNot::None)
             .vhost(OnOff::On)
             .queues(8)
             .build(),

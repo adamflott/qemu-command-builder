@@ -1,6 +1,6 @@
 use pretty_assertions::assert_eq;
 use qemu_command_builder::QemuInstanceForX86_64;
-use qemu_command_builder::audiodev::AudioDev;
+use qemu_command_builder::args::audiodev::AudioDev;
 use qemu_command_builder::to_command::ToCommand;
 use std::str::FromStr;
 
@@ -9,15 +9,15 @@ fn audiodev_displays_canonical_driver_and_properties() {
     let audiodev = AudioDev::builder()
         .driver("alsa".to_string())
         .props(vec![
-            qemu_command_builder::audiodev::AudioDevProperty {
+            qemu_command_builder::args::audiodev::AudioDevProperty {
                 key: "out.frequency".to_string(),
                 value: Some("8000".to_string()),
             },
-            qemu_command_builder::audiodev::AudioDevProperty {
+            qemu_command_builder::args::audiodev::AudioDevProperty {
                 key: "id".to_string(),
                 value: Some("example".to_string()),
             },
-            qemu_command_builder::audiodev::AudioDevProperty {
+            qemu_command_builder::args::audiodev::AudioDevProperty {
                 key: "out.channels".to_string(),
                 value: Some("1".to_string()),
             },

@@ -1,13 +1,13 @@
 use pretty_assertions::assert_eq;
+use qemu_command_builder::args::msg::Msg;
+use qemu_command_builder::args::name::Name;
+use qemu_command_builder::args::object::Object;
+use qemu_command_builder::args::overcommit::{OnOffOnfault, Overcommit};
+use qemu_command_builder::args::plugin::Plugin;
+use qemu_command_builder::args::set::Set;
+use qemu_command_builder::args::trace::Trace;
 use qemu_command_builder::common::OnOff;
-use qemu_command_builder::msg::Msg;
-use qemu_command_builder::name::Name;
-use qemu_command_builder::object::Object;
-use qemu_command_builder::overcommit::{OnOffOnfault, Overcommit};
-use qemu_command_builder::plugin::Plugin;
-use qemu_command_builder::set::Set;
 use qemu_command_builder::to_command::ToCommand;
-use qemu_command_builder::trace::Trace;
 use std::path::PathBuf;
 use std::str::FromStr;
 

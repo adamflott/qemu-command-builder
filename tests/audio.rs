@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::audio::Audio;
+use qemu_command_builder::args::audio::Audio;
 use qemu_command_builder::to_command::ToCommand;
 use std::str::FromStr;
 

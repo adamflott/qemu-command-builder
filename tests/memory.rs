@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::memory::{Memory, MemoryUnit};
+use qemu_command_builder::args::memory::{Memory, MemoryUnit};
 use qemu_command_builder::to_command::ToCommand;
 use std::str::FromStr;
 

@@ -1,4 +1,4 @@
-use crate::chardev::CharDev;
+use crate::args::chardev::CharDev;
 use crate::common::OnOff;
 use crate::parsers::ARG_NETDEV;
 use crate::parsers::DELIM_COMMA;

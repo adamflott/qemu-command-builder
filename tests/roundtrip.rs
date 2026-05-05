@@ -1,9 +1,9 @@
 use pretty_assertions::assert_eq;
 use qemu_command_builder::QemuInstanceForX86_64;
-use qemu_command_builder::display::QemuDisplay;
-use qemu_command_builder::netdev::NetDev;
-use qemu_command_builder::serial::SpecialDevice;
-use qemu_command_builder::smbios::{Smbios, SmbiosType0, SmbiosType1, SmbiosType2};
+use qemu_command_builder::args::display::QemuDisplay;
+use qemu_command_builder::args::netdev::NetDev;
+use qemu_command_builder::args::serial::SpecialDevice;
+use qemu_command_builder::args::smbios::{Smbios, SmbiosType0, SmbiosType1, SmbiosType2};
 use qemu_command_builder::to_command::ToCommand;
 use std::str::FromStr;
 

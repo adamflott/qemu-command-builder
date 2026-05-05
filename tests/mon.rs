@@ -1,6 +1,6 @@
 use pretty_assertions::assert_eq;
+use qemu_command_builder::args::mon::{Mon, ReadlineControl};
 use qemu_command_builder::common::OnOff;
-use qemu_command_builder::mon::{Mon, ReadlineControl};
 use qemu_command_builder::shell_string::ShellString;
 use qemu_command_builder::to_command::ToCommand;
 use std::str::FromStr;

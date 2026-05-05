@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::accel::{Accel, NotifyVMExit, OnOffSplit, TCGThreadType};
+use qemu_command_builder::args::accel::{Accel, NotifyVMExit, OnOffSplit, TCGThreadType};
 use qemu_command_builder::common::{AccelType, OnOff, OnOffDefaultOff};
 use qemu_command_builder::shell_path::ShellPath;
 use qemu_command_builder::to_command::ToCommand;

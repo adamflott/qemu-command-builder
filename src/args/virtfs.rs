@@ -1,4 +1,4 @@
-use crate::fsdev::SecurityModel;
+use crate::args::fsdev::SecurityModel;
 use crate::parsers::{ARG_VIRTFS, DELIM_COMMA};
 use crate::to_command::{ToArg, ToCommand};
 use bon::Builder;
