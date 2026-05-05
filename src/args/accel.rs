@@ -146,7 +146,7 @@ pub struct Accel {
     kernel_irqchip: Option<OnOffSplit>,
 
     /// Defines the size of the KVM shadow MMU.
-    kvm_shadow_mem: Option<usize>, // TODO convert to a byte type
+    kvm_shadow_mem: Option<usize>,
 
     /// Makes the TCG accelerator put only one guest instruction into
     /// each translation block. This slows down emulation a lot, but
@@ -161,7 +161,7 @@ pub struct Accel {
     split_wx: Option<OnOff>,
 
     /// Controls the size (in MiB) of the TCG translation block cache.
-    tb_size: Option<usize>, // TODO convert to a byte type
+    tb_size: Option<usize>,
 
     /// When the KVM accelerator is used, it controls the size of the per-vCPU
     /// dirty page ring buffer (number of entries for each vCPU). It should

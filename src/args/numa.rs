@@ -60,8 +60,8 @@ pub struct NUMAHMATLb {
     target: usize,
     hierarchy: NUMAHierarchy,
     data_type: NUMADataType,
-    latency: Option<usize>,   // TODO nanoseconds type
-    bandwidth: Option<usize>, // TODO add value the possible value and units are NUM[M|G|T] mean that the bandwidth value are NUM byte per second (or MB/s, GB/s or TB/s depending on used suffix). Note that if latency or bandwidth value is 0, means the corresponding latency or bandwidth information is not provided.
+    latency: Option<usize>,
+    bandwidth: Option<usize>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]

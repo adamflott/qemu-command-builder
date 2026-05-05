@@ -134,7 +134,7 @@ pub struct Machine<T> {
     nvdimm: Option<OnOffDefaultOff>,
 
     /// Memory encryption object to use. The default is none.
-    memory_encryption: Option<ShellString>, // TODO find out actual values
+    memory_encryption: Option<ShellString>,
 
     /// Enables or disables ACPI Heterogeneous Memory Attribute Table
     /// (HMAT) support. The default is off.
@@ -150,7 +150,8 @@ pub struct Machine<T> {
 
     /// An alternative to legacy ``-mem-path`` and ``mem-prealloc`` options.
     /// Allows to use a memory backend as main RAM.
-    memory_backend: Option<ShellString>, // TODO find out actual values
+    memory_backend: Option<ShellString>,
+
                                          /*
                                            /// Define a CXL Fixed Memory Window (CFMW).
                                            ///
