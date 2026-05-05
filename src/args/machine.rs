@@ -20,6 +20,7 @@ const KEY_AES_KEY_WRAP: &str = "aes-key-wrap=";
 const KEY_DEA_KEY_WRAP: &str = "dea-key-wrap=";
 const KEY_NVDIMM: &str = "nvdimm=";
 const KEY_MEMORY_ENCRYPTION: &str = "memory-encryption=";
+const KEY_CONFIDENTIAL_GUEST_SUPPORT: &str = "confidential-guest-support=";
 const KEY_HMAT: &str = "hmat=";
 const KEY_SPCR: &str = "spcr=";
 const KEY_AUX_RAM_SHARE: &str = "aux-ram-share=";
@@ -163,6 +164,9 @@ pub struct Machine<T> {
     /// Memory encryption object to use. The default is none.
     memory_encryption: Option<ShellString>,
 
+    /// Confidential guest support object to use. The default is none.
+    confidential_guest_support: Option<ShellString>,
+
     /// Enables or disables ACPI Heterogeneous Memory Attribute Table
     /// (HMAT) support. The default is off.
     hmat: Option<OnOffDefaultOff>,
@@ -220,6 +224,9 @@ impl ToCommand for MachineX86_64 {
         if let Some(memory_encryption) = &self.m.memory_encryption {
             args.push(format!("{}{}", KEY_MEMORY_ENCRYPTION, memory_encryption.as_ref()));
         }
+        if let Some(confidential_guest_support) = &self.m.confidential_guest_support {
+            args.push(format!("{}{}", KEY_CONFIDENTIAL_GUEST_SUPPORT, confidential_guest_support.as_ref()));
+        }
         qao!(&self.m.hmat, args, KEY_HMAT);
         qao!(&self.m.spcr, args, KEY_SPCR);
         qao!(&self.m.aux_ram_share, args, KEY_AUX_RAM_SHARE);
@@ -262,6 +269,7 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
     let mut dea_key_wrap = None;
     let mut nvdimm = None;
     let mut memory_encryption = None;
+    let mut confidential_guest_support = None;
     let mut hmat = None;
     let mut spcr = None;
     let mut aux_ram_share = None;
@@ -284,6 +292,7 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
             &mut dea_key_wrap,
             &mut nvdimm,
             &mut memory_encryption,
+            &mut confidential_guest_support,
             &mut hmat,
             &mut spcr,
             &mut aux_ram_share,
@@ -308,6 +317,7 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
             &mut dea_key_wrap,
             &mut nvdimm,
             &mut memory_encryption,
+            &mut confidential_guest_support,
             &mut hmat,
             &mut spcr,
             &mut aux_ram_share,
@@ -333,6 +343,7 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
             dea_key_wrap,
             nvdimm,
             memory_encryption,
+            confidential_guest_support,
             hmat,
             spcr,
             aux_ram_share,
@@ -356,6 +367,7 @@ fn parse_machine_option(
     dea_key_wrap: &mut Option<OnOffDefaultOn>,
     nvdimm: &mut Option<OnOffDefaultOff>,
     memory_encryption: &mut Option<ShellString>,
+    confidential_guest_support: &mut Option<ShellString>,
     hmat: &mut Option<OnOffDefaultOff>,
     spcr: &mut Option<OnOffDefaultOn>,
     aux_ram_share: &mut Option<OnOffDefaultOff>,
@@ -381,6 +393,7 @@ fn parse_machine_option(
         "dea-key-wrap" => *dea_key_wrap = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid dea-key-wrap value: {value}"))?),
         "nvdimm" => *nvdimm = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid nvdimm value: {value}"))?),
         "memory-encryption" => *memory_encryption = Some(ShellString::new(value)),
+        "confidential-guest-support" => *confidential_guest_support = Some(ShellString::new(value)),
         "hmat" => *hmat = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid hmat value: {value}"))?),
         "spcr" => *spcr = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid spcr value: {value}"))?),
         "aux-ram-share" => *aux_ram_share = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid aux-ram-share value: {value}"))?),
@@ -418,6 +431,9 @@ impl ToCommand for MachineAarch64 {
         qao!(&self.m.mem_merge, args, KEY_MEM_MERGE);
         qao!(&self.m.nvdimm, args, KEY_NVDIMM);
         qao!(&self.m.spcr, args, KEY_SPCR);
+        if let Some(confidential_guest_support) = &self.m.confidential_guest_support {
+            args.push(format!("{}{}", KEY_CONFIDENTIAL_GUEST_SUPPORT, confidential_guest_support.as_ref()));
+        }
         if let Some(memory_backend) = &self.m.memory_backend {
             args.push(format!("{}{}", KEY_MEMORY_BACKEND, memory_backend.as_ref()));
         }
@@ -453,6 +469,7 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
     let mut mem_merge = None;
     let mut nvdimm = None;
     let mut spcr = None;
+    let mut confidential_guest_support = None;
     let mut memory_backend = None;
     let mut cxl_fmw = std::collections::BTreeMap::<usize, CxlFmwParts>::new();
     let mut igvm_cfg = None;
@@ -469,6 +486,7 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
             &mut mem_merge,
             &mut nvdimm,
             &mut spcr,
+            &mut confidential_guest_support,
             &mut memory_backend,
             &mut cxl_fmw,
             &mut igvm_cfg,
@@ -487,6 +505,7 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
             &mut mem_merge,
             &mut nvdimm,
             &mut spcr,
+            &mut confidential_guest_support,
             &mut memory_backend,
             &mut cxl_fmw,
             &mut igvm_cfg,
@@ -509,6 +528,7 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
             dea_key_wrap: None,
             nvdimm,
             memory_encryption: None,
+            confidential_guest_support,
             hmat: None,
             spcr,
             aux_ram_share: None,
@@ -529,6 +549,7 @@ fn parse_machine_aarch64_option(
     mem_merge: &mut Option<OnOffDefaultOn>,
     nvdimm: &mut Option<OnOffDefaultOff>,
     spcr: &mut Option<OnOffDefaultOn>,
+    confidential_guest_support: &mut Option<ShellString>,
     memory_backend: &mut Option<ShellString>,
     cxl_fmw: &mut std::collections::BTreeMap<usize, CxlFmwParts>,
     igvm_cfg: &mut Option<ShellString>,
@@ -548,6 +569,7 @@ fn parse_machine_aarch64_option(
         "mem-merge" => *mem_merge = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid mem-merge value: {value}"))?),
         "nvdimm" => *nvdimm = Some(value.parse::<OnOffDefaultOff>().map_err(|_| format!("invalid nvdimm value: {value}"))?),
         "spcr" => *spcr = Some(value.parse::<OnOffDefaultOn>().map_err(|_| format!("invalid spcr value: {value}"))?),
+        "confidential-guest-support" => *confidential_guest_support = Some(ShellString::new(value)),
         "memory-backend" => *memory_backend = Some(ShellString::new(value)),
         _ if key.starts_with("cxl-fmw.") => parse_cxl_fmw_option(key, value, cxl_fmw)?,
         "igvm-cfg" => *igvm_cfg = Some(ShellString::new(value)),

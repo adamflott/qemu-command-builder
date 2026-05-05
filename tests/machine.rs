@@ -16,22 +16,23 @@ fn machine_displays_canonical_qemu_order() {
             .dump_guest_core(OnOffDefaultOn::Off)
             .nvdimm(OnOffDefaultOff::On)
             .memory_encryption(ShellString::from("sev0"))
+            .confidential_guest_support(ShellString::from("sev0"))
             .memory_backend(ShellString::from("pc.ram"))
             .build())
         .build();
 
     assert_eq!(
-        "q35,accel=kvm:tcg,vmport=auto,dump-guest-core=off,nvdimm=on,memory-encryption=sev0,memory-backend=pc.ram",
+        "q35,accel=kvm:tcg,vmport=auto,dump-guest-core=off,nvdimm=on,memory-encryption=sev0,confidential-guest-support=sev0,memory-backend=pc.ram",
         machine.to_args()[0]
     );
 }
 
 #[test]
 fn machine_parses_mixed_order_into_canonical_output() {
-    let parsed = MachineX86_64::from_str("q35,memory-backend=pc.ram,nvdimm=on,accel=kvm:tcg,memory-encryption=sev0,vmport=auto,dump-guest-core=off").unwrap();
+    let parsed = MachineX86_64::from_str("q35,memory-backend=pc.ram,nvdimm=on,accel=kvm:tcg,confidential-guest-support=sev0,memory-encryption=sev0,vmport=auto,dump-guest-core=off").unwrap();
 
     assert_eq!(
-        "q35,accel=kvm:tcg,vmport=auto,dump-guest-core=off,nvdimm=on,memory-encryption=sev0,memory-backend=pc.ram",
+        "q35,accel=kvm:tcg,vmport=auto,dump-guest-core=off,nvdimm=on,memory-encryption=sev0,confidential-guest-support=sev0,memory-backend=pc.ram",
         parsed.to_args()[0]
     );
     assert_eq!(parsed, MachineX86_64::from_str(&parsed.to_args()[0]).unwrap());

@@ -40,6 +40,14 @@ fn object_uses_object_command_and_round_trips() {
 }
 
 #[test]
+fn qemu_instance_parses_confidential_guest_support_with_sev_object() {
+    let cmd = "/usr/bin/qemu-system-x86_64 -machine q35,confidential-guest-support=sev0 -object sev-guest,id=sev0,cbitpos=47,reduced-phys-bits=1";
+    let parsed = QemuInstanceForX86_64::from_str(cmd).unwrap();
+
+    assert_eq!(cmd, parsed.to_single_command());
+}
+
+#[test]
 fn overcommit_emits_qemu_keys_and_round_trips() {
     let mem_lock = Overcommit::MemLock(OnOffOnfault::Onfault);
     let cpu_pm = Overcommit::CpuPm(OnOff::On);
