@@ -16,6 +16,7 @@ pub mod display;
 pub mod drive;
 pub mod fsdev;
 pub mod fw_cfg;
+pub mod g;
 pub mod global;
 pub mod icount;
 pub mod incoming;

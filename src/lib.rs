@@ -33,6 +33,7 @@ use crate::args::display::QemuDisplay;
 use crate::args::drive::Drive;
 use crate::args::fsdev::FsDev;
 use crate::args::fw_cfg::FwCfg;
+use crate::args::g::G;
 use crate::args::global::Global;
 use crate::args::icount::Icount;
 use crate::args::incoming::Incoming;
@@ -63,7 +64,7 @@ use crate::args::virtfs::Virtfs;
 use crate::args::vnc::VNC;
 use crate::parsers::{
     ARG_APPEND, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_CDROM, ARG_DAEMONIZE, ARG_DEBUGCON, ARG_DFILTER, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM, ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB,
-    ARG_FULL_SCREEN, ARG_G, ARG_GDB, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_INITRD, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC,
+    ARG_FULL_SCREEN, ARG_GDB, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_INITRD, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC,
     ARG_MONITOR, ARG_MTDBLOCK, ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT, ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_PARALLEL, ARG_PERFMAP,
     ARG_PFLASH, ARG_PIDFILE, ARG_PRECONFIG, ARG_QMP, ARG_QMP_PRETTY, ARG_READCONFIG, ARG_SD, ARG_SEED, ARG_SERIAL, ARG_SHIM, ARG_SNAPSHOT, ARG_USB, ARG_UUID, ARG_WIN2K_HACK, ARG_XEN_ATTACH,
     ARG_XEN_DOMID_RESTRICT, ARG_XEN_ID, DELIM_COMMA,
@@ -122,7 +123,7 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub spice: Option<Spice>,
     pub vga: Option<VGA>,
     pub full_screen: Option<bool>,
-    pub g: Option<(usize, usize, Option<usize>)>,
+    pub g: Option<G>,
     pub vnc: Option<VNC>,
     pub win2k_hack: Option<bool>,
     pub no_fd_bootchk: Option<bool>,
@@ -358,14 +359,8 @@ where
         {
             cmd.push(ARG_FULL_SCREEN.to_string());
         }
-        if let Some((w, h, d)) = &self.g {
-            cmd.push(ARG_G.to_string());
-            let mut dimensions = format!("{}x{}", w, h);
-
-            if let Some(d) = d {
-                dimensions.push_str(format!("x{}", &d.to_string()).as_str());
-            }
-            cmd.push(dimensions);
+        if let Some(g) = &self.g {
+            cmd.append(&mut g.to_command());
         }
         if let Some(vnc) = &self.vnc {
             cmd.append(&mut vnc.to_command());

@@ -1,4 +1,6 @@
 use pretty_assertions::assert_eq;
+use qemu_command_builder::QemuInstanceForX86_64;
+use qemu_command_builder::args::g::G;
 use qemu_command_builder::args::msg::Msg;
 use qemu_command_builder::args::name::Name;
 use qemu_command_builder::args::object::Object;
@@ -70,4 +72,32 @@ fn trace_supports_bare_enable_pattern_and_mixed_order() {
     let parsed = Trace::from_str("events=/tmp/events,file=/tmp/trace.log,net_*").unwrap();
     assert_eq!("enable=net_*,events=/tmp/events,file=/tmp/trace.log", parsed.to_args()[0]);
     assert_eq!(parsed, Trace::from_str(&parsed.to_args()[0]).unwrap());
+}
+
+#[test]
+fn g_parses_resolution_with_optional_depth() {
+    let without_depth = G::from_str("800x600").unwrap();
+    assert_eq!("800x600", without_depth.to_args()[0]);
+    assert_eq!(without_depth, G::from_str(&without_depth.to_args()[0]).unwrap());
+
+    let with_depth = G::from_str("1024x768x24").unwrap();
+    assert_eq!("1024x768x24", with_depth.to_args()[0]);
+    assert_eq!(with_depth, G::from_str(&with_depth.to_args()[0]).unwrap());
+}
+
+#[test]
+fn g_rejects_invalid_resolution() {
+    assert!(G::from_str("").is_err());
+    assert!(G::from_str("800").is_err());
+    assert!(G::from_str("800x").is_err());
+    assert!(G::from_str("800x600x24x1").is_err());
+    assert!(G::from_str("0x600").is_err());
+}
+
+#[test]
+fn qemu_instance_parses_and_emits_g() {
+    let parsed = QemuInstanceForX86_64::from_str("/usr/bin/qemu-system-x86_64 -g 1024x768x24").unwrap();
+
+    assert_eq!(Some(G::from_str("1024x768x24").unwrap()), parsed.g);
+    assert_eq!("/usr/bin/qemu-system-x86_64 -g 1024x768x24", parsed.to_single_command());
 }
