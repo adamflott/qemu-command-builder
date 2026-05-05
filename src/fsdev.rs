@@ -101,7 +101,7 @@ pub struct FsDevSynth {
 /// Define a new QEMU file system device.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum FsDev {
-    Local(FsDevLocal),
+    Local(Box<FsDevLocal>),
     Synth(FsDevSynth),
 }
 
@@ -257,7 +257,7 @@ fn parse_local_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
         }
     }
 
-    Ok(FsDev::Local(FsDevLocal {
+    Ok(FsDev::Local(Box::new(FsDevLocal {
         id: id.ok_or_else(|| "fsdev local requires id=".to_string())?,
         path: path.ok_or_else(|| "fsdev local requires path=".to_string())?,
         security_model: security_model.ok_or_else(|| "fsdev local requires security_model=".to_string())?,
@@ -278,7 +278,7 @@ fn parse_local_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
         throttling_iops_read_max,
         throttling_iops_write_max,
         throttling_iops_size,
-    }))
+    })))
 }
 
 fn parse_synth_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
