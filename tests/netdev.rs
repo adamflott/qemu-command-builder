@@ -148,3 +148,13 @@ fn netdev_vmnet_shared_round_trips() {
     assert_eq!(rendered, parsed.to_args()[0]);
     assert_eq!(parsed, NetDev::from_str(&parsed.to_args()[0]).unwrap());
 }
+
+#[test]
+fn netdev_l2tpv3_round_trips() {
+    let input = "l2tpv3,id=n1,src=4.2.3.1,dst=1.2.3.4,srcport=16384,dstport=16384,rxsession=0xffffffff,txsession=0xffffffff,udp=on,counter=on";
+    let value = "l2tpv3,id=n1,src=4.2.3.1,dst=1.2.3.4,srcport=16384,dstport=16384,rxsession=4294967295,txsession=4294967295,udp=on,counter=on";
+    let parsed = NetDev::from_str(input).unwrap();
+
+    assert_eq!(value, parsed.to_args()[0]);
+    assert_eq!(parsed, NetDev::from_str(&parsed.to_args()[0]).unwrap());
+}

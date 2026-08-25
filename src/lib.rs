@@ -44,6 +44,7 @@ use crate::args::mon::Mon;
 use crate::args::msg::Msg;
 use crate::args::name::Name;
 use crate::args::netdev::NetDev;
+use crate::args::network_compat::{LegacyNet, Nic};
 use crate::args::numa::NUMA;
 use crate::args::object::Object;
 use crate::args::overcommit::Overcommit;
@@ -51,6 +52,7 @@ use crate::args::plugin::Plugin;
 use crate::args::rtc::Rtc;
 use crate::args::runwith::RunWith;
 use crate::args::sandbox::Sandbox;
+use crate::args::semihosting::SemihostingConfig;
 use crate::args::serial::SpecialDevice;
 use crate::args::set::Set;
 use crate::args::smbios::Smbios;
@@ -67,8 +69,8 @@ use crate::parsers::{
     ARG_APPEND, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_CDROM, ARG_DAEMONIZE, ARG_DEBUGCON, ARG_DFILTER, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM, ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB,
     ARG_FULL_SCREEN, ARG_GDB, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_INITRD, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC,
     ARG_MONITOR, ARG_MTDBLOCK, ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT, ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_PARALLEL, ARG_PERFMAP,
-    ARG_PFLASH, ARG_PIDFILE, ARG_PRECONFIG, ARG_QMP, ARG_QMP_PRETTY, ARG_READCONFIG, ARG_SD, ARG_SEED, ARG_SERIAL, ARG_SHIM, ARG_SNAPSHOT, ARG_USB, ARG_UUID, ARG_WIN2K_HACK, ARG_XEN_ATTACH,
-    ARG_XEN_DOMID, ARG_XEN_DOMID_RESTRICT, DELIM_COMMA,
+    ARG_PFLASH, ARG_PIDFILE, ARG_PRECONFIG, ARG_PROM_ENV, ARG_QMP, ARG_QMP_PRETTY, ARG_QTEST, ARG_QTEST_LOG, ARG_READCONFIG, ARG_SD, ARG_SEED, ARG_SEMIHOSTING, ARG_SERIAL, ARG_SHIM, ARG_SNAPSHOT,
+    ARG_USB, ARG_UUID, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID, ARG_XEN_DOMID_RESTRICT, DELIM_COMMA,
 };
 use crate::shell_string::ShellString;
 use crate::to_command::{ToArg, ToCommand};
@@ -131,6 +133,8 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub acpitable: Option<AcpiTable>,
     pub smbios: Option<Vec<Smbios>>,
     pub netdev: Option<Vec<NetDev>>,
+    pub nic: Option<Vec<Nic>>,
+    pub net: Option<Vec<LegacyNet>>,
     pub chardev: Option<Vec<CharDev>>,
     pub tpmdev: Option<TpmDev>,
     pub bios: Option<PathBuf>,
@@ -182,6 +186,11 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub no_user_config: Option<bool>,
     pub trace: Option<Trace>,
     pub plugin: Option<Plugin>,
+    pub semihosting: Option<bool>,
+    pub semihosting_config: Option<SemihostingConfig>,
+    pub qtest: Option<String>,
+    pub qtest_log: Option<PathBuf>,
+    pub prom_env: Option<Vec<String>>,
     pub run_with: Option<RunWith>,
     // compat w/ qemu 7.x+
     pub runas: Option<String>,
@@ -387,6 +396,16 @@ where
         if let Some(netdevs) = &self.netdev {
             for netdev in netdevs {
                 cmd.append(&mut netdev.to_command());
+            }
+        }
+        if let Some(nics) = &self.nic {
+            for nic in nics {
+                cmd.append(&mut nic.to_command());
+            }
+        }
+        if let Some(nets) = &self.net {
+            for net in nets {
+                cmd.append(&mut net.to_command());
             }
         }
         if let Some(chardevs) = &self.chardev {
@@ -599,6 +618,26 @@ where
         }
         if let Some(plugin) = &self.plugin {
             cmd.append(&mut plugin.to_command());
+        }
+        if self.semihosting == Some(true) {
+            cmd.push(ARG_SEMIHOSTING.to_string());
+        }
+        if let Some(config) = &self.semihosting_config {
+            cmd.append(&mut config.to_command());
+        }
+        if let Some(qtest) = &self.qtest {
+            cmd.push(ARG_QTEST.to_string());
+            cmd.push(qtest.clone());
+        }
+        if let Some(qtest_log) = &self.qtest_log {
+            cmd.push(ARG_QTEST_LOG.to_string());
+            cmd.push(qtest_log.display().to_string());
+        }
+        if let Some(prom_envs) = &self.prom_env {
+            for prom_env in prom_envs {
+                cmd.push(ARG_PROM_ENV.to_string());
+                cmd.push(prom_env.clone());
+            }
         }
         if let Some(run_with) = &self.run_with {
             cmd.append(&mut run_with.to_command());

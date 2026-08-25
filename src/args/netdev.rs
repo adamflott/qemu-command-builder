@@ -420,6 +420,133 @@ pub struct Bridge {
     helper: Option<String>,
 }
 
+/// Linux Ethernet-over-L2TPv3 pseudowire backend.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
+pub struct L2tpv3 {
+    id: String,
+    src: String,
+    dst: String,
+    srcport: Option<u16>,
+    dstport: Option<u16>,
+    rxsession: Option<u32>,
+    txsession: u32,
+    ipv6: Option<OnOff>,
+    udp: Option<OnOff>,
+    cookie64: Option<OnOff>,
+    counter: Option<OnOff>,
+    pincounter: Option<OnOff>,
+    txcookie: Option<u64>,
+    rxcookie: Option<u64>,
+    offset: Option<u32>,
+}
+
+impl ToCommand for L2tpv3 {
+    fn command(&self) -> String {
+        ARG_NETDEV.to_string()
+    }
+
+    fn to_args(&self) -> Vec<String> {
+        let mut parts = vec!["l2tpv3".to_string(), format!("id={}", self.id), format!("src={}", self.src), format!("dst={}", self.dst)];
+        macro_rules! push {
+            ($field:ident) => {
+                if let Some(value) = &self.$field {
+                    parts.push(format!("{}={}", stringify!($field), value));
+                }
+            };
+        }
+        push!(srcport);
+        push!(dstport);
+        push!(rxsession);
+        parts.push(format!("txsession={}", self.txsession));
+        for (key, value) in [
+            ("ipv6", &self.ipv6),
+            ("udp", &self.udp),
+            ("cookie64", &self.cookie64),
+            ("counter", &self.counter),
+            ("pincounter", &self.pincounter),
+        ] {
+            if let Some(value) = value {
+                parts.push(format!("{}={}", key, value.to_arg()));
+            }
+        }
+        push!(txcookie);
+        push!(rxcookie);
+        push!(offset);
+        vec![parts.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for L2tpv3 {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let mut id = None;
+        let mut src = None;
+        let mut dst = None;
+        let mut srcport = None;
+        let mut dstport = None;
+        let mut rxsession = None;
+        let mut txsession = None;
+        let mut ipv6 = None;
+        let mut udp = None;
+        let mut cookie64 = None;
+        let mut counter = None;
+        let mut pincounter = None;
+        let mut txcookie = None;
+        let mut rxcookie = None;
+        let mut offset = None;
+        for part in value.strip_prefix("l2tpv3,").unwrap_or(value).split(DELIM_COMMA) {
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid l2tpv3 option: {part}"))?;
+            macro_rules! number {
+                ($slot:ident, $type:ty) => {
+                    $slot = Some({
+                        let number = match raw.strip_prefix("0x") {
+                            Some(hex) => u64::from_str_radix(hex, 16).map_err(|e| e.to_string())?,
+                            None => raw.parse::<u64>().map_err(|e| e.to_string())?,
+                        };
+                        <$type>::try_from(number).map_err(|_| format!("{key} value is out of range: {raw}"))?
+                    })
+                };
+            }
+            match key {
+                "id" => id = Some(raw.to_string()),
+                "src" => src = Some(raw.to_string()),
+                "dst" => dst = Some(raw.to_string()),
+                "srcport" => number!(srcport, u16),
+                "dstport" => number!(dstport, u16),
+                "rxsession" => number!(rxsession, u32),
+                "txsession" => number!(txsession, u32),
+                "ipv6" => ipv6 = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid ipv6 value: {raw}"))?),
+                "udp" => udp = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid udp value: {raw}"))?),
+                "cookie64" => cookie64 = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid cookie64 value: {raw}"))?),
+                "counter" => counter = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid counter value: {raw}"))?),
+                "pincounter" => pincounter = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid pincounter value: {raw}"))?),
+                "txcookie" => number!(txcookie, u64),
+                "rxcookie" => number!(rxcookie, u64),
+                "offset" => number!(offset, u32),
+                other => return Err(format!("unsupported l2tpv3 option: {other}")),
+            }
+        }
+        Ok(Self {
+            id: id.ok_or_else(|| "l2tpv3 requires id=".to_string())?,
+            src: src.ok_or_else(|| "l2tpv3 requires src=".to_string())?,
+            dst: dst.ok_or_else(|| "l2tpv3 requires dst=".to_string())?,
+            srcport,
+            dstport,
+            rxsession,
+            txsession: txsession.ok_or_else(|| "l2tpv3 requires txsession=".to_string())?,
+            ipv6,
+            udp,
+            cookie64,
+            counter,
+            pincounter,
+            txcookie,
+            rxcookie,
+            offset,
+        })
+    }
+}
+
 impl ToCommand for Bridge {
     fn to_args(&self) -> Vec<String> {
         let mut args = vec!["bridge".to_string(), format!("id={}", self.id)];
@@ -1721,7 +1848,7 @@ impl FromStr for Hubport {
 pub enum NetDev {
     User(User),
     Passt(Passt),
-    // TODO L2tpv3,
+    L2tpv3(L2tpv3),
     Tap(Tap),
     Bridge(Bridge),
     Socket(Socket),
@@ -1746,7 +1873,7 @@ impl ToCommand for NetDev {
         match self {
             NetDev::User(user) => user.to_args(),
             NetDev::Passt(passt) => passt.to_args(),
-            //NetDev::L2tpv3 => {}
+            NetDev::L2tpv3(l2tpv3) => l2tpv3.to_args(),
             NetDev::Tap(tap) => tap.to_args(),
             NetDev::Bridge(bridge) => bridge.to_args(),
             NetDev::Socket(socket) => socket.to_args(),
@@ -1774,6 +1901,9 @@ impl FromStr for NetDev {
         }
         if s.starts_with("passt,") || s == "passt" {
             return Ok(Self::Passt(s.parse::<Passt>()?));
+        }
+        if s.starts_with("l2tpv3,") || s == "l2tpv3" {
+            return Ok(Self::L2tpv3(s.parse::<L2tpv3>()?));
         }
         if s.starts_with("tap,") || s == "tap" {
             return Ok(Self::Tap(s.parse::<Tap>()?));

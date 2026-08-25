@@ -23,6 +23,7 @@ use crate::args::mon::Mon;
 use crate::args::msg::Msg;
 use crate::args::name::Name;
 use crate::args::netdev::NetDev;
+use crate::args::network_compat::{LegacyNet, Nic};
 use crate::args::numa::NUMA;
 use crate::args::object::Object;
 use crate::args::overcommit::Overcommit;
@@ -30,6 +31,7 @@ use crate::args::plugin::Plugin;
 use crate::args::rtc::Rtc;
 use crate::args::runwith::RunWith;
 use crate::args::sandbox::Sandbox;
+use crate::args::semihosting::SemihostingConfig;
 use crate::args::serial::SpecialDevice;
 use crate::args::set::Set;
 use crate::args::smbios::Smbios;
@@ -45,11 +47,11 @@ use crate::parsers::{
     ARG_ACCEL, ARG_ACPITABLE, ARG_ACTION, ARG_ADD_FD, ARG_APPEND, ARG_AUDIO, ARG_AUDIODEV, ARG_BIG_D, ARG_BIG_S, ARG_BIOS, ARG_BLOCKDEV, ARG_BOOT, ARG_CDROM, ARG_CHARDEV, ARG_CHROOT, ARG_COMPAT,
     ARG_CPU, ARG_DAEMONIZE, ARG_DEBUGCON, ARG_DEVICE, ARG_DFILTER, ARG_DISPLAY, ARG_DRIVE, ARG_DTB, ARG_DUMP_VMSTATE, ARG_ECHR, ARG_ENABLE_KVM, ARG_ENABLE_SYNC_PROFILE, ARG_FDA, ARG_FDB, ARG_FSDEV,
     ARG_FULL_SCREEN, ARG_FW_CFG, ARG_G, ARG_GDB, ARG_GLOBAL, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_ICOUNT, ARG_INCOMING, ARG_INITRD, ARG_ISCSI, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D,
-    ARG_LITTLE_S, ARG_LOADVM, ARG_MACHINE, ARG_MEM_PATH, ARG_MEM_PREALLOC, ARG_MEMORY, ARG_MON, ARG_MONITOR, ARG_MSG, ARG_MTDBLOCK, ARG_NAME, ARG_NETDEV, ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT,
-    ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_NUMA, ARG_OBJECT, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_OVERCOMMIT, ARG_PARALLEL, ARG_PERFMAP, ARG_PFLASH, ARG_PIDFILE,
-    ARG_PLUGIN, ARG_PRECONFIG, ARG_QMP, ARG_QMP_PRETTY, ARG_READCONFIG, ARG_RTC, ARG_RUN_WITH, ARG_RUNAS, ARG_SANDBOX, ARG_SD, ARG_SEED, ARG_SERIAL, ARG_SET, ARG_SHIM, ARG_SMBIOS, ARG_SMP,
-    ARG_SNAPSHOT, ARG_SPICE, ARG_TPMDEV, ARG_TRACE, ARG_USB, ARG_USBDEVICE, ARG_UUID, ARG_VGA, ARG_VIRTFS, ARG_VNC, ARG_WATCHDOG_ACTION, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID,
-    ARG_XEN_DOMID_RESTRICT,
+    ARG_LITTLE_S, ARG_LOADVM, ARG_MACHINE, ARG_MACHINE_ALIAS, ARG_MEM_PATH, ARG_MEM_PREALLOC, ARG_MEMORY, ARG_MON, ARG_MONITOR, ARG_MSG, ARG_MTDBLOCK, ARG_NAME, ARG_NET, ARG_NETDEV, ARG_NIC,
+    ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT, ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_NUMA, ARG_OBJECT, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_OVERCOMMIT, ARG_PARALLEL,
+    ARG_PERFMAP, ARG_PFLASH, ARG_PIDFILE, ARG_PLUGIN, ARG_PRECONFIG, ARG_PROM_ENV, ARG_QMP, ARG_QMP_PRETTY, ARG_QTEST, ARG_QTEST_LOG, ARG_READCONFIG, ARG_RTC, ARG_RUN_WITH, ARG_RUNAS, ARG_SANDBOX,
+    ARG_SD, ARG_SEED, ARG_SEMIHOSTING, ARG_SEMIHOSTING_CONFIG, ARG_SERIAL, ARG_SET, ARG_SHIM, ARG_SMBIOS, ARG_SMP, ARG_SNAPSHOT, ARG_SPICE, ARG_TPMDEV, ARG_TRACE, ARG_USB, ARG_USBDEVICE, ARG_UUID,
+    ARG_VGA, ARG_VIRTFS, ARG_VNC, ARG_WATCHDOG_ACTION, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID, ARG_XEN_DOMID_RESTRICT,
 };
 use crate::shell_string::ShellString;
 use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QUuid, QemuCommand, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
@@ -108,7 +110,7 @@ where
         match token.as_str() {
             // machine/cpu specific
             ARG_CPU => ff!(tokens, ARG_CPU, Cpu, q.cpu),
-            ARG_MACHINE => ff!(tokens, ARG_MACHINE, Machine, q.machine),
+            ARG_MACHINE | ARG_MACHINE_ALIAS => ff!(tokens, ARG_MACHINE, Machine, q.machine),
             // common options below
             ARG_ACCEL => ff!(tokens, ARG_ACCEL, Accel, q.accel),
             ARG_SMP => ff!(tokens, ARG_SMP, SMP, q.smp),
@@ -155,6 +157,8 @@ where
             ARG_ACPITABLE => ff!(tokens, ARG_ACPITABLE, AcpiTable, q.acpitable),
             ARG_SMBIOS => ffs!(tokens, ARG_SMBIOS, Smbios, q.smbios),
             ARG_NETDEV => ffs!(tokens, ARG_NETDEV, NetDev, q.netdev),
+            ARG_NIC => ffs!(tokens, ARG_NIC, Nic, q.nic),
+            ARG_NET => ffs!(tokens, ARG_NET, LegacyNet, q.net),
             ARG_CHARDEV => ffs!(tokens, ARG_CHARDEV, CharDev, q.chardev),
             ARG_TPMDEV => ff!(tokens, ARG_TPMDEV, TpmDev, q.tpmdev),
             ARG_BIOS => ff!(tokens, ARG_BIOS, PathBuf, q.bios),
@@ -206,6 +210,11 @@ where
             ARG_NO_USER_CONFIG => q.no_user_config = Some(true),
             ARG_TRACE => ff!(tokens, ARG_TRACE, Trace, q.trace),
             ARG_PLUGIN => ff!(tokens, ARG_PLUGIN, Plugin, q.plugin),
+            ARG_SEMIHOSTING => q.semihosting = Some(true),
+            ARG_SEMIHOSTING_CONFIG => ff!(tokens, ARG_SEMIHOSTING_CONFIG, SemihostingConfig, q.semihosting_config),
+            ARG_QTEST => ff!(tokens, ARG_QTEST, String, q.qtest),
+            ARG_QTEST_LOG => ff!(tokens, ARG_QTEST_LOG, PathBuf, q.qtest_log),
+            ARG_PROM_ENV => ffs!(tokens, ARG_PROM_ENV, String, q.prom_env),
             ARG_RUNAS => ff!(tokens, ARG_RUNAS, String, q.runas),
             ARG_RUN_WITH => ff!(tokens, ARG_RUN_WITH, RunWith, q.run_with),
             ARG_CHROOT => ff!(tokens, ARG_CHROOT, PathBuf, q.chroot),
