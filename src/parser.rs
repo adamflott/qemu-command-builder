@@ -48,8 +48,8 @@ use crate::parsers::{
     ARG_LITTLE_S, ARG_LOADVM, ARG_MACHINE, ARG_MEM_PATH, ARG_MEM_PREALLOC, ARG_MEMORY, ARG_MON, ARG_MONITOR, ARG_MSG, ARG_MTDBLOCK, ARG_NAME, ARG_NETDEV, ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT,
     ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_NUMA, ARG_OBJECT, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_OVERCOMMIT, ARG_PARALLEL, ARG_PERFMAP, ARG_PFLASH, ARG_PIDFILE,
     ARG_PLUGIN, ARG_PRECONFIG, ARG_QMP, ARG_QMP_PRETTY, ARG_READCONFIG, ARG_RTC, ARG_RUN_WITH, ARG_RUNAS, ARG_SANDBOX, ARG_SD, ARG_SEED, ARG_SERIAL, ARG_SET, ARG_SHIM, ARG_SMBIOS, ARG_SMP,
-    ARG_SNAPSHOT, ARG_SPICE, ARG_TPMDEV, ARG_TRACE, ARG_USB, ARG_USBDEVICE, ARG_UUID, ARG_VGA, ARG_VIRTFS, ARG_VNC, ARG_WATCHDOG_ACTION, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID_RESTRICT,
-    ARG_XEN_ID,
+    ARG_SNAPSHOT, ARG_SPICE, ARG_TPMDEV, ARG_TRACE, ARG_USB, ARG_USBDEVICE, ARG_UUID, ARG_VGA, ARG_VIRTFS, ARG_VNC, ARG_WATCHDOG_ACTION, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID,
+    ARG_XEN_DOMID_RESTRICT,
 };
 use crate::shell_string::ShellString;
 use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QUuid, QemuCommand, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
@@ -172,7 +172,7 @@ where
             ARG_QMP => ff!(tokens, ARG_QMP, SpecialDevice, q.qmp),
             ARG_QMP_PRETTY => ff!(tokens, ARG_QMP_PRETTY, SpecialDevice, q.qmp_pretty),
             ARG_MON => ffs!(tokens, ARG_MON, Mon, q.mon),
-            ARG_DEBUGCON => ff!(tokens, ARG_DEBUGCON, CharDev, q.debugcon),
+            ARG_DEBUGCON => ff!(tokens, ARG_DEBUGCON, SpecialDevice, q.debugcon),
             ARG_PIDFILE => ff!(tokens, ARG_PIDFILE, PathBuf, q.pidfile),
             ARG_PRECONFIG => q.preconfig = Some(true),
             ARG_BIG_S => q.big_s = Some(true),
@@ -185,7 +185,7 @@ where
             ARG_SEED => ff!(tokens, ARG_SEED, usize, q.seed),
             ARG_L => ff!(tokens, ARG_L, PathBuf, q.big_l),
             ARG_ENABLE_KVM => q.enable_kvm = Some(true),
-            ARG_XEN_ID => ff!(tokens, ARG_XEN_ID, String, q.xen_id),
+            ARG_XEN_DOMID => ff!(tokens, ARG_XEN_DOMID, String, q.xen_domid),
             ARG_XEN_ATTACH => q.xen_attach = Some(true),
             ARG_XEN_DOMID_RESTRICT => q.xen_domid_restrict = Some(true),
             ARG_NO_REBOOT => q.no_reboot = Some(true),

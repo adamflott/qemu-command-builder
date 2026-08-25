@@ -115,7 +115,7 @@ pub(crate) const ARG_WATCHDOG_ACTION: &str = "-watchdog-action";
 pub(crate) const ARG_WIN2K_HACK: &str = "-win2k-hack";
 pub(crate) const ARG_XEN_ATTACH: &str = "-xen-attach";
 pub(crate) const ARG_XEN_DOMID_RESTRICT: &str = "-xen-domid-restrict";
-pub(crate) const ARG_XEN_ID: &str = "-xen-id";
+pub(crate) const ARG_XEN_DOMID: &str = "-xen-domid";
 
 pub(crate) fn ascii_plus_more<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
     take_while(1.., |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '=' || c == '.' || c == '_' || c == '/').parse_next(input)

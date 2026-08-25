@@ -89,5 +89,5 @@ fn qemu_instance_parses_spice() {
 #[test]
 fn gtk_display_round_trips_qemu_11_1_clipboard() {
     let display = QemuDisplay::from_str("gtk,clipboard=on,full-screen=off").unwrap();
-    assert_eq!(vec!["gtk", "clipboard=on", "full-screen=off"], display.to_args());
+    assert_eq!(vec!["gtk,clipboard=on,full-screen=off"], display.to_args());
 }

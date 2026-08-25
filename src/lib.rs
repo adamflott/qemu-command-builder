@@ -68,7 +68,7 @@ use crate::parsers::{
     ARG_FULL_SCREEN, ARG_GDB, ARG_HDA, ARG_HDB, ARG_HDC, ARG_HDD, ARG_INITRD, ARG_JITDUMP, ARG_K, ARG_KERNEL, ARG_L, ARG_LITTLE_D, ARG_LITTLE_S, ARG_LOADVM, ARG_MEM_PATH, ARG_MEM_PREALLOC,
     ARG_MONITOR, ARG_MTDBLOCK, ARG_NO_FD_BOOTCHK, ARG_NO_REBOOT, ARG_NO_SHUTDOWN, ARG_NO_USER_CONFIG, ARG_NODEFAULTS, ARG_NOGRAPHIC, ARG_ONLY_MIGRATABLE, ARG_OPTION_ROM, ARG_PARALLEL, ARG_PERFMAP,
     ARG_PFLASH, ARG_PIDFILE, ARG_PRECONFIG, ARG_QMP, ARG_QMP_PRETTY, ARG_READCONFIG, ARG_SD, ARG_SEED, ARG_SERIAL, ARG_SHIM, ARG_SNAPSHOT, ARG_USB, ARG_UUID, ARG_WIN2K_HACK, ARG_XEN_ATTACH,
-    ARG_XEN_DOMID_RESTRICT, ARG_XEN_ID, DELIM_COMMA,
+    ARG_XEN_DOMID, ARG_XEN_DOMID_RESTRICT, DELIM_COMMA,
 };
 use crate::shell_string::ShellString;
 use crate::to_command::{ToArg, ToCommand};
@@ -148,7 +148,7 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub qmp: Option<SpecialDevice>,
     pub qmp_pretty: Option<SpecialDevice>,
     pub mon: Option<Vec<Mon>>,
-    pub debugcon: Option<CharDev>,
+    pub debugcon: Option<SpecialDevice>,
     pub pidfile: Option<PathBuf>,
     pub preconfig: Option<bool>,
     pub big_s: Option<bool>,
@@ -161,7 +161,7 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub seed: Option<usize>,
     pub big_l: Option<PathBuf>,
     pub enable_kvm: Option<bool>,
-    pub xen_id: Option<String>,
+    pub xen_domid: Option<String>,
     pub xen_attach: Option<bool>,
     pub xen_domid_restrict: Option<bool>,
     pub no_reboot: Option<bool>,
@@ -447,11 +447,11 @@ where
         }
         if let Some(qmp) = &self.qmp {
             cmd.push(ARG_QMP.to_string());
-            cmd.append(&mut qmp.to_command());
+            cmd.append(&mut qmp.to_args());
         }
         if let Some(qmp_pretty) = &self.qmp_pretty {
             cmd.push(ARG_QMP_PRETTY.to_string());
-            cmd.append(&mut qmp_pretty.to_command());
+            cmd.append(&mut qmp_pretty.to_args());
         }
         if let Some(mons) = &self.mon {
             for mon in mons {
@@ -460,7 +460,7 @@ where
         }
         if let Some(debugcon) = &self.debugcon {
             cmd.push(ARG_DEBUGCON.to_string());
-            cmd.append(&mut debugcon.to_command());
+            cmd.append(&mut debugcon.to_args());
         }
         if let Some(pidfile) = &self.pidfile {
             cmd.push(ARG_PIDFILE.to_string());
@@ -481,7 +481,7 @@ where
         }
         if let Some(gdb) = &self.gdb {
             cmd.push(ARG_GDB.to_string());
-            cmd.append(&mut gdb.to_command());
+            cmd.append(&mut gdb.to_args());
         }
         if let Some(s) = &self.s
             && *s
@@ -513,9 +513,9 @@ where
         {
             cmd.push(ARG_ENABLE_KVM.to_string());
         }
-        if let Some(xen_id) = &self.xen_id {
-            cmd.push(ARG_XEN_ID.to_string());
-            cmd.push(xen_id.to_string());
+        if let Some(xen_domid) = &self.xen_domid {
+            cmd.push(ARG_XEN_DOMID.to_string());
+            cmd.push(xen_domid.to_string());
         }
         if let Some(xen_attach) = &self.xen_attach
             && *xen_attach

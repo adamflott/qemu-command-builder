@@ -58,10 +58,7 @@ impl ToCommand for AudioDev {
     fn to_args(&self) -> Vec<String> {
         let mut args = vec![self.driver.clone()];
 
-        let mut props = self.props.clone();
-        props.sort_by(|a, b| a.key.cmp(&b.key).then_with(|| a.value.cmp(&b.value)));
-
-        for prop in &props {
+        for prop in &self.props {
             if let Some(value) = &prop.value {
                 args.push(format!("{}={}", prop.key, value));
             } else {

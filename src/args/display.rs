@@ -219,7 +219,7 @@ impl ToCommand for QemuDisplay {
             }
         }
 
-        args
+        vec![args.join(",")]
     }
 }
 

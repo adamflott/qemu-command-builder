@@ -48,6 +48,29 @@ fn qemu_instance_parses_confidential_guest_support_with_sev_object() {
 }
 
 #[test]
+fn monitor_debugger_and_xen_options_emit_exact_argv() {
+    let cmd = "/usr/bin/qemu-system-x86_64 -qmp stdio -qmp-pretty null -debugcon file:/tmp/debug.log -gdb tcp::1234 -xen-domid 7";
+    let parsed = QemuInstanceForX86_64::from_str(cmd).unwrap();
+
+    assert_eq!(
+        vec![
+            "/usr/bin/qemu-system-x86_64",
+            "-qmp",
+            "stdio",
+            "-qmp-pretty",
+            "null",
+            "-debugcon",
+            "file:/tmp/debug.log",
+            "-gdb",
+            "tcp::1234",
+            "-xen-domid",
+            "7",
+        ],
+        parsed.to_command(),
+    );
+}
+
+#[test]
 fn overcommit_emits_qemu_keys_and_round_trips() {
     let mem_lock = Overcommit::MemLock(OnOffOnfault::Onfault);
     let cpu_pm = Overcommit::CpuPm(OnOff::On);
