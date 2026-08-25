@@ -103,6 +103,35 @@ pub struct CharVc {
     mux: Option<OnOff>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
+    /// Character encoding expected from the guest (`utf8` or `cp437`).
+    encoding: Option<CharVcEncoding>,
+}
+
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
+pub enum CharVcEncoding {
+    Utf8,
+    Cp437,
+}
+
+impl ToArg for CharVcEncoding {
+    fn to_arg(&self) -> &str {
+        match self {
+            Self::Utf8 => "utf8",
+            Self::Cp437 => "cp437",
+        }
+    }
+}
+
+impl FromStr for CharVcEncoding {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "utf8" => Ok(Self::Utf8),
+            "cp437" => Ok(Self::Cp437),
+            _ => Err(format!("invalid VC encoding: {value}")),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
@@ -199,6 +228,16 @@ pub struct CharSpice {
     logappend: Option<OnOff>,
 }
 
+/// A character device exported through the QEMU D-Bus display interface.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
+pub struct CharDbus {
+    id: String,
+    name: String,
+    mux: Option<OnOff>,
+    logfile: Option<PathBuf>,
+    logappend: Option<OnOff>,
+}
+
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum CharDev {
     Null(CharNull),
@@ -219,6 +258,7 @@ pub enum CharDev {
     Parallel(CharParallel),
     SpiceVmc(CharSpice),
     SpicePort(CharSpice),
+    Dbus(CharDbus),
 }
 
 impl CharDev {
@@ -246,6 +286,7 @@ impl CharDev {
             CharDev::Parallel(p) => &p.id,
             CharDev::SpiceVmc(s) => &s.id,
             CharDev::SpicePort(s) => &s.id,
+            CharDev::Dbus(d) => &d.id,
         }
     }
 }
@@ -435,6 +476,9 @@ impl ToCommand for CharDev {
                 if let Some(logappend) = &vc.logappend {
                     args.push(format!("logappend={}", logappend.to_arg()));
                 }
+                if let Some(encoding) = &vc.encoding {
+                    args.push(format!("encoding={}", encoding.to_arg()));
+                }
             }
             CharDev::RingBuf(ringbuf) => {
                 args.push("ringbuf".to_string());
@@ -608,6 +652,20 @@ impl ToCommand for CharDev {
                     args.push(format!("logappend={}", logappend.to_arg()));
                 }
             }
+            CharDev::Dbus(dbus) => {
+                args.push("dbus".to_string());
+                args.push(format!("id={}", dbus.id));
+                args.push(format!("name={}", dbus.name));
+                if let Some(mux) = &dbus.mux {
+                    args.push(format!("mux={}", mux.to_arg()));
+                }
+                if let Some(logfile) = &dbus.logfile {
+                    args.push(format!("logfile={}", logfile.display()));
+                }
+                if let Some(logappend) = &dbus.logappend {
+                    args.push(format!("logappend={}", logappend.to_arg()));
+                }
+            }
         }
 
         vec![args.join(DELIM_COMMA)]
@@ -639,6 +697,7 @@ impl FromStr for CharDev {
             "parallel" => parse_parallel_chardev(parts.collect()),
             "spicevmc" => parse_spice_chardev(parts.collect(), true),
             "spiceport" => parse_spice_chardev(parts.collect(), false),
+            "dbus" => parse_dbus_chardev(parts.collect()),
             other => Err(format!("unsupported chardev backend: {other}")),
         }
     }
@@ -872,6 +931,7 @@ fn parse_vc_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
     let mut mux = None;
     let mut logfile = None;
     let mut logappend = None;
+    let mut encoding = None;
 
     for part in parts {
         let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev vc option: {part}"))?;
@@ -884,6 +944,7 @@ fn parse_vc_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
             "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
             "logfile" => logfile = Some(PathBuf::from(value)),
             "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            "encoding" => encoding = Some(value.parse::<CharVcEncoding>()?),
             other => return Err(format!("unsupported chardev vc option: {other}")),
         }
     }
@@ -894,6 +955,33 @@ fn parse_vc_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
         height,
         cols,
         rows,
+        mux,
+        logfile,
+        logappend,
+        encoding,
+    }))
+}
+
+fn parse_dbus_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
+    let mut id = None;
+    let mut name = None;
+    let mut mux = None;
+    let mut logfile = None;
+    let mut logappend = None;
+    for part in parts {
+        let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev dbus option: {part}"))?;
+        match key {
+            "id" => id = Some(value.to_string()),
+            "name" => name = Some(value.to_string()),
+            "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
+            "logfile" => logfile = Some(PathBuf::from(value)),
+            "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
+            other => return Err(format!("unsupported chardev dbus option: {other}")),
+        }
+    }
+    Ok(CharDev::Dbus(CharDbus {
+        id: id.ok_or_else(|| "dbus chardev requires id=".to_string())?,
+        name: name.ok_or_else(|| "dbus chardev requires name=".to_string())?,
         mux,
         logfile,
         logappend,

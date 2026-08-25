@@ -43,6 +43,7 @@ pub enum QemuDisplay {
         window_close: Option<OnOff>,
     },
     Gtk {
+        clipboard: Option<OnOff>,
         fullscreen: Option<OnOff>,
         gl: Option<OnOff>,
         grab_on_hover: Option<OnOff>,
@@ -113,6 +114,7 @@ impl ToCommand for QemuDisplay {
                 }
             }
             QemuDisplay::Gtk {
+                clipboard,
                 fullscreen,
                 gl,
                 grab_on_hover,
@@ -123,6 +125,9 @@ impl ToCommand for QemuDisplay {
                 zoom_to_fit,
             } => {
                 args.push("gtk".to_string());
+                if let Some(clipboard) = clipboard {
+                    args.push(format!("clipboard={}", clipboard.to_arg()));
+                }
                 if let Some(fullscreen) = fullscreen {
                     args.push(format!("full-screen={}", fullscreen.to_arg()));
                 }
@@ -238,6 +243,7 @@ impl FromStr for QemuDisplay {
         }
         if s == "gtk" {
             return Ok(Self::Gtk {
+                clipboard: None,
                 fullscreen: None,
                 gl: None,
                 grab_on_hover: None,
@@ -247,6 +253,50 @@ impl FromStr for QemuDisplay {
                 show_menubar: None,
                 zoom_to_fit: None,
             });
+        }
+        if let Some(rest) = s.strip_prefix("gtk,") {
+            let mut display = Self::Gtk {
+                clipboard: None,
+                fullscreen: None,
+                gl: None,
+                grab_on_hover: None,
+                show_tabs: None,
+                show_cursor: None,
+                window_close: None,
+                show_menubar: None,
+                zoom_to_fit: None,
+            };
+            let Self::Gtk {
+                clipboard,
+                fullscreen,
+                gl,
+                grab_on_hover,
+                show_tabs,
+                show_cursor,
+                window_close,
+                show_menubar,
+                zoom_to_fit,
+            } = &mut display
+            else {
+                unreachable!()
+            };
+            for option in rest.split(',') {
+                let (key, value) = option.split_once('=').ok_or_else(|| format!("invalid GTK display option: {option}"))?;
+                let value = value.parse::<OnOff>().map_err(|_| format!("invalid {key} value: {value}"))?;
+                match key {
+                    "clipboard" => *clipboard = Some(value),
+                    "full-screen" => *fullscreen = Some(value),
+                    "gl" => *gl = Some(value),
+                    "grab-on-hover" => *grab_on_hover = Some(value),
+                    "show-tabs" => *show_tabs = Some(value),
+                    "show-cursor" => *show_cursor = Some(value),
+                    "window-close" => *window_close = Some(value),
+                    "show-menubar" => *show_menubar = Some(value),
+                    "zoom-to-fit" => *zoom_to_fit = Some(value),
+                    other => return Err(format!("unsupported GTK display option: {other}")),
+                }
+            }
+            return Ok(display);
         }
         if s == "curses" {
             return Ok(Self::Curses { charset: None });

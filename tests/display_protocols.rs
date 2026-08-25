@@ -1,5 +1,6 @@
 use pretty_assertions::assert_eq;
 use qemu_command_builder::QemuInstanceForX86_64;
+use qemu_command_builder::args::display::QemuDisplay;
 use qemu_command_builder::args::smbios::Smbios;
 use qemu_command_builder::args::spice::{Channel, ImageCompression, OffAllFilter, Spice};
 use qemu_command_builder::args::vnc::{AllowExclusiveForceSharedIgnore, VNC, VNCDisplay};
@@ -83,4 +84,10 @@ fn qemu_instance_parses_spice() {
     let cmd = "/usr/bin/qemu-system-x86_64 -spice port=5900,disable-ticketing=on -nodefaults";
     let parsed = QemuInstanceForX86_64::from_str(cmd).unwrap();
     assert_eq!(cmd, parsed.to_single_command());
+}
+
+#[test]
+fn gtk_display_round_trips_qemu_11_1_clipboard() {
+    let display = QemuDisplay::from_str("gtk,clipboard=on,full-screen=off").unwrap();
+    assert_eq!(vec!["gtk", "clipboard=on", "full-screen=off"], display.to_args());
 }

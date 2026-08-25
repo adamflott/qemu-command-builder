@@ -65,6 +65,9 @@ pub struct FsDevLocal {
     /// Specifies the default mode for newly created directories on the host.
     dmode: Option<String>,
 
+    /// Maximum number of concurrent extended-attribute FIDs (zero is unlimited).
+    max_xattr: Option<usize>,
+
     /// Throttling limits in bytes per second.
     throttling_bps_total: Option<usize>,
     throttling_bps_read: Option<usize>,
@@ -96,6 +99,8 @@ pub struct FsDevSynth {
     id: String,
     /// Emit `readonly=on` when enabled.
     readonly: Option<()>,
+    /// Maximum number of concurrent extended-attribute FIDs (zero is unlimited).
+    max_xattr: Option<usize>,
 }
 
 /// Define a new QEMU file system device.
@@ -130,6 +135,9 @@ impl ToCommand for FsDev {
                 }
                 if let Some(dmode) = &local.dmode {
                     args.push(format!("dmode={}", dmode));
+                }
+                if let Some(max_xattr) = local.max_xattr {
+                    args.push(format!("max_xattr={}", max_xattr));
                 }
                 if let Some(v) = local.throttling_bps_total {
                     args.push(format!("throttling.bps-total={}", v));
@@ -177,6 +185,9 @@ impl ToCommand for FsDev {
                 if synth.readonly.is_some() {
                     args.push("readonly=on".to_string());
                 }
+                if let Some(max_xattr) = synth.max_xattr {
+                    args.push(format!("max_xattr={}", max_xattr));
+                }
             }
         }
 
@@ -206,6 +217,7 @@ fn parse_local_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
     let mut readonly = None;
     let mut fmode = None;
     let mut dmode = None;
+    let mut max_xattr = None;
     let mut throttling_bps_total = None;
     let mut throttling_bps_read = None;
     let mut throttling_bps_write = None;
@@ -240,6 +252,7 @@ fn parse_local_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
             }
             "fmode" => fmode = Some(value.to_string()),
             "dmode" => dmode = Some(value.to_string()),
+            "max_xattr" => max_xattr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
             "throttling.bps-total" => throttling_bps_total = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
             "throttling.bps-read" => throttling_bps_read = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
             "throttling.bps-write" => throttling_bps_write = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
@@ -265,6 +278,7 @@ fn parse_local_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
         readonly,
         fmode,
         dmode,
+        max_xattr,
         throttling_bps_total,
         throttling_bps_read,
         throttling_bps_write,
@@ -284,6 +298,7 @@ fn parse_local_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
 fn parse_synth_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
     let mut id = None;
     let mut readonly = None;
+    let mut max_xattr = None;
 
     for part in parts {
         let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid fsdev synth option: {part}"))?;
@@ -295,6 +310,7 @@ fn parse_synth_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
                 }
                 readonly = Some(());
             }
+            "max_xattr" => max_xattr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
             other => return Err(format!("unsupported fsdev synth option: {other}")),
         }
     }
@@ -302,5 +318,6 @@ fn parse_synth_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
     Ok(FsDev::Synth(FsDevSynth {
         id: id.ok_or_else(|| "fsdev synth requires id=".to_string())?,
         readonly,
+        max_xattr,
     }))
 }

@@ -65,16 +65,17 @@ fn virtfs_round_trips_local_and_synth() {
             .id("fs0".to_string())
             .writeout(())
             .readonly(true)
+            .max_xattr(512)
             .build(),
     );
-    let synth = Virtfs::Synth(VirtfsSynth::builder().mount_tag("tag0".to_string()).id("syn0".to_string()).readonly(true).build());
+    let synth = Virtfs::Synth(VirtfsSynth::builder().mount_tag("tag0".to_string()).id("syn0".to_string()).readonly(true).max_xattr(0).build());
 
     assert_eq!(
-        "local,path=/exports/share,mount_tag=hostshare,security_model=mapped-xattr,id=fs0,writeout=immediate,readonly=on",
+        "local,path=/exports/share,mount_tag=hostshare,security_model=mapped-xattr,id=fs0,writeout=immediate,readonly=on,max_xattr=512",
         local.to_args()[0]
     );
     assert_eq!(local, Virtfs::from_str(&local.to_args()[0]).unwrap());
-    assert_eq!("synth,mount_tag=tag0,id=syn0,readonly=on", synth.to_args()[0]);
+    assert_eq!("synth,mount_tag=tag0,id=syn0,readonly=on,max_xattr=0", synth.to_args()[0]);
     assert_eq!(synth, Virtfs::from_str(&synth.to_args()[0]).unwrap());
 }
 

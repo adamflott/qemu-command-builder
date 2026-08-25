@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use qemu_command_builder::args::chardev::{CharDev, CharHub, CharNull, CharPipe, CharSocket, CharSocketTcp, CharSocketUds, CharStdio};
+use qemu_command_builder::args::chardev::{CharDbus, CharDev, CharHub, CharNull, CharPipe, CharSocket, CharSocketTcp, CharSocketUds, CharStdio};
 use qemu_command_builder::common::OnOff;
 use qemu_command_builder::to_command::ToCommand;
 use std::path::PathBuf;
@@ -99,5 +99,19 @@ fn chardev_stdio_still_round_trips() {
     let rendered = chardev.to_args()[0].clone();
 
     assert_eq!("stdio,id=serial0,mux=off,signal=off", rendered);
+    assert_eq!(chardev, CharDev::from_str(&rendered).unwrap());
+}
+
+#[test]
+fn chardev_vc_round_trips_qemu_11_1_encoding() {
+    let chardev = CharDev::from_str("vc,id=vc0,cols=80,rows=25,encoding=cp437").unwrap();
+    assert_eq!("vc,id=vc0,cols=80,rows=25,encoding=cp437", chardev.to_args()[0]);
+}
+
+#[test]
+fn chardev_dbus_round_trips() {
+    let chardev = CharDev::Dbus(CharDbus::builder().id("dbus0".to_string()).name("org.qemu.console.0".to_string()).mux(OnOff::On).build());
+    let rendered = chardev.to_args()[0].clone();
+    assert_eq!("dbus,id=dbus0,name=org.qemu.console.0,mux=on", rendered);
     assert_eq!(chardev, CharDev::from_str(&rendered).unwrap());
 }

@@ -41,3 +41,12 @@ fn fsdev_synth_round_trips_readonly() {
     assert_eq!("synth,id=s0,readonly=on", rendered);
     assert_eq!(fsdev, FsDev::from_str(&rendered).unwrap());
 }
+
+#[test]
+fn fsdev_round_trips_qemu_11_1_max_xattr() {
+    let local = FsDev::from_str("local,id=fs0,path=/exports/share,security_model=none,max_xattr=256").unwrap();
+    let synth = FsDev::from_str("synth,id=s0,max_xattr=0").unwrap();
+
+    assert_eq!("local,id=fs0,path=/exports/share,security_model=none,max_xattr=256", local.to_args()[0]);
+    assert_eq!("synth,id=s0,max_xattr=0", synth.to_args()[0]);
+}
