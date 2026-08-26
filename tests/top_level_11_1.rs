@@ -55,3 +55,25 @@ fn qemu_instance_round_trips_nic_and_legacy_net() {
     let cmd = "/usr/bin/qemu-system-x86_64 -nic none -net nic,model=e1000";
     assert_eq!(cmd, QemuInstanceForX86_64::from_str(cmd).unwrap().to_single_command());
 }
+
+#[test]
+fn repeated_top_level_options_preserve_every_occurrence_and_order() {
+    let cmd = concat!(
+        "/usr/bin/qemu-system-x86_64 ",
+        "-add-fd fd=3,set=1 -add-fd fd=4,set=1 ",
+        "-audiodev none,id=audio0 -audiodev none,id=audio1 ",
+        "-fsdev synth,id=fs0 -fsdev synth,id=fs1 ",
+        "-virtfs synth,mount_tag=tag0 -virtfs synth,mount_tag=tag1 ",
+        "-acpitable file=/tmp/a.aml -acpitable file=/tmp/b.aml ",
+        "-tpmdev emulator,id=tpm0,chardev=chr0 -tpmdev emulator,id=tpm1,chardev=chr1 ",
+        "-fw_cfg name=opt/test/a,string=one -fw_cfg name=opt/test/b,string=two ",
+        "-serial null -serial stdio ",
+        "-monitor null -monitor stdio ",
+        "-qmp null -qmp stdio ",
+        "-qmp-pretty null -qmp-pretty stdio ",
+        "-plugin file=/tmp/a.so -plugin file=/tmp/b.so",
+    );
+
+    let parsed = QemuInstanceForX86_64::from_str(cmd).unwrap();
+    assert_eq!(cmd, parsed.to_single_command());
+}

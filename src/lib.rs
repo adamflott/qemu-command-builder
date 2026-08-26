@@ -91,7 +91,7 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub accel: Option<Accel>,
     pub smp: Option<SMP>,
     pub numa: Option<Vec<NUMA>>,
-    pub add_fd: Option<AddFd>,
+    pub add_fd: Option<Vec<AddFd>>,
     pub set: Option<Vec<Set>>,
     pub global: Option<Vec<Global>>,
     pub boot: Option<Boot>,
@@ -100,7 +100,7 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub mem_prealloc: Option<bool>,
     pub k: Option<String>,
     pub audio: Option<Audio>,
-    pub audiodev: Option<AudioDev>,
+    pub audiodev: Option<Vec<AudioDev>>,
     pub device: Option<Vec<Device>>,
     pub name: Option<Name>,
     pub uuid: Option<newtype_uuid::TypedUuid<QUuid>>,
@@ -116,8 +116,8 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub mdtblock: Option<PathBuf>,
     pub sd: Option<PathBuf>,
     pub snapshot: Option<bool>,
-    pub fsdev: Option<FsDev>,
-    pub virtfs: Option<Virtfs>,
+    pub fsdev: Option<Vec<FsDev>>,
+    pub virtfs: Option<Vec<Virtfs>>,
     pub iscsi: Option<Iscsi>,
     pub usb: Option<bool>,
     pub usbdevice: Option<USBDevice>,
@@ -130,13 +130,13 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub vnc: Option<VNC>,
     pub win2k_hack: Option<bool>,
     pub no_fd_bootchk: Option<bool>,
-    pub acpitable: Option<AcpiTable>,
+    pub acpitable: Option<Vec<AcpiTable>>,
     pub smbios: Option<Vec<Smbios>>,
     pub netdev: Option<Vec<NetDev>>,
     pub nic: Option<Vec<Nic>>,
     pub net: Option<Vec<LegacyNet>>,
     pub chardev: Option<Vec<CharDev>>,
-    pub tpmdev: Option<TpmDev>,
+    pub tpmdev: Option<Vec<TpmDev>>,
     pub bios: Option<PathBuf>,
     pub pflash: Option<PathBuf>,
     pub kernel: Option<PathBuf>,
@@ -145,12 +145,12 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub initrd: Option<PathBuf>,
     pub dtb: Option<PathBuf>,
     pub compact: Option<Compact>,
-    pub fw_cfg: Option<FwCfg>,
-    pub serial: Option<SpecialDevice>,
+    pub fw_cfg: Option<Vec<FwCfg>>,
+    pub serial: Option<Vec<SpecialDevice>>,
     pub parallel: Option<Vec<SpecialDevice>>,
-    pub monitor: Option<SpecialDevice>,
-    pub qmp: Option<SpecialDevice>,
-    pub qmp_pretty: Option<SpecialDevice>,
+    pub monitor: Option<Vec<SpecialDevice>>,
+    pub qmp: Option<Vec<SpecialDevice>>,
+    pub qmp_pretty: Option<Vec<SpecialDevice>>,
     pub mon: Option<Vec<Mon>>,
     pub debugcon: Option<SpecialDevice>,
     pub pidfile: Option<PathBuf>,
@@ -185,7 +185,7 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub readconfig: Option<PathBuf>,
     pub no_user_config: Option<bool>,
     pub trace: Option<Trace>,
-    pub plugin: Option<Plugin>,
+    pub plugin: Option<Vec<Plugin>>,
     pub semihosting: Option<bool>,
     pub semihosting_config: Option<SemihostingConfig>,
     pub qtest: Option<String>,
@@ -232,8 +232,10 @@ where
                 cmd.append(&mut numa.to_command());
             }
         }
-        if let Some(add_fd) = &self.add_fd {
-            cmd.append(&mut add_fd.to_command());
+        if let Some(add_fds) = &self.add_fd {
+            for add_fd in add_fds {
+                cmd.append(&mut add_fd.to_command());
+            }
         }
         if let Some(sets) = &self.set {
             for set in sets {
@@ -267,8 +269,10 @@ where
         if let Some(audio) = &self.audio {
             cmd.append(&mut audio.to_command());
         }
-        if let Some(audiodev) = &self.audiodev {
-            cmd.append(&mut audiodev.to_command());
+        if let Some(audiodevs) = &self.audiodev {
+            for audiodev in audiodevs {
+                cmd.append(&mut audiodev.to_command());
+            }
         }
         if let Some(devices) = &self.device {
             for device in devices {
@@ -333,11 +337,15 @@ where
         {
             cmd.push(ARG_SNAPSHOT.to_string());
         }
-        if let Some(fsdev) = &self.fsdev {
-            cmd.append(&mut fsdev.to_command());
+        if let Some(fsdevs) = &self.fsdev {
+            for fsdev in fsdevs {
+                cmd.append(&mut fsdev.to_command());
+            }
         }
-        if let Some(virtfs) = &self.virtfs {
-            cmd.append(&mut virtfs.to_command());
+        if let Some(virtfses) = &self.virtfs {
+            for virtfs in virtfses {
+                cmd.append(&mut virtfs.to_command());
+            }
         }
         if let Some(iscsi) = &self.iscsi {
             cmd.append(&mut iscsi.to_command());
@@ -385,8 +393,10 @@ where
         {
             cmd.push(ARG_NO_FD_BOOTCHK.to_string());
         }
-        if let Some(acpitable) = &self.acpitable {
-            cmd.append(&mut acpitable.to_command());
+        if let Some(acpitables) = &self.acpitable {
+            for acpitable in acpitables {
+                cmd.append(&mut acpitable.to_command());
+            }
         }
         if let Some(smbioss) = &self.smbios {
             for smbios in smbioss {
@@ -413,8 +423,10 @@ where
                 cmd.append(&mut chardev.to_command());
             }
         }
-        if let Some(tpmdev) = &self.tpmdev {
-            cmd.append(&mut tpmdev.to_command());
+        if let Some(tpmdevs) = &self.tpmdev {
+            for tpmdev in tpmdevs {
+                cmd.append(&mut tpmdev.to_command());
+            }
         }
         if let Some(bios) = &self.bios {
             cmd.push(ARG_BIOS.to_string());
@@ -447,12 +459,16 @@ where
         if let Some(compact) = &self.compact {
             cmd.append(&mut compact.to_command());
         }
-        if let Some(fw_cfg) = &self.fw_cfg {
-            cmd.append(&mut fw_cfg.to_command());
+        if let Some(fw_cfgs) = &self.fw_cfg {
+            for fw_cfg in fw_cfgs {
+                cmd.append(&mut fw_cfg.to_command());
+            }
         }
-        if let Some(serial) = &self.serial {
-            cmd.push(ARG_SERIAL.to_string());
-            cmd.append(&mut serial.to_args());
+        if let Some(serials) = &self.serial {
+            for serial in serials {
+                cmd.push(ARG_SERIAL.to_string());
+                cmd.append(&mut serial.to_args());
+            }
         }
         if let Some(parallels) = &self.parallel {
             for parallel in parallels {
@@ -460,17 +476,23 @@ where
                 cmd.append(&mut parallel.to_args());
             }
         }
-        if let Some(monitor) = &self.monitor {
-            cmd.push(ARG_MONITOR.to_string());
-            cmd.append(&mut monitor.to_args());
+        if let Some(monitors) = &self.monitor {
+            for monitor in monitors {
+                cmd.push(ARG_MONITOR.to_string());
+                cmd.append(&mut monitor.to_args());
+            }
         }
-        if let Some(qmp) = &self.qmp {
-            cmd.push(ARG_QMP.to_string());
-            cmd.append(&mut qmp.to_args());
+        if let Some(qmps) = &self.qmp {
+            for qmp in qmps {
+                cmd.push(ARG_QMP.to_string());
+                cmd.append(&mut qmp.to_args());
+            }
         }
-        if let Some(qmp_pretty) = &self.qmp_pretty {
-            cmd.push(ARG_QMP_PRETTY.to_string());
-            cmd.append(&mut qmp_pretty.to_args());
+        if let Some(qmp_pretties) = &self.qmp_pretty {
+            for qmp_pretty in qmp_pretties {
+                cmd.push(ARG_QMP_PRETTY.to_string());
+                cmd.append(&mut qmp_pretty.to_args());
+            }
         }
         if let Some(mons) = &self.mon {
             for mon in mons {
@@ -616,8 +638,10 @@ where
         if let Some(trace) = &self.trace {
             cmd.append(&mut trace.to_command());
         }
-        if let Some(plugin) = &self.plugin {
-            cmd.append(&mut plugin.to_command());
+        if let Some(plugins) = &self.plugin {
+            for plugin in plugins {
+                cmd.append(&mut plugin.to_command());
+            }
         }
         if self.semihosting == Some(true) {
             cmd.push(ARG_SEMIHOSTING.to_string());

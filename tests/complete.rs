@@ -155,7 +155,7 @@ fn full_command_line() {
         .device(vec![virio_scsi_pci_device_id0, scsi_hd_id0, virio_scsi_pci_device_id1, scsi_hd_id1, virio_net_pci])
         .netdev(vec![netdev])
         .parallel(vec![SpecialDevice::None])
-        .serial(serial)
+        .serial(vec![serial])
         .pidfile(PathBuf::from("/run/qemu.pid"))
         .mon(vec![mon])
         .d(vec!["unimp".to_string()])
