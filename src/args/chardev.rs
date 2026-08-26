@@ -60,10 +60,22 @@ pub struct CharSocketUds {
     tight: Option<OnOff>,
 }
 
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
+pub struct CharSocketFd {
+    id: String,
+    fd: u64,
+    server: Option<OnOff>,
+    wait: Option<OnOff>,
+    mux: Option<OnOff>,
+    logfile: Option<PathBuf>,
+    logappend: Option<OnOff>,
+}
+
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum CharSocket {
     Tcp(CharSocketTcp),
     Uds(CharSocketUds),
+    Fd(CharSocketFd),
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
@@ -269,6 +281,7 @@ impl CharDev {
             CharDev::Socket(s) => match s {
                 CharSocket::Tcp(t) => &t.id,
                 CharSocket::Uds(u) => &u.id,
+                CharSocket::Fd(f) => &f.id,
             },
             CharDev::Udp(u) => &u.id,
             CharDev::MsMouse(m) => &m.id,
@@ -397,6 +410,26 @@ impl ToCommand for CharDev {
                     }
                     if let Some(tight) = &uds.tight {
                         args.push(format!("tight={}", tight.to_arg()));
+                    }
+                }
+                CharSocket::Fd(fd) => {
+                    args.push("socket".to_string());
+                    args.push(format!("id={}", fd.id));
+                    args.push(format!("fd={}", fd.fd));
+                    if let Some(server) = &fd.server {
+                        args.push(format!("server={}", server.to_arg()));
+                    }
+                    if let Some(wait) = &fd.wait {
+                        args.push(format!("wait={}", wait.to_arg()));
+                    }
+                    if let Some(mux) = &fd.mux {
+                        args.push(format!("mux={}", mux.to_arg()));
+                    }
+                    if let Some(logfile) = &fd.logfile {
+                        args.push(format!("logfile={}", logfile.display()));
+                    }
+                    if let Some(logappend) = &fd.logappend {
+                        args.push(format!("logappend={}", logappend.to_arg()));
                     }
                 }
             },
@@ -733,6 +766,7 @@ fn parse_socket_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
     let mut host = None;
     let mut port = None;
     let mut path = None;
+    let mut fd = None;
     let mut to = None;
     let mut ipv4 = None;
     let mut ipv6 = None;
@@ -773,6 +807,7 @@ fn parse_socket_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
             "host" => host = Some(value.to_string()),
             "port" => port = Some(value.parse::<u16>().map_err(|e| e.to_string())?),
             "path" => path = Some(PathBuf::from(value)),
+            "fd" => fd = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
             "to" => to = Some(value.parse::<u16>().map_err(|e| e.to_string())?),
             "ipv4" => ipv4 = Some(value.parse::<OnOff>().map_err(|_| format!("invalid ipv4 value: {value}"))?),
             "ipv6" => ipv6 = Some(value.parse::<OnOff>().map_err(|_| format!("invalid ipv6 value: {value}"))?),
@@ -794,6 +829,17 @@ fn parse_socket_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
     }
 
     let id = id.ok_or_else(|| "socket chardev requires id=".to_string())?;
+    if let Some(fd) = fd {
+        return Ok(CharDev::Socket(CharSocket::Fd(CharSocketFd {
+            id,
+            fd,
+            server,
+            wait,
+            mux,
+            logfile,
+            logappend,
+        })));
+    }
     if let Some(path) = path {
         return Ok(CharDev::Socket(CharSocket::Uds(CharSocketUds {
             id,

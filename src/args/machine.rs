@@ -195,6 +195,9 @@ pub struct Machine<T> {
 
     /// SGX EPC sections.
     sgx_epc: Option<Vec<SgxEpc>>,
+
+    /// Machine-type-specific properties accepted by the selected board.
+    extra_properties: Option<Vec<(ShellString, ShellString)>>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
@@ -243,6 +246,11 @@ impl ToCommand for MachineX86_64 {
                 args.push(format!("sgx-epc.{}.node={}", idx, sgx_epc.node));
             }
         }
+        if let Some(properties) = &self.m.extra_properties {
+            for (key, value) in properties {
+                args.push(format!("{}={}", key.as_ref(), value.as_ref()));
+            }
+        }
 
         vec![args.join(DELIM_COMMA)]
     }
@@ -277,6 +285,7 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
     let mut cxl_fmw = std::collections::BTreeMap::<u64, CxlFmwParts>::new();
     let mut igvm_cfg = None;
     let mut sgx_epc = std::collections::BTreeMap::<u64, (Option<ShellString>, Option<u64>)>::new();
+    let mut extra_properties = Vec::new();
 
     if let Some(value) = first.strip_prefix(KEY_TYPE) {
         machine_type = Some(parse_machine_type(value)?);
@@ -300,6 +309,7 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
             &mut cxl_fmw,
             &mut igvm_cfg,
             &mut sgx_epc,
+            &mut extra_properties,
         )?;
     } else {
         machine_type = Some(parse_machine_type(first)?);
@@ -325,6 +335,7 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
             &mut cxl_fmw,
             &mut igvm_cfg,
             &mut sgx_epc,
+            &mut extra_properties,
         )?;
     }
 
@@ -351,6 +362,7 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
             cxl_fmw,
             igvm_cfg,
             sgx_epc,
+            extra_properties: (!extra_properties.is_empty()).then_some(extra_properties),
         },
     })
 }
@@ -375,6 +387,7 @@ fn parse_machine_option(
     cxl_fmw: &mut std::collections::BTreeMap<u64, CxlFmwParts>,
     igvm_cfg: &mut Option<ShellString>,
     sgx_epc: &mut std::collections::BTreeMap<u64, (Option<ShellString>, Option<u64>)>,
+    extra_properties: &mut Vec<(ShellString, ShellString)>,
 ) -> Result<(), String> {
     let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid machine option: {part}"))?;
     match key {
@@ -401,7 +414,7 @@ fn parse_machine_option(
         _ if key.starts_with("cxl-fmw.") => parse_cxl_fmw_option(key, value, cxl_fmw)?,
         "igvm-cfg" => *igvm_cfg = Some(ShellString::new(value)),
         _ if key.starts_with("sgx-epc.") => parse_sgx_epc_option(key, value, sgx_epc)?,
-        other => return Err(format!("unsupported machine option: {other}")),
+        other => extra_properties.push((ShellString::new(other), ShellString::new(value))),
     }
 
     Ok(())
@@ -447,6 +460,11 @@ impl ToCommand for MachineAarch64 {
                 args.push(format!("sgx-epc.{}.node={}", idx, sgx_epc.node));
             }
         }
+        if let Some(properties) = &self.m.extra_properties {
+            for (key, value) in properties {
+                args.push(format!("{}={}", key.as_ref(), value.as_ref()));
+            }
+        }
 
         vec![args.join(DELIM_COMMA)]
     }
@@ -474,6 +492,7 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
     let mut cxl_fmw = std::collections::BTreeMap::<u64, CxlFmwParts>::new();
     let mut igvm_cfg = None;
     let mut sgx_epc = std::collections::BTreeMap::<u64, (Option<ShellString>, Option<u64>)>::new();
+    let mut extra_properties = Vec::new();
 
     if let Some(value) = first.strip_prefix(KEY_TYPE) {
         machine_type = Some(parse_machine_type_aarch64(value)?);
@@ -491,6 +510,7 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
             &mut cxl_fmw,
             &mut igvm_cfg,
             &mut sgx_epc,
+            &mut extra_properties,
         )?;
     } else {
         machine_type = Some(parse_machine_type_aarch64(first)?);
@@ -510,6 +530,7 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
             &mut cxl_fmw,
             &mut igvm_cfg,
             &mut sgx_epc,
+            &mut extra_properties,
         )?;
     }
 
@@ -536,6 +557,7 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
             cxl_fmw,
             igvm_cfg,
             sgx_epc,
+            extra_properties: (!extra_properties.is_empty()).then_some(extra_properties),
         },
     })
 }
@@ -554,6 +576,7 @@ fn parse_machine_aarch64_option(
     cxl_fmw: &mut std::collections::BTreeMap<u64, CxlFmwParts>,
     igvm_cfg: &mut Option<ShellString>,
     sgx_epc: &mut std::collections::BTreeMap<u64, (Option<ShellString>, Option<u64>)>,
+    extra_properties: &mut Vec<(ShellString, ShellString)>,
 ) -> Result<(), String> {
     let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid machine option: {part}"))?;
     match key {
@@ -574,7 +597,10 @@ fn parse_machine_aarch64_option(
         _ if key.starts_with("cxl-fmw.") => parse_cxl_fmw_option(key, value, cxl_fmw)?,
         "igvm-cfg" => *igvm_cfg = Some(ShellString::new(value)),
         _ if key.starts_with("sgx-epc.") => parse_sgx_epc_option(key, value, sgx_epc)?,
-        other => return Err(format!("unsupported aarch64 machine option: {other}")),
+        "vmport" | "aes-key-wrap" | "dea-key-wrap" | "memory-encryption" | "hmat" | "aux-ram-share" => {
+            return Err(format!("unsupported aarch64 machine option: {key}"));
+        }
+        other => extra_properties.push((ShellString::new(other), ShellString::new(value))),
     }
 
     Ok(())

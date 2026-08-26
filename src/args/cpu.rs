@@ -4,10 +4,8 @@ use std::str::FromStr;
 
 use bon::Builder;
 use proptest_derive::Arbitrary;
-use winnow::ascii::alphanumeric1;
-use winnow::combinator::{alt, opt, preceded, separated};
 use winnow::prelude::*;
-use winnow::token::{literal, take_while};
+use winnow::token::take_while;
 
 use crate::args::cpu_flags::CPUFlag;
 use crate::args::cpu_type::{CpuTypeAarch64, CpuTypeX86_64};
@@ -26,6 +24,7 @@ const KEY_MIGRATABLE: &str = "migratable=";
 pub struct CpuX86 {
     cpu_type: CpuTypeX86_64,
     migratable: Option<YesNo>,
+    properties: Option<Vec<(String, String)>>,
     flags: Option<BTreeMap<CPUFlag, OnOff>>,
 }
 
@@ -35,6 +34,7 @@ impl CpuX86 {
         CpuX86 {
             cpu_type,
             migratable: None,
+            properties: None,
             flags: None,
         }
     }
@@ -69,6 +69,9 @@ impl ToCommand for CpuX86 {
         let mut args = vec![self.cpu_type.to_arg().to_string()];
 
         qao!(&self.migratable, args, KEY_MIGRATABLE);
+        if let Some(properties) = &self.properties {
+            args.extend(properties.iter().map(|(key, value)| format!("{key}={value}")));
+        }
         if let Some(flags) = &self.flags {
             let flags: Vec<String> = flags
                 .iter()
@@ -90,76 +93,52 @@ impl FromStr for CpuX86 {
     type Err = ShellStringError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        cpu_x86_64.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        parse_cpu_x86(s).map_err(ShellStringError::new)
     }
 }
 
-fn cpu_type(s: &mut &str) -> ModalResult<CpuTypeX86_64> {
-    ascii_plus_more.parse_to::<CpuTypeX86_64>().parse_next(s)
-}
+fn parse_cpu_x86(s: &str) -> Result<CpuX86, String> {
+    let mut parts = s.split(DELIM_COMMA);
+    let cpu_type = parts
+        .next()
+        .ok_or_else(|| "CPU model is required".to_string())?
+        .parse::<CpuTypeX86_64>()
+        .map_err(|_| "invalid CPU model".to_string())?;
+    let mut migratable = None;
+    let mut properties = Vec::new();
+    let mut flags = BTreeMap::new();
 
-fn migratable_item(s: &mut &str) -> ModalResult<YesNo> {
-    let _ = literal(KEY_MIGRATABLE).parse_next(s)?;
-    alphanumeric1.parse_to::<YesNo>().parse_next(s)
+    for part in parts {
+        if let Some(value) = part.strip_prefix(KEY_MIGRATABLE) {
+            migratable = Some(match value {
+                "yes" | "on" => YesNo::Yes,
+                "no" | "off" => YesNo::No,
+                _ => return Err(format!("invalid migratable value: {value}")),
+            });
+        } else if let Some((key, value)) = part.split_once('=') {
+            match (key.parse::<CPUFlag>(), value.parse::<OnOff>()) {
+                (Ok(flag), Ok(state)) => {
+                    flags.insert(flag, state);
+                }
+                _ => properties.push((key.to_string(), value.to_string())),
+            }
+        } else {
+            let (name, state) = part.strip_prefix('-').map_or((part, OnOff::On), |name| (name, OnOff::Off));
+            let flag = name.parse::<CPUFlag>().map_err(|_| format!("unsupported CPU feature: {name}"))?;
+            flags.insert(flag, state);
+        }
+    }
+
+    Ok(CpuX86 {
+        cpu_type,
+        migratable,
+        properties: (!properties.is_empty()).then_some(properties),
+        flags: (!flags.is_empty()).then_some(flags),
+    })
 }
 
 pub fn cpu_flag_parser<'a>(input: &mut &'a str) -> ModalResult<&'a str> {
     take_while(1.., |c: char| c.is_ascii_alphanumeric() || c == '-' || c == '.').parse_next(input)
-}
-
-fn cpu_flag(s: &mut &str) -> ModalResult<(CPUFlag, OnOff)> {
-    let state = opt(literal('-')).parse_next(s)?;
-    let flag = cpu_flag_parser.parse_to::<CPUFlag>().parse_next(s)?;
-    Ok((
-        flag,
-        match state {
-            None => OnOff::On,
-            Some(_) => OnOff::Off,
-        },
-    ))
-}
-
-fn cpu_flag_property(s: &mut &str) -> ModalResult<(CPUFlag, OnOff)> {
-    let flag = cpu_flag_parser.parse_to::<CPUFlag>().parse_next(s)?;
-    let _ = literal("=").parse_next(s)?;
-    let state = alphanumeric1.parse_to::<OnOff>().parse_next(s)?;
-    Ok((flag, state))
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-enum CpuX86Item {
-    Migratable(YesNo),
-    Flag(CPUFlag, OnOff),
-}
-
-fn cpu_x86_item(s: &mut &str) -> ModalResult<CpuX86Item> {
-    alt((
-        migratable_item.map(CpuX86Item::Migratable),
-        cpu_flag_property.map(|(flag, state)| CpuX86Item::Flag(flag, state)),
-        cpu_flag.map(|(flag, state)| CpuX86Item::Flag(flag, state)),
-    ))
-    .parse_next(s)
-}
-
-fn cpu_x86_64(s: &mut &str) -> ModalResult<CpuX86> {
-    let cpu_type = cpu_type(s)?;
-    let items: Option<Vec<CpuX86Item>> = opt(preceded(literal(DELIM_COMMA), separated(1.., cpu_x86_item, DELIM_COMMA))).parse_next(s)?;
-    let mut migratable = None;
-    let mut flags = BTreeMap::new();
-
-    if let Some(items) = items {
-        for item in items {
-            match item {
-                CpuX86Item::Migratable(value) => migratable = Some(value),
-                CpuX86Item::Flag(flag, state) => {
-                    flags.insert(flag, state);
-                }
-            }
-        }
-    }
-
-    let flags = (!flags.is_empty()).then_some(flags);
-    Ok(CpuX86 { cpu_type, migratable, flags })
 }
 
 /// An aarch64 `-cpu` argument.

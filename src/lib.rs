@@ -72,6 +72,8 @@ use crate::parsers::{
     ARG_PFLASH, ARG_PIDFILE, ARG_PRECONFIG, ARG_PROM_ENV, ARG_QMP, ARG_QMP_PRETTY, ARG_QTEST, ARG_QTEST_LOG, ARG_READCONFIG, ARG_SD, ARG_SEED, ARG_SEMIHOSTING, ARG_SERIAL, ARG_SHIM, ARG_SNAPSHOT,
     ARG_USB, ARG_UUID, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID, ARG_XEN_DOMID_RESTRICT, DELIM_COMMA,
 };
+use crate::parsers::{ARG_CHROOT, ARG_RUNAS};
+use crate::parsers::{ARG_MIGRATE_MODE_ENABLE, ARG_NO_HPET, ARG_ONLY_CPR_CAPABLE};
 use crate::shell_string::ShellString;
 use crate::to_command::{ToArg, ToCommand};
 
@@ -169,6 +171,7 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub xen_attach: Option<bool>,
     pub xen_domid_restrict: Option<bool>,
     pub no_reboot: Option<bool>,
+    pub no_hpet: Option<bool>,
     pub no_shutdown: Option<bool>,
     pub action: Option<Action>,
     pub loadvm: Option<String>,
@@ -180,6 +183,8 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub echr: Option<String>,
     pub incoming: Option<Vec<Incoming>>,
     pub only_migratable: Option<bool>,
+    pub only_cpr_capable: Option<bool>,
+    pub migrate_mode_enable: Option<String>,
     pub nodefaults: Option<bool>,
     pub sandbox: Option<Sandbox>,
     pub readconfig: Option<PathBuf>,
@@ -573,6 +578,9 @@ where
         {
             cmd.push(ARG_NO_REBOOT.to_string());
         }
+        if self.no_hpet == Some(true) {
+            cmd.push(ARG_NO_HPET.to_string());
+        }
         if let Some(no_shutdown) = &self.no_shutdown
             && *no_shutdown
         {
@@ -617,6 +625,13 @@ where
             && *only_migratable
         {
             cmd.push(ARG_ONLY_MIGRATABLE.to_string());
+        }
+        if self.only_cpr_capable == Some(true) {
+            cmd.push(ARG_ONLY_CPR_CAPABLE.to_string());
+        }
+        if let Some(mode) = &self.migrate_mode_enable {
+            cmd.push(ARG_MIGRATE_MODE_ENABLE.to_string());
+            cmd.push(mode.clone());
         }
         if let Some(nodefaults) = &self.nodefaults
             && *nodefaults
@@ -667,9 +682,11 @@ where
             cmd.append(&mut run_with.to_command());
         }
         if let Some(runas) = &self.runas {
+            cmd.push(ARG_RUNAS.to_string());
             cmd.push(runas.to_string());
         }
         if let Some(chroot) = &self.chroot {
+            cmd.push(ARG_CHROOT.to_string());
             cmd.push(chroot.display().to_string());
         }
         if let Some(msg) = &self.msg {

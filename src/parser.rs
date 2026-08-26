@@ -53,6 +53,7 @@ use crate::parsers::{
     ARG_SD, ARG_SEED, ARG_SEMIHOSTING, ARG_SEMIHOSTING_CONFIG, ARG_SERIAL, ARG_SET, ARG_SHIM, ARG_SMBIOS, ARG_SMP, ARG_SNAPSHOT, ARG_SPICE, ARG_TPMDEV, ARG_TRACE, ARG_USB, ARG_USBDEVICE, ARG_UUID,
     ARG_VGA, ARG_VIRTFS, ARG_VNC, ARG_WATCHDOG_ACTION, ARG_WIN2K_HACK, ARG_XEN_ATTACH, ARG_XEN_DOMID, ARG_XEN_DOMID_RESTRICT,
 };
+use crate::parsers::{ARG_MIGRATE_MODE_ENABLE, ARG_NO_HPET, ARG_ONLY_CPR_CAPABLE};
 use crate::shell_string::ShellString;
 use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QUuid, QemuCommand, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
 use std::path::PathBuf;
@@ -193,6 +194,7 @@ where
             ARG_XEN_ATTACH => q.xen_attach = Some(true),
             ARG_XEN_DOMID_RESTRICT => q.xen_domid_restrict = Some(true),
             ARG_NO_REBOOT => q.no_reboot = Some(true),
+            ARG_NO_HPET => q.no_hpet = Some(true),
             ARG_NO_SHUTDOWN => q.no_shutdown = Some(true),
             ARG_ACTION => ff!(tokens, ARG_ACTION, Action, q.action),
             ARG_LOADVM => ff!(tokens, ARG_LOADVM, String, q.loadvm),
@@ -204,6 +206,8 @@ where
             ARG_ECHR => ff!(tokens, ARG_ECHR, String, q.echr),
             ARG_INCOMING => ffs!(tokens, ARG_INCOMING, Incoming, q.incoming),
             ARG_ONLY_MIGRATABLE => q.only_migratable = Some(true),
+            ARG_ONLY_CPR_CAPABLE => q.only_cpr_capable = Some(true),
+            ARG_MIGRATE_MODE_ENABLE => ff!(tokens, ARG_MIGRATE_MODE_ENABLE, String, q.migrate_mode_enable),
             ARG_NODEFAULTS => q.nodefaults = Some(true),
             ARG_SANDBOX => ff!(tokens, ARG_SANDBOX, Sandbox, q.sandbox),
             ARG_READCONFIG => ff!(tokens, ARG_READCONFIG, PathBuf, q.readconfig),
