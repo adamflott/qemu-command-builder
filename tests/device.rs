@@ -37,3 +37,17 @@ fn device_parses_scsi_hd_properties() {
     );
     assert_eq!(parsed, Device::from_str(&parsed.to_args()[0]).unwrap());
 }
+
+#[test]
+fn device_preserves_json_and_documents_smmuv3_auto_properties() {
+    let json = r#"{"driver":"virtio-net-pci","id":"net0","vectors":18}"#;
+    assert_eq!(json, Device::from_str(json).unwrap().to_args()[0]);
+
+    let mut smmu = Device::arm_smmuv3();
+    smmu.add_prop("ril", "auto")
+        .add_prop("ats", "auto")
+        .add_prop("oas", "auto")
+        .add_prop("ssidsize", "auto")
+        .add_prop("cmdqv", "auto");
+    assert_eq!("arm-smmuv3,ats=auto,cmdqv=auto,oas=auto,ril=auto,ssidsize=auto", smmu.to_args()[0]);
+}

@@ -49,3 +49,9 @@ fn qemu_instance_parses_audiodev() {
 
     assert_eq!(cmd, parsed.to_single_command());
 }
+
+#[test]
+fn audiodev_preserves_json() {
+    let json = r#"{"driver":"wav","id":"audio0","out":{"frequency":48000}}"#;
+    assert_eq!(json, AudioDev::from_str(json).unwrap().to_args()[0]);
+}

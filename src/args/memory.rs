@@ -62,7 +62,7 @@ pub struct Memory {
     /// Initial guest RAM size.
     mem: MemoryUnit,
     /// Number of hotpluggable memory slots.
-    slots: Option<usize>,
+    slots: Option<u64>,
     /// Maximum guest RAM size.
     maxmem: Option<MemoryUnit>,
 }
@@ -121,7 +121,7 @@ fn parse_memory(s: &str) -> Result<Memory, String> {
         match key {
             "size" => return Err("size= is only valid as the first -m component".to_string()),
             "slots" => {
-                slots = Some(value.parse::<usize>().map_err(|e| format!("invalid slots value: {e}"))?);
+                slots = Some(value.parse::<u64>().map_err(|e| format!("invalid slots value: {e}"))?);
             }
             "maxmem" => maxmem = Some(parse_memory_unit(value)?),
             other => return Err(format!("unsupported memory option: {other}")),

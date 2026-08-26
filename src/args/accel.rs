@@ -92,7 +92,7 @@ impl Display for TCGThreadType {
 ///
 /// The `run` mode may also carry the companion `notify-window=` property.
 pub enum NotifyVMExit {
-    Run(Option<usize>),
+    Run(Option<u64>),
     InternalError,
     Disable,
 }
@@ -147,7 +147,7 @@ pub struct Accel {
     kernel_irqchip: Option<OnOffSplit>,
 
     /// Defines the size of the KVM shadow MMU.
-    kvm_shadow_mem: Option<usize>,
+    kvm_shadow_mem: Option<u64>,
 
     /// Makes the TCG accelerator put only one guest instruction into
     /// each translation block. This slows down emulation a lot, but
@@ -162,7 +162,7 @@ pub struct Accel {
     split_wx: Option<OnOff>,
 
     /// Controls the size (in MiB) of the TCG translation block cache.
-    tb_size: Option<usize>,
+    tb_size: Option<u64>,
 
     /// When the KVM accelerator is used, it controls the size of the per-vCPU
     /// dirty page ring buffer (number of entries for each vCPU). It should
@@ -172,7 +172,7 @@ pub struct Accel {
     /// Set this value to 0 to disable the feature.  By default, this feature
     /// is disabled (dirty-ring-size=0).  When enabled, KVM will instead
     /// record dirty pages in a bitmap.
-    dirty_ring_size: Option<usize>,
+    dirty_ring_size: Option<u64>,
 
     /// KVM implements dirty page logging at the PAGE_SIZE granularity and
     /// enabling dirty-logging on a huge-page requires breaking it into
@@ -186,7 +186,7 @@ pub struct Accel {
     /// respectively. Be wary of specifying a higher size as it will have an
     /// impact on the memory. By default, this feature is disabled
     /// (eager-split-size=0).
-    eager_split_size: Option<usize>,
+    eager_split_size: Option<u64>,
 
     /// Enables or disables notify VM exit support on x86 host and specify
     /// the corresponding notify window to trigger the VM exit if enabled.
@@ -281,7 +281,7 @@ impl FromStr for Accel {
                     accel.kernel_irqchip = Some(value.parse::<OnOffSplit>().map_err(|_| format!("invalid kernel-irqchip value: {value}"))?);
                 }
                 "kvm-shadow-mem" => {
-                    accel.kvm_shadow_mem = Some(value.parse::<usize>().map_err(|e| e.to_string())?);
+                    accel.kvm_shadow_mem = Some(value.parse::<u64>().map_err(|e| e.to_string())?);
                 }
                 "one-insn-per-tb" => {
                     accel.one_insn_per_tb = Some(value.parse::<OnOff>().map_err(|_| format!("invalid one-insn-per-tb value: {value}"))?);
@@ -290,19 +290,19 @@ impl FromStr for Accel {
                     accel.split_wx = Some(value.parse::<OnOff>().map_err(|_| format!("invalid split-wx value: {value}"))?);
                 }
                 "tb-size" => {
-                    accel.tb_size = Some(value.parse::<usize>().map_err(|e| e.to_string())?);
+                    accel.tb_size = Some(value.parse::<u64>().map_err(|e| e.to_string())?);
                 }
                 "dirty-ring-size" => {
-                    accel.dirty_ring_size = Some(value.parse::<usize>().map_err(|e| e.to_string())?);
+                    accel.dirty_ring_size = Some(value.parse::<u64>().map_err(|e| e.to_string())?);
                 }
                 "eager-split-size" => {
-                    accel.eager_split_size = Some(value.parse::<usize>().map_err(|e| e.to_string())?);
+                    accel.eager_split_size = Some(value.parse::<u64>().map_err(|e| e.to_string())?);
                 }
                 "notify-vmexit" => {
                     accel.notify_vmexit = Some(value.parse::<NotifyVMExit>()?);
                 }
                 "notify-window" => {
-                    pending_notify_window = Some(value.parse::<usize>().map_err(|e| e.to_string())?);
+                    pending_notify_window = Some(value.parse::<u64>().map_err(|e| e.to_string())?);
                 }
                 "thread" => {
                     accel.thread = Some(value.parse::<TCGThreadType>().map_err(|_| format!("invalid thread value: {value}"))?);

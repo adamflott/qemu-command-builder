@@ -284,13 +284,13 @@ pub struct Tap {
     downscript: Option<ScriptOrNot>,
     br: Option<String>,
     helper: Option<String>,
-    sndbuf: Option<usize>,
+    sndbuf: Option<u64>,
     vnet_hdr: Option<OnOff>,
     vhost: Option<OnOff>,
     vhostfd: Option<String>,
     vhostforce: Option<OnOff>,
-    queues: Option<usize>,
-    poll_us: Option<usize>,
+    queues: Option<u64>,
+    poll_us: Option<u64>,
 }
 
 impl ToCommand for Tap {
@@ -381,13 +381,13 @@ impl FromStr for Tap {
                 "downscript" => downscript = Some(value.parse::<ScriptOrNot>()?),
                 "br" => br = Some(value.to_string()),
                 "helper" => helper = Some(value.to_string()),
-                "sndbuf" => sndbuf = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "sndbuf" => sndbuf = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 "vnet_hdr" => vnet_hdr = Some(value.parse::<OnOff>().map_err(|_| format!("invalid vnet_hdr value: {value}"))?),
                 "vhost" => vhost = Some(value.parse::<OnOff>().map_err(|_| format!("invalid vhost value: {value}"))?),
                 "vhostfd" => vhostfd = Some(value.to_string()),
                 "vhostforce" => vhostforce = Some(value.parse::<OnOff>().map_err(|_| format!("invalid vhostforce value: {value}"))?),
-                "queues" => queues = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "poll_us" => poll_us = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "queues" => queues = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "poll_us" => poll_us = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 other => return Err(format!("unsupported tap option: {other}")),
             }
         }
@@ -840,7 +840,7 @@ pub struct StreamOverTcp {
     mptcp: Option<OnOff>,
     addr_ipv4: Option<OnOff>,
     addr_ipv6: Option<OnOff>,
-    reconnect_ms: Option<usize>,
+    reconnect_ms: Option<u64>,
 }
 
 impl ToCommand for StreamOverTcp {
@@ -895,7 +895,7 @@ impl FromStr for StreamOverTcp {
             mptcp: parse_optional_onoff(first_prop(&props, "mptcp"))?,
             addr_ipv4: parse_optional_onoff(first_prop(&props, "addr.ipv4"))?,
             addr_ipv6: parse_optional_onoff(first_prop(&props, "addr.ipv6"))?,
-            reconnect_ms: parse_optional_usize(first_prop(&props, "reconnect-ms"))?,
+            reconnect_ms: parse_optional_u64(first_prop(&props, "reconnect-ms"))?,
         })
     }
 }
@@ -907,7 +907,7 @@ pub struct StreamOverUds {
     addr_path: String,
     abstract_arg: Option<OnOff>,
     tight: Option<OnOff>,
-    reconnect_ms: Option<usize>,
+    reconnect_ms: Option<u64>,
 }
 
 impl ToCommand for StreamOverUds {
@@ -944,7 +944,7 @@ impl FromStr for StreamOverUds {
             addr_path: required_prop(&props, "addr.path")?.to_string(),
             abstract_arg: parse_optional_onoff(first_prop(&props, "abstract"))?,
             tight: parse_optional_onoff(first_prop(&props, "tight"))?,
-            reconnect_ms: parse_optional_usize(first_prop(&props, "reconnect-ms"))?,
+            reconnect_ms: parse_optional_u64(first_prop(&props, "reconnect-ms"))?,
         })
     }
 }
@@ -954,7 +954,7 @@ pub struct StreamOverFd {
     id: String,
     server: Option<OnOff>,
     addr_str: String,
-    reconnect_ms: Option<usize>,
+    reconnect_ms: Option<u64>,
 }
 
 impl ToCommand for StreamOverFd {
@@ -983,7 +983,7 @@ impl FromStr for StreamOverFd {
             id: required_prop(&props, "id")?.to_string(),
             server: parse_optional_onoff(first_prop(&props, "server"))?,
             addr_str: required_prop(&props, "addr.str")?.to_string(),
-            reconnect_ms: parse_optional_usize(first_prop(&props, "reconnect-ms"))?,
+            reconnect_ms: parse_optional_u64(first_prop(&props, "reconnect-ms"))?,
         })
     }
 }
@@ -1105,7 +1105,7 @@ impl FromStr for DgramMulticastUdpFd {
 pub struct DgramSocket {
     id: String,
     local_host: String,
-    local_port: usize,
+    local_port: u64,
     remote_host: Option<String>,
     remote_port: Option<u16>,
 }
@@ -1140,7 +1140,7 @@ impl FromStr for DgramSocket {
         Ok(Self {
             id: required_prop(&props, "id")?.to_string(),
             local_host: required_prop(&props, "local.host")?.to_string(),
-            local_port: required_prop(&props, "local.port")?.parse::<usize>().map_err(|e| e.to_string())?,
+            local_port: required_prop(&props, "local.port")?.parse::<u64>().map_err(|e| e.to_string())?,
             remote_host: first_prop(&props, "remote.host").map(ToString::to_string),
             remote_port: parse_optional_u16(first_prop(&props, "remote.port"))?,
         })
@@ -1341,12 +1341,12 @@ pub struct AfXdp {
     ifname: String,
     mode: Option<NativeSkb>,
     force_copy: Option<OnOff>,
-    queues: Option<usize>,
-    start_queue: Option<usize>,
+    queues: Option<u64>,
+    start_queue: Option<u64>,
     inhibit: Option<OnOff>,
     sock_fds: Option<Vec<String>>,
     map_path: Option<PathBuf>,
-    map_start_index: Option<usize>,
+    map_start_index: Option<u64>,
 }
 
 impl ToCommand for AfXdp {
@@ -1396,12 +1396,12 @@ impl FromStr for AfXdp {
                 None => None,
             },
             force_copy: parse_optional_onoff(first_prop(&props, "force-copy"))?,
-            queues: parse_optional_usize(first_prop(&props, "queues"))?,
-            start_queue: parse_optional_usize(first_prop(&props, "start-queue"))?,
+            queues: parse_optional_u64(first_prop(&props, "queues"))?,
+            start_queue: parse_optional_u64(first_prop(&props, "start-queue"))?,
             inhibit: parse_optional_onoff(first_prop(&props, "inhibit"))?,
             sock_fds: first_prop(&props, "sock-fds").map(|v| v.split(':').map(|part| part.to_string()).collect()),
             map_path: first_prop(&props, "map-path").map(PathBuf::from),
-            map_start_index: parse_optional_usize(first_prop(&props, "map-start-index"))?,
+            map_start_index: parse_optional_u64(first_prop(&props, "map-start-index"))?,
         })
     }
 }
@@ -1413,7 +1413,7 @@ pub struct Passt {
     path: Option<PathBuf>,
     quiet: Option<OnOff>,
     vhost_user: Option<OnOff>,
-    mtu: Option<usize>,
+    mtu: Option<u64>,
     address: Option<String>,
     netmask: Option<String>,
     mac: Option<String>,
@@ -1515,7 +1515,7 @@ impl FromStr for Passt {
             path: first_prop(&props, "path").map(PathBuf::from),
             quiet: parse_optional_onoff(first_prop(&props, "quiet"))?,
             vhost_user: parse_optional_onoff(first_prop(&props, "vhost-user"))?,
-            mtu: parse_optional_usize(first_prop(&props, "mtu"))?,
+            mtu: parse_optional_u64(first_prop(&props, "mtu"))?,
             address: first_prop(&props, "address").map(ToString::to_string),
             netmask: first_prop(&props, "netmask").map(ToString::to_string),
             mac: first_prop(&props, "mac").map(ToString::to_string),
@@ -1559,7 +1559,7 @@ pub struct VhostUser {
     id: String,
     chardev: String,
     vhostforce: Option<OnOff>,
-    queues: Option<usize>,
+    queues: Option<u64>,
 }
 
 impl ToCommand for VhostUser {
@@ -1597,7 +1597,7 @@ impl FromStr for VhostUser {
                 "id" => id = Some(value.to_string()),
                 "chardev" => chardev = Some(value.to_string()),
                 "vhostforce" => vhostforce = Some(value.parse::<OnOff>().map_err(|_| format!("invalid vhostforce value: {value}"))?),
-                "queues" => queues = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "queues" => queues = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 other => return Err(format!("unsupported vhost-user option: {other}")),
             }
         }
@@ -1797,7 +1797,7 @@ impl FromStr for VmnetBridged {
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct Hubport {
     id: String,
-    hubid: usize,
+    hubid: u64,
     netdev: Option<String>,
 }
 
@@ -1830,7 +1830,7 @@ impl FromStr for Hubport {
             let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid hubport option: {part}"))?;
             match key {
                 "id" => id = Some(value.to_string()),
-                "hubid" => hubid = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "hubid" => hubid = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 "netdev" => netdev = Some(value.to_string()),
                 other => return Err(format!("unsupported hubport option: {other}")),
             }
@@ -1846,6 +1846,8 @@ impl FromStr for Hubport {
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum NetDev {
+    /// Raw QMP JSON form, preserved verbatim.
+    Json(String),
     User(User),
     Passt(Passt),
     L2tpv3(L2tpv3),
@@ -1871,6 +1873,7 @@ impl ToCommand for NetDev {
     }
     fn to_args(&self) -> Vec<String> {
         match self {
+            NetDev::Json(json) => vec![json.clone()],
             NetDev::User(user) => user.to_args(),
             NetDev::Passt(passt) => passt.to_args(),
             NetDev::L2tpv3(l2tpv3) => l2tpv3.to_args(),
@@ -1896,6 +1899,9 @@ impl FromStr for NetDev {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().starts_with('{') && s.trim().ends_with('}') {
+            return Ok(Self::Json(s.to_string()));
+        }
         if s.starts_with("user,") || s == "user" {
             return Ok(Self::User(s.parse::<User>()?));
         }
@@ -2031,8 +2037,8 @@ fn parse_optional_onoff(value: Option<&str>) -> Result<Option<OnOff>, String> {
     value.map(|raw| raw.parse::<OnOff>().map_err(|_| format!("invalid on/off value: {raw}"))).transpose()
 }
 
-fn parse_optional_usize(value: Option<&str>) -> Result<Option<usize>, String> {
-    value.map(|raw| raw.parse::<usize>().map_err(|e| e.to_string())).transpose()
+fn parse_optional_u64(value: Option<&str>) -> Result<Option<u64>, String> {
+    value.map(|raw| raw.parse::<u64>().map_err(|e| e.to_string())).transpose()
 }
 
 fn parse_optional_u16(value: Option<&str>) -> Result<Option<u16>, String> {

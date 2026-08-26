@@ -90,7 +90,7 @@ pub struct SmpCache {
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SgxEpc {
     memdev: ShellString,
-    node: usize,
+    node: u64,
 }
 
 /// Architecture-specific machine types accepted by this crate.
@@ -274,9 +274,9 @@ fn parse_machine_x86_64(s: &str) -> Result<MachineX86_64, String> {
     let mut spcr = None;
     let mut aux_ram_share = None;
     let mut memory_backend = None;
-    let mut cxl_fmw = std::collections::BTreeMap::<usize, CxlFmwParts>::new();
+    let mut cxl_fmw = std::collections::BTreeMap::<u64, CxlFmwParts>::new();
     let mut igvm_cfg = None;
-    let mut sgx_epc = std::collections::BTreeMap::<usize, (Option<ShellString>, Option<usize>)>::new();
+    let mut sgx_epc = std::collections::BTreeMap::<u64, (Option<ShellString>, Option<u64>)>::new();
 
     if let Some(value) = first.strip_prefix(KEY_TYPE) {
         machine_type = Some(parse_machine_type(value)?);
@@ -372,9 +372,9 @@ fn parse_machine_option(
     spcr: &mut Option<OnOffDefaultOn>,
     aux_ram_share: &mut Option<OnOffDefaultOff>,
     memory_backend: &mut Option<ShellString>,
-    cxl_fmw: &mut std::collections::BTreeMap<usize, CxlFmwParts>,
+    cxl_fmw: &mut std::collections::BTreeMap<u64, CxlFmwParts>,
     igvm_cfg: &mut Option<ShellString>,
-    sgx_epc: &mut std::collections::BTreeMap<usize, (Option<ShellString>, Option<usize>)>,
+    sgx_epc: &mut std::collections::BTreeMap<u64, (Option<ShellString>, Option<u64>)>,
 ) -> Result<(), String> {
     let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid machine option: {part}"))?;
     match key {
@@ -471,9 +471,9 @@ fn parse_machine_aarch64(s: &str) -> Result<MachineAarch64, String> {
     let mut spcr = None;
     let mut confidential_guest_support = None;
     let mut memory_backend = None;
-    let mut cxl_fmw = std::collections::BTreeMap::<usize, CxlFmwParts>::new();
+    let mut cxl_fmw = std::collections::BTreeMap::<u64, CxlFmwParts>::new();
     let mut igvm_cfg = None;
-    let mut sgx_epc = std::collections::BTreeMap::<usize, (Option<ShellString>, Option<usize>)>::new();
+    let mut sgx_epc = std::collections::BTreeMap::<u64, (Option<ShellString>, Option<u64>)>::new();
 
     if let Some(value) = first.strip_prefix(KEY_TYPE) {
         machine_type = Some(parse_machine_type_aarch64(value)?);
@@ -551,9 +551,9 @@ fn parse_machine_aarch64_option(
     spcr: &mut Option<OnOffDefaultOn>,
     confidential_guest_support: &mut Option<ShellString>,
     memory_backend: &mut Option<ShellString>,
-    cxl_fmw: &mut std::collections::BTreeMap<usize, CxlFmwParts>,
+    cxl_fmw: &mut std::collections::BTreeMap<u64, CxlFmwParts>,
     igvm_cfg: &mut Option<ShellString>,
-    sgx_epc: &mut std::collections::BTreeMap<usize, (Option<ShellString>, Option<usize>)>,
+    sgx_epc: &mut std::collections::BTreeMap<u64, (Option<ShellString>, Option<u64>)>,
 ) -> Result<(), String> {
     let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid machine option: {part}"))?;
     match key {
@@ -582,7 +582,7 @@ fn parse_machine_aarch64_option(
 
 #[derive(Debug, Default)]
 struct CxlFmwParts {
-    targets: std::collections::BTreeMap<usize, String>,
+    targets: std::collections::BTreeMap<u64, String>,
     size: Option<String>,
     interleave_granularity: Option<Granularity>,
 }
@@ -601,7 +601,7 @@ fn push_cxl_fmw_args(args: &mut Vec<String>, cxl_fmw: &Option<Vec<CxlFmw>>) {
     }
 }
 
-fn parse_cxl_fmw_option(key: &str, value: &str, cxl_fmw: &mut std::collections::BTreeMap<usize, CxlFmwParts>) -> Result<(), String> {
+fn parse_cxl_fmw_option(key: &str, value: &str, cxl_fmw: &mut std::collections::BTreeMap<u64, CxlFmwParts>) -> Result<(), String> {
     let mut parts = key.split('.');
     let prefix = parts.next();
     let index = parts.next().ok_or_else(|| format!("invalid CXL FMW option: {key}"))?;
@@ -609,7 +609,7 @@ fn parse_cxl_fmw_option(key: &str, value: &str, cxl_fmw: &mut std::collections::
         return Err(format!("invalid CXL FMW option: {key}"));
     }
 
-    let index = index.parse::<usize>().map_err(|e| format!("invalid CXL FMW index: {e}"))?;
+    let index = index.parse::<u64>().map_err(|e| format!("invalid CXL FMW index: {e}"))?;
     let entry = cxl_fmw.entry(index).or_default();
 
     match parts.next() {
@@ -618,7 +618,7 @@ fn parse_cxl_fmw_option(key: &str, value: &str, cxl_fmw: &mut std::collections::
             if parts.next().is_some() {
                 return Err(format!("invalid CXL FMW target option: {key}"));
             }
-            let target_index = target_index.parse::<usize>().map_err(|e| format!("invalid CXL FMW target index: {e}"))?;
+            let target_index = target_index.parse::<u64>().map_err(|e| format!("invalid CXL FMW target index: {e}"))?;
             entry.targets.insert(target_index, value.to_string());
         }
         Some("size") => {
@@ -640,7 +640,7 @@ fn parse_cxl_fmw_option(key: &str, value: &str, cxl_fmw: &mut std::collections::
     Ok(())
 }
 
-fn build_cxl_fmw(cxl_fmw: std::collections::BTreeMap<usize, CxlFmwParts>) -> Result<Option<Vec<CxlFmw>>, String> {
+fn build_cxl_fmw(cxl_fmw: std::collections::BTreeMap<u64, CxlFmwParts>) -> Result<Option<Vec<CxlFmw>>, String> {
     if cxl_fmw.is_empty() {
         return Ok(None);
     }
@@ -659,7 +659,7 @@ fn build_cxl_fmw(cxl_fmw: std::collections::BTreeMap<usize, CxlFmwParts>) -> Res
     Ok(Some(windows))
 }
 
-fn parse_sgx_epc_option(key: &str, value: &str, sgx_epc: &mut std::collections::BTreeMap<usize, (Option<ShellString>, Option<usize>)>) -> Result<(), String> {
+fn parse_sgx_epc_option(key: &str, value: &str, sgx_epc: &mut std::collections::BTreeMap<u64, (Option<ShellString>, Option<u64>)>) -> Result<(), String> {
     let mut parts = key.split('.');
     let prefix = parts.next();
     let index = parts.next().ok_or_else(|| format!("invalid SGX EPC option: {key}"))?;
@@ -668,17 +668,17 @@ fn parse_sgx_epc_option(key: &str, value: &str, sgx_epc: &mut std::collections::
         return Err(format!("invalid SGX EPC option: {key}"));
     }
 
-    let index = index.parse::<usize>().map_err(|e| format!("invalid SGX EPC index: {e}"))?;
+    let index = index.parse::<u64>().map_err(|e| format!("invalid SGX EPC index: {e}"))?;
     let entry = sgx_epc.entry(index).or_default();
     match field {
         "memdev" => entry.0 = Some(ShellString::new(value)),
-        "node" => entry.1 = Some(value.parse::<usize>().map_err(|e| format!("invalid SGX EPC node: {e}"))?),
+        "node" => entry.1 = Some(value.parse::<u64>().map_err(|e| format!("invalid SGX EPC node: {e}"))?),
         other => return Err(format!("unsupported SGX EPC option: {other}")),
     }
     Ok(())
 }
 
-fn build_sgx_epc(sgx_epc: std::collections::BTreeMap<usize, (Option<ShellString>, Option<usize>)>) -> Result<Option<Vec<SgxEpc>>, String> {
+fn build_sgx_epc(sgx_epc: std::collections::BTreeMap<u64, (Option<ShellString>, Option<u64>)>) -> Result<Option<Vec<SgxEpc>>, String> {
     if sgx_epc.is_empty() {
         return Ok(None);
     }

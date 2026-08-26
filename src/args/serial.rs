@@ -11,8 +11,8 @@ use crate::to_command::{ToArg, ToCommand};
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct VC {
     is_pixel: bool,
-    w: usize,
-    h: usize,
+    w: u64,
+    h: u64,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
@@ -30,7 +30,7 @@ pub struct Tcp {
     server: Option<OnOff>,
     wait: Option<OnOff>,
     nodelay: Option<OnOff>,
-    reconnect_ms: Option<usize>,
+    reconnect_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
@@ -56,7 +56,7 @@ pub struct Unix {
     path: PathBuf,
     server: Option<OnOff>,
     wait: Option<OnOff>,
-    reconnect_ms: Option<usize>,
+    reconnect_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
@@ -67,11 +67,11 @@ pub enum SpecialDevice {
     Null,
     Chardev(String),
     Dev(String),
-    Parport(usize),
+    Parport(u64),
     File(PathBuf),
     Stdio,
     Pipe(PathBuf),
-    Com(usize),
+    Com(u64),
     Udp(Udp),
     Tcp(Tcp),
     Telnet(Telnet),
@@ -237,8 +237,8 @@ impl FromStr for SpecialDevice {
             };
             return Ok(Self::VC(Some(VC {
                 is_pixel,
-                w: w.parse::<usize>().map_err(|e| e.to_string())?,
-                h: h.parse::<usize>().map_err(|e| e.to_string())?,
+                w: w.parse::<u64>().map_err(|e| e.to_string())?,
+                h: h.parse::<u64>().map_err(|e| e.to_string())?,
             })));
         }
         if s == "vc" {
@@ -302,7 +302,7 @@ impl FromStr for SpecialDevice {
                     "server" => server = Some(value.parse::<OnOff>().map_err(|_| format!("invalid server value: {value}"))?),
                     "wait" => wait = Some(value.parse::<OnOff>().map_err(|_| format!("invalid wait value: {value}"))?),
                     "nodelay" => nodelay = Some(value.parse::<OnOff>().map_err(|_| format!("invalid nodelay value: {value}"))?),
-                    "reconnect-ms" => reconnect_ms = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                    "reconnect-ms" => reconnect_ms = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                     other => return Err(format!("unsupported tcp option: {other}")),
                 }
             }
@@ -374,7 +374,7 @@ impl FromStr for SpecialDevice {
                 match key {
                     "server" => server = Some(value.parse::<OnOff>().map_err(|_| format!("invalid server value: {value}"))?),
                     "wait" => wait = Some(value.parse::<OnOff>().map_err(|_| format!("invalid wait value: {value}"))?),
-                    "reconnect-ms" => reconnect_ms = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                    "reconnect-ms" => reconnect_ms = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                     other => return Err(format!("unsupported unix option: {other}")),
                 }
             }
@@ -393,14 +393,14 @@ impl FromStr for SpecialDevice {
             return Ok(Self::Pty(None));
         }
         if let Some(dev) = s.strip_prefix("/dev/parport") {
-            let index = dev.parse::<usize>().map_err(|e| e.to_string())?;
+            let index = dev.parse::<u64>().map_err(|e| e.to_string())?;
             return Ok(Self::Parport(index));
         }
         if let Some(dev) = s.strip_prefix("/dev/") {
             return Ok(Self::Dev(dev.to_string()));
         }
         if let Some(port) = s.strip_prefix("COM") {
-            return Ok(Self::Com(port.parse::<usize>().map_err(|e| e.to_string())?));
+            return Ok(Self::Com(port.parse::<u64>().map_err(|e| e.to_string())?));
         }
 
         Err(format!("unsupported special device: {s}"))

@@ -8,34 +8,34 @@ use crate::to_command::ToCommand;
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct NUMANodeMem {
-    mem_size: Option<usize>,
-    cpu_first: Option<usize>,
-    cpu_last: Option<usize>,
-    node_id: Option<usize>,
-    initiator: Option<usize>,
+    mem_size: Option<u64>,
+    cpu_first: Option<u64>,
+    cpu_last: Option<u64>,
+    node_id: Option<u64>,
+    initiator: Option<u64>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct NUMANodeMemDev {
-    mem_id: Option<usize>,
-    cpu_first: Option<usize>,
-    cpu_last: Option<usize>,
-    node_id: Option<usize>,
-    initiator: Option<usize>,
+    mem_id: Option<u64>,
+    cpu_first: Option<u64>,
+    cpu_last: Option<u64>,
+    node_id: Option<u64>,
+    initiator: Option<u64>,
 }
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct NUMADist {
-    src: usize,
-    dst: usize,
-    val: usize,
+    src: u64,
+    dst: u64,
+    val: u64,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct NUMACPU {
-    node_id: usize,
-    socket_id: Option<usize>,
-    core_id: Option<usize>,
-    thread_id: Option<usize>,
+    node_id: u64,
+    socket_id: Option<u64>,
+    core_id: Option<u64>,
+    thread_id: Option<u64>,
 }
 
 /// HMAT hierarchy selector for `-numa hmat-lb,...`.
@@ -56,12 +56,12 @@ pub enum NUMADataType {
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct NUMAHMATLb {
-    initiator: usize,
-    target: usize,
+    initiator: u64,
+    target: u64,
     hierarchy: NUMAHierarchy,
     data_type: NUMADataType,
-    latency: Option<usize>,
-    bandwidth: Option<usize>,
+    latency: Option<u64>,
+    bandwidth: Option<u64>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
@@ -79,12 +79,12 @@ pub enum HMATCachePolicy {
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct NUMAHMATCache {
-    node_id: usize,
-    size: usize,
-    level: usize,
+    node_id: u64,
+    size: u64,
+    level: u64,
     associativity: Option<HMATCacheAssociativity>,
     policy: Option<HMATCachePolicy>,
-    line: Option<usize>,
+    line: Option<u64>,
 }
 
 /// A supported `-numa` clause.
@@ -233,18 +233,18 @@ impl FromStr for NUMA {
                 for part in parts {
                     let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa node option: {part}"))?;
                     match key {
-                        "mem" => mem_size = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "memdev" => memdev = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "mem" => mem_size = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "memdev" => memdev = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                         "cpu" => {
                             if let Some((first, last)) = raw.split_once('-') {
-                                cpu_first = Some(first.parse::<usize>().map_err(|e| e.to_string())?);
-                                cpu_last = Some(last.parse::<usize>().map_err(|e| e.to_string())?);
+                                cpu_first = Some(first.parse::<u64>().map_err(|e| e.to_string())?);
+                                cpu_last = Some(last.parse::<u64>().map_err(|e| e.to_string())?);
                             } else {
-                                cpu_first = Some(raw.parse::<usize>().map_err(|e| e.to_string())?);
+                                cpu_first = Some(raw.parse::<u64>().map_err(|e| e.to_string())?);
                             }
                         }
-                        "nodeid" => node_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "initiator" => initiator = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "nodeid" => node_id = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "initiator" => initiator = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                         other => return Err(format!("unsupported numa node option: {other}")),
                     }
                 }
@@ -275,9 +275,9 @@ impl FromStr for NUMA {
                 for part in parts {
                     let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa dist option: {part}"))?;
                     match key {
-                        "src" => src = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "dst" => dst = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "val" => val = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "src" => src = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "dst" => dst = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "val" => val = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                         other => return Err(format!("unsupported numa dist option: {other}")),
                     }
                 }
@@ -297,10 +297,10 @@ impl FromStr for NUMA {
                 for part in parts {
                     let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa cpu option: {part}"))?;
                     match key {
-                        "node-id" => node_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "socket-id" => socket_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "core-id" => core_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "thread-id" => thread_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "node-id" => node_id = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "socket-id" => socket_id = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "core-id" => core_id = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "thread-id" => thread_id = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                         other => return Err(format!("unsupported numa cpu option: {other}")),
                     }
                 }
@@ -323,12 +323,12 @@ impl FromStr for NUMA {
                 for part in parts {
                     let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa hmat-lb option: {part}"))?;
                     match key {
-                        "initiator" => initiator = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "target" => target = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "initiator" => initiator = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "target" => target = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                         "hierarchy" => hierarchy = Some(parse_numa_hierarchy(raw)?),
                         "data-type" => data_type = Some(parse_numa_data_type(raw)?),
-                        "latency" => latency = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "bandwidth" => bandwidth = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "latency" => latency = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "bandwidth" => bandwidth = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                         other => return Err(format!("unsupported numa hmat-lb option: {other}")),
                     }
                 }
@@ -353,12 +353,12 @@ impl FromStr for NUMA {
                 for part in parts {
                     let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid numa hmat-cache option: {part}"))?;
                     match key {
-                        "node-id" => node_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "size" => size = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                        "level" => level = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "node-id" => node_id = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "size" => size = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                        "level" => level = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                         "associativity" => associativity = Some(parse_hmat_cache_associativity(raw)?),
                         "policy" => policy = Some(parse_hmat_cache_policy(raw)?),
-                        "line" => line = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                        "line" => line = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                         other => return Err(format!("unsupported numa hmat-cache option: {other}")),
                     }
                 }

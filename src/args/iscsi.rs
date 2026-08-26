@@ -21,7 +21,7 @@ pub struct Iscsi {
     /// Optional initiator id.
     id: Option<String>,
     /// Timeout in seconds.
-    timeout: Option<usize>,
+    timeout: Option<u64>,
 }
 
 impl ToCommand for Iscsi {
@@ -78,7 +78,7 @@ impl FromStr for Iscsi {
                 "header-digest" => header_digest = Some(value.to_string()),
                 "initiator-name" => initiator_name = Some(value.to_string()),
                 "id" => id = Some(value.to_string()),
-                "timeout" => timeout = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "timeout" => timeout = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 other => return Err(format!("unsupported -iscsi option: {other}")),
             }
         }

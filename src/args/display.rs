@@ -76,6 +76,7 @@ pub enum QemuDisplay {
         p2p: Option<YesNo>,
         gl: Option<OnCoreEsOff>,
         rendernode: Option<PathBuf>,
+        audiodev: Option<String>,
     },
     None,
 }
@@ -199,7 +200,7 @@ impl ToCommand for QemuDisplay {
                     args.push(format!("rendernode={}", rendernode.display()));
                 }
             }
-            QemuDisplay::Dbus { addr, p2p, gl, rendernode } => {
+            QemuDisplay::Dbus { addr, p2p, gl, rendernode, audiodev } => {
                 args.push("dbus".to_string());
                 if let Some(addr) = addr {
                     args.push(format!("addr={}", addr));
@@ -212,6 +213,9 @@ impl ToCommand for QemuDisplay {
                 }
                 if let Some(rendernode) = rendernode {
                     args.push(format!("rendernode={}", rendernode.display()));
+                }
+                if let Some(audiodev) = audiodev {
+                    args.push(format!("audiodev={audiodev}"));
                 }
             }
             QemuDisplay::None => {
@@ -233,12 +237,40 @@ impl FromStr for QemuDisplay {
         if s == "spice-app" {
             return Ok(Self::Spice { gl: None });
         }
+        if let Some(rest) = s.strip_prefix("spice-app,") {
+            let mut gl = None;
+            for (key, value) in display_options(rest)? {
+                match key {
+                    "gl" => gl = Some(parse_on_off(key, value)?),
+                    other => return Err(format!("unsupported spice-app display option: {other}")),
+                }
+            }
+            return Ok(Self::Spice { gl });
+        }
         if s == "sdl" {
             return Ok(Self::Sdl {
                 gl: None,
                 grab_mod: None,
                 show_cursor: None,
                 window_close: None,
+            });
+        }
+        if let Some(rest) = s.strip_prefix("sdl,") {
+            let (mut gl, mut grab_mod, mut show_cursor, mut window_close) = (None, None, None, None);
+            for (key, value) in display_options(rest)? {
+                match key {
+                    "gl" => gl = Some(parse_gl(value)?),
+                    "grab-mod" => grab_mod = Some(value.to_string()),
+                    "show-cursor" => show_cursor = Some(parse_on_off(key, value)?),
+                    "window-close" => window_close = Some(parse_on_off(key, value)?),
+                    other => return Err(format!("unsupported SDL display option: {other}")),
+                }
+            }
+            return Ok(Self::Sdl {
+                gl,
+                grab_mod,
+                show_cursor,
+                window_close,
             });
         }
         if s == "gtk" {
@@ -301,6 +333,15 @@ impl FromStr for QemuDisplay {
         if s == "curses" {
             return Ok(Self::Curses { charset: None });
         }
+        if let Some(rest) = s.strip_prefix("curses,") {
+            let options = display_options(rest)?;
+            if options.len() != 1 || options[0].0 != "charset" {
+                return Err(format!("unsupported curses display options: {rest}"));
+            }
+            return Ok(Self::Curses {
+                charset: Some(options[0].1.to_string()),
+            });
+        }
         if s == "cocoa" {
             return Ok(Self::Cocoa {
                 full_grab: None,
@@ -311,8 +352,40 @@ impl FromStr for QemuDisplay {
                 zoom_to_fit: None,
             });
         }
+        if let Some(rest) = s.strip_prefix("cocoa,") {
+            let (mut full_grab, mut swap_opt_cmd, mut show_cursor, mut left_command_key, mut full_screen, mut zoom_to_fit) = (None, None, None, None, None, None);
+            for (key, value) in display_options(rest)? {
+                let value = parse_on_off(key, value)?;
+                match key {
+                    "full-grab" => full_grab = Some(value),
+                    "swap-opt-cmd" => swap_opt_cmd = Some(value),
+                    "show-cursor" => show_cursor = Some(value),
+                    "left-command-key" => left_command_key = Some(value),
+                    "full-screen" => full_screen = Some(value),
+                    "zoom-to-fit" => zoom_to_fit = Some(value),
+                    other => return Err(format!("unsupported Cocoa display option: {other}")),
+                }
+            }
+            return Ok(Self::Cocoa {
+                full_grab,
+                swap_opt_cmd,
+                show_cursor,
+                left_command_key,
+                full_screen,
+                zoom_to_fit,
+            });
+        }
         if s == "egl-headless" {
             return Ok(Self::EglHeadless { rendernode: None });
+        }
+        if let Some(rest) = s.strip_prefix("egl-headless,") {
+            let options = display_options(rest)?;
+            if options.len() != 1 || options[0].0 != "rendernode" {
+                return Err(format!("unsupported egl-headless display options: {rest}"));
+            }
+            return Ok(Self::EglHeadless {
+                rendernode: Some(PathBuf::from(options[0].1)),
+            });
         }
         if s == "dbus" {
             return Ok(Self::Dbus {
@@ -320,7 +393,22 @@ impl FromStr for QemuDisplay {
                 p2p: None,
                 gl: None,
                 rendernode: None,
+                audiodev: None,
             });
+        }
+        if let Some(rest) = s.strip_prefix("dbus,") {
+            let (mut addr, mut p2p, mut gl, mut rendernode, mut audiodev) = (None, None, None, None, None);
+            for (key, value) in display_options(rest)? {
+                match key {
+                    "addr" => addr = Some(value.to_string()),
+                    "p2p" => p2p = Some(value.parse::<YesNo>().map_err(|_| format!("invalid p2p value: {value}"))?),
+                    "gl" => gl = Some(parse_gl(value)?),
+                    "rendernode" => rendernode = Some(PathBuf::from(value)),
+                    "audiodev" => audiodev = Some(value.to_string()),
+                    other => return Err(format!("unsupported D-Bus display option: {other}")),
+                }
+            }
+            return Ok(Self::Dbus { addr, p2p, gl, rendernode, audiodev });
         }
         if let Some(rest) = s.strip_prefix("vnc=") {
             let (vnc, optargs) = match rest.split_once(',') {
@@ -331,5 +419,23 @@ impl FromStr for QemuDisplay {
         }
 
         Err(format!("unsupported -display value: {s}"))
+    }
+}
+
+fn display_options(value: &str) -> Result<Vec<(&str, &str)>, String> {
+    value.split(',').map(|part| part.split_once('=').ok_or_else(|| format!("invalid display option: {part}"))).collect()
+}
+
+fn parse_on_off(key: &str, value: &str) -> Result<OnOff, String> {
+    value.parse::<OnOff>().map_err(|_| format!("invalid {key} value: {value}"))
+}
+
+fn parse_gl(value: &str) -> Result<OnCoreEsOff, String> {
+    match value {
+        "on" => Ok(OnCoreEsOff::On),
+        "core" => Ok(OnCoreEsOff::Core),
+        "es" => Ok(OnCoreEsOff::Es),
+        "off" => Ok(OnCoreEsOff::Off),
+        _ => Err(format!("invalid gl value: {value}")),
     }
 }

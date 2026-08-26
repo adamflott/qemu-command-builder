@@ -38,3 +38,9 @@ fn blockdev_parses_mixed_generic_options_and_driver_opts() {
     );
     assert_eq!(parsed, reparsed);
 }
+
+#[test]
+fn blockdev_preserves_nested_json() {
+    let json = r#"{"driver":"raw","node-name":"disk","file":{"driver":"file","filename":"/tmp/disk.img"}}"#;
+    assert_eq!(json, BlockDev::from_str(json).unwrap().to_args()[0]);
+}

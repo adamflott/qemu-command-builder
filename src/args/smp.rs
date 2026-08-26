@@ -1,15 +1,10 @@
 use crate::parsers::ARG_SMP;
 use crate::parsers::DELIM_COMMA;
-use crate::shell_string::ShellStringError;
+use crate::qao;
 use crate::to_command::ToCommand;
-use crate::{pco, qao};
 use bon::Builder;
 use proptest_derive::Arbitrary;
 use std::str::FromStr;
-use winnow::ascii::{dec_uint, digit1};
-use winnow::combinator::opt;
-use winnow::token::literal;
-use winnow::{ModalResult, Parser};
 
 const KEY_MAXCPUS: &str = "maxcpus=";
 const KEY_DRAWERS: &str = "drawers=";
@@ -56,25 +51,25 @@ const KEY_THREADS: &str = "threads=";
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SMP {
     /// set the number of initial CPUs to 'n' [default=1]
-    cpus: u64,
+    cpus: Option<u64>,
     /// maximum number of total CPUs, including offline CPUs for hotplug, etc
-    maxcpus: Option<usize>,
+    maxcpus: Option<u64>,
     /// number of drawers on the machine board
-    drawers: Option<usize>,
+    drawers: Option<u64>,
     /// number of books in one drawer
-    books: Option<usize>,
+    books: Option<u64>,
     /// number of sockets in one book
-    sockets: Option<usize>,
+    sockets: Option<u64>,
     /// number of dies in one socket
-    dies: Option<usize>,
+    dies: Option<u64>,
     /// number of clusters in one die
-    clusters: Option<usize>,
+    clusters: Option<u64>,
     /// number of modules in one cluster
-    modules: Option<usize>,
+    modules: Option<u64>,
     /// number of cores in one module
-    cores: Option<usize>,
+    cores: Option<u64>,
     /// number of threads in one core
-    threads: Option<usize>,
+    threads: Option<u64>,
 }
 
 impl Default for SMP {
@@ -86,7 +81,7 @@ impl Default for SMP {
 impl SMP {
     pub fn new(cpus: u64) -> Self {
         Self {
-            cpus,
+            cpus: Some(cpus),
             maxcpus: None,
             drawers: None,
             books: None,
@@ -105,7 +100,10 @@ impl ToCommand for SMP {
         ARG_SMP.to_string()
     }
     fn to_args(&self) -> Vec<String> {
-        let mut args = vec![self.cpus.to_string()];
+        let mut args = vec![];
+        if let Some(cpus) = self.cpus {
+            args.push(cpus.to_string());
+        }
 
         qao!(self.maxcpus, args, KEY_MAXCPUS);
         qao!(self.drawers, args, KEY_DRAWERS);
@@ -122,44 +120,58 @@ impl ToCommand for SMP {
 }
 
 impl FromStr for SMP {
-    type Err = ShellStringError;
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        smp.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        let mut value = Self {
+            cpus: None,
+            maxcpus: None,
+            drawers: None,
+            books: None,
+            sockets: None,
+            dies: None,
+            clusters: None,
+            modules: None,
+            cores: None,
+            threads: None,
+        };
+        for (index, part) in s.split(DELIM_COMMA).enumerate() {
+            if index == 0 && !part.contains('=') {
+                value.cpus = Some(part.parse::<u64>().map_err(|e| e.to_string())?);
+                continue;
+            }
+            let (key, raw) = part.split_once('=').ok_or_else(|| format!("invalid -smp option: {part}"))?;
+            macro_rules! number {
+                ($field:ident, $type:ty) => {
+                    value.$field = Some(raw.parse::<$type>().map_err(|e| e.to_string())?)
+                };
+            }
+            match key {
+                "cpus" => number!(cpus, u64),
+                "maxcpus" => number!(maxcpus, u64),
+                "drawers" => number!(drawers, u64),
+                "books" => number!(books, u64),
+                "sockets" => number!(sockets, u64),
+                "dies" => number!(dies, u64),
+                "clusters" => number!(clusters, u64),
+                "modules" => number!(modules, u64),
+                "cores" => number!(cores, u64),
+                "threads" => number!(threads, u64),
+                other => return Err(format!("unsupported -smp option: {other}")),
+            }
+        }
+        if value.cpus.is_none()
+            && value.drawers.is_none()
+            && value.books.is_none()
+            && value.sockets.is_none()
+            && value.dies.is_none()
+            && value.clusters.is_none()
+            && value.modules.is_none()
+            && value.cores.is_none()
+            && value.threads.is_none()
+        {
+            return Err("-smp requires cpus or at least one topology property".to_string());
+        }
+        Ok(value)
     }
-}
-
-pco!(maxcpus, digit1, usize, KEY_MAXCPUS);
-pco!(drawers, digit1, usize, KEY_DRAWERS);
-pco!(books, digit1, usize, KEY_BOOKS);
-pco!(sockets, digit1, usize, KEY_SOCKETS);
-pco!(dies, digit1, usize, KEY_DIES);
-pco!(clusters, digit1, usize, KEY_CLUSTERS);
-pco!(modules, digit1, usize, KEY_MODULES);
-pco!(cores, digit1, usize, KEY_CORES);
-pco!(threads, digit1, usize, KEY_THREADS);
-
-fn smp(s: &mut &str) -> ModalResult<SMP> {
-    let cpus = dec_uint.parse_next(s)?;
-    let maxcpus = opt(maxcpus).parse_next(s)?;
-    let drawers = opt(drawers).parse_next(s)?;
-    let books = opt(books).parse_next(s)?;
-    let sockets = opt(sockets).parse_next(s)?;
-    let dies = opt(dies).parse_next(s)?;
-    let clusters = opt(clusters).parse_next(s)?;
-    let modules = opt(modules).parse_next(s)?;
-    let cores = opt(cores).parse_next(s)?;
-    let threads = opt(threads).parse_next(s)?;
-    Ok(SMP {
-        cpus,
-        maxcpus,
-        drawers,
-        books,
-        sockets,
-        dies,
-        clusters,
-        modules,
-        cores,
-        threads,
-    })
 }

@@ -38,7 +38,7 @@ pub struct SmbiosType0 {
     vendor: Option<String>,
     version: Option<String>,
     date: Option<String>,
-    release: Option<(usize, usize)>,
+    release: Option<(u64, u64)>,
     uefi: Option<OnOff>,
 }
 
@@ -78,7 +78,7 @@ impl FromStr for SmbiosType0 {
                 "date" => value.date = Some(raw.to_string()),
                 "release" => {
                     let (major, minor) = raw.split_once('.').ok_or_else(|| format!("invalid release value: {raw}"))?;
-                    value.release = Some((major.parse::<usize>().map_err(|e| e.to_string())?, minor.parse::<usize>().map_err(|e| e.to_string())?));
+                    value.release = Some((major.parse::<u64>().map_err(|e| e.to_string())?, minor.parse::<u64>().map_err(|e| e.to_string())?));
                 }
                 "uefi" => value.uefi = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid uefi value: {raw}"))?),
                 other => return Err(format!("unsupported smbios type 0 option: {other}")),
@@ -274,10 +274,10 @@ pub struct SmbiosType4 {
     serial: Option<String>,
     asset: Option<String>,
     part: Option<String>,
-    max_speed: Option<usize>,
-    current_speed: Option<usize>,
-    processor_family: Option<usize>,
-    processor_id: Option<usize>,
+    max_speed: Option<u64>,
+    current_speed: Option<u64>,
+    processor_family: Option<u64>,
+    processor_id: Option<u64>,
 }
 
 impl ToCommand for SmbiosType4 {
@@ -332,10 +332,10 @@ impl FromStr for SmbiosType4 {
                 "serial" => value.serial = Some(raw.to_string()),
                 "asset" => value.asset = Some(raw.to_string()),
                 "part" => value.part = Some(raw.to_string()),
-                "max-speed" => value.max_speed = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                "current-speed" => value.current_speed = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                "processor-family" => value.processor_family = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                "processor-id" => value.processor_id = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "max-speed" => value.max_speed = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                "current-speed" => value.current_speed = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                "processor-family" => value.processor_family = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                "processor-id" => value.processor_id = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                 other => return Err(format!("unsupported smbios type 4 option: {other}")),
             }
         }
@@ -348,8 +348,8 @@ impl FromStr for SmbiosType4 {
 pub struct SmbiosType8 {
     external_reference: Option<String>,
     internal_reference: Option<String>,
-    connector_type: Option<usize>,
-    port_type: Option<usize>,
+    connector_type: Option<u64>,
+    port_type: Option<u64>,
 }
 
 impl ToCommand for SmbiosType8 {
@@ -382,8 +382,8 @@ impl FromStr for SmbiosType8 {
                 "type" if raw == "8" => {}
                 "external_reference" => value.external_reference = Some(raw.to_string()),
                 "internal_reference" => value.internal_reference = Some(raw.to_string()),
-                "connector_type" => value.connector_type = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
-                "port_type" => value.port_type = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "connector_type" => value.connector_type = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
+                "port_type" => value.port_type = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                 other => return Err(format!("unsupported smbios type 8 option: {other}")),
             }
         }
@@ -438,7 +438,7 @@ pub struct SmbiosType17 {
     serial: Option<String>,
     asset: Option<String>,
     part: Option<String>,
-    speed: Option<usize>,
+    speed: Option<u64>,
 }
 
 impl ToCommand for SmbiosType17 {
@@ -485,7 +485,7 @@ impl FromStr for SmbiosType17 {
                 "serial" => value.serial = Some(raw.to_string()),
                 "asset" => value.asset = Some(raw.to_string()),
                 "part" => value.part = Some(raw.to_string()),
-                "speed" => value.speed = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "speed" => value.speed = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                 other => return Err(format!("unsupported smbios type 17 option: {other}")),
             }
         }
@@ -498,7 +498,7 @@ impl FromStr for SmbiosType17 {
 pub struct SmbiosType41 {
     designation: Option<String>,
     kind: Option<String>,
-    instance: Option<usize>,
+    instance: Option<u64>,
     pcidev: Option<String>,
 }
 
@@ -533,7 +533,7 @@ impl FromStr for SmbiosType41 {
                 "type" if raw == "41" => {}
                 "designation" => value.designation = Some(raw.to_string()),
                 "kind" => value.kind = Some(raw.to_string()),
-                "instance" => value.instance = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "instance" => value.instance = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                 "pcidev" => value.pcidev = Some(raw.to_string()),
                 other => return Err(format!("unsupported smbios type 41 option: {other}")),
             }

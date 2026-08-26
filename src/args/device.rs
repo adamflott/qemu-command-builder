@@ -41,6 +41,7 @@ pub struct Device {
     device: ShellString,
     #[builder(default)]
     properties: BTreeMap<ShellString, Option<ShellString>>,
+    json: Option<String>,
 }
 
 impl Device {
@@ -49,7 +50,27 @@ impl Device {
         Device {
             device: ShellString::from(device.as_ref()),
             properties: Default::default(),
+            json: None,
         }
+    }
+
+    /// Creates the QEMU 11.1 ARM SMMUv3 device. Properties such as `ril`,
+    /// `ats`, `oas`, `ssidsize`, and `cmdqv` accept QEMU's `auto` value via
+    /// [`Device::add_prop`].
+    pub fn arm_smmuv3() -> Self {
+        Self::new("arm-smmuv3")
+    }
+    /// Creates a device from QEMU's JSON command-line form.
+    pub fn from_json(json: impl Into<String>) -> Result<Self, String> {
+        let json = json.into();
+        if !json.trim().starts_with('{') || !json.trim().ends_with('}') {
+            return Err("-device JSON must be a JSON object".to_string());
+        }
+        Ok(Self {
+            device: ShellString::from(""),
+            properties: BTreeMap::new(),
+            json: Some(json),
+        })
     }
 
     /// Adds a `key=value` property to the device.
@@ -71,6 +92,9 @@ impl ToCommand for Device {
     }
 
     fn to_args(&self) -> Vec<String> {
+        if let Some(json) = &self.json {
+            return vec![json.clone()];
+        }
         let mut args = vec![self.device.as_ref().to_string()];
 
         for (prop_key, prop_value) in &self.properties {
@@ -88,6 +112,9 @@ impl FromStr for Device {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().starts_with('{') {
+            return Self::from_json(s);
+        }
         let mut parts = s.split(DELIM_COMMA);
         let device = parts.next().ok_or_else(|| "empty device argument".to_string())?;
         if device.is_empty() {
@@ -109,6 +136,7 @@ impl FromStr for Device {
         Ok(Device {
             device: ShellString::from(device),
             properties,
+            json: None,
         })
     }
 }

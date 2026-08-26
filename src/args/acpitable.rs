@@ -69,17 +69,17 @@ pub struct AcpiTable {
     /// ACPI signature override.
     sig: Option<ShellString>,
     /// ACPI table revision.
-    rev: Option<usize>,
+    rev: Option<u64>,
     /// ACPI OEM ID override.
     oem_id: Option<ShellString>,
     /// ACPI OEM table ID override.
     oem_table_id: Option<ShellString>,
     /// ACPI OEM revision override.
-    oem_rev: Option<usize>,
+    oem_rev: Option<u64>,
     /// ASL compiler ID override.
     asl_compiler_id: Option<ShellString>,
     /// ASL compiler revision override.
-    asl_compiler_rev: Option<usize>,
+    asl_compiler_rev: Option<u64>,
     #[proptest(filter = "acpi_table_data_is_nonempty")]
     /// Table content source rendered as either `file=` or `data=`.
     data: Option<AcpiTableData>,
@@ -149,12 +149,12 @@ impl FromStr for AcpiTable {
             let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid acpitable option: {part}"))?;
             match key {
                 "sig" => table.sig = Some(ShellString::from_str(value)?),
-                "rev" => table.rev = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "rev" => table.rev = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 "oem_id" => table.oem_id = Some(ShellString::from_str(value)?),
                 "oem_table_id" => table.oem_table_id = Some(ShellString::from_str(value)?),
-                "oem_rev" => table.oem_rev = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "oem_rev" => table.oem_rev = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 "asl_compiler_id" => table.asl_compiler_id = Some(ShellString::from_str(value)?),
-                "asl_compiler_rev" => table.asl_compiler_rev = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "asl_compiler_rev" => table.asl_compiler_rev = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 "file" => table.data = Some(parse_data_list(value, false)),
                 "data" => table.data = Some(parse_data_list(value, true)),
                 other => return Err(format!("unsupported acpitable option: {other}")),

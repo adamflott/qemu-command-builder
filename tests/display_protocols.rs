@@ -91,3 +91,19 @@ fn gtk_display_round_trips_qemu_11_1_clipboard() {
     let display = QemuDisplay::from_str("gtk,clipboard=on,full-screen=off").unwrap();
     assert_eq!(vec!["gtk,clipboard=on,full-screen=off"], display.to_args());
 }
+
+#[test]
+fn display_backends_round_trip_all_structured_forms() {
+    for value in [
+        "spice-app,gl=on",
+        "sdl,gl=core,grab-mod=ctrl-alt,show-cursor=on,window-close=off",
+        "curses,charset=UTF-8",
+        "cocoa,full-grab=on,swap-opt-cmd=off,show-cursor=on,left-command-key=off,full-screen=on,zoom-to-fit=off",
+        "egl-headless,rendernode=/dev/dri/renderD128",
+        "dbus,addr=unix:path=/tmp/qemu-dbus,p2p=yes,gl=es,rendernode=/dev/dri/renderD128,audiodev=audio0",
+    ] {
+        let parsed = QemuDisplay::from_str(value).unwrap();
+        assert_eq!(value, parsed.to_args()[0]);
+        assert_eq!(parsed, QemuDisplay::from_str(&parsed.to_args()[0]).unwrap());
+    }
+}

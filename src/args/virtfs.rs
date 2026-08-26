@@ -35,7 +35,7 @@ pub struct Local {
     dmode: Option<String>,
     multidevs: Option<RemapForbidWarn>,
     /// Maximum number of concurrent extended-attribute FIDs (zero is unlimited).
-    max_xattr: Option<usize>,
+    max_xattr: Option<u64>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
@@ -44,7 +44,7 @@ pub struct Synth {
     id: Option<String>,
     readonly: Option<bool>,
     /// Maximum number of concurrent extended-attribute FIDs (zero is unlimited).
-    max_xattr: Option<usize>,
+    max_xattr: Option<u64>,
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
@@ -158,7 +158,7 @@ impl FromStr for Virtfs {
                                 _ => return Err(format!("invalid multidevs value: {value}")),
                             })
                         }
-                        "max_xattr" => max_xattr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                        "max_xattr" => max_xattr = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                         other => return Err(format!("unsupported virtfs local option: {other}")),
                     }
                 }
@@ -192,7 +192,7 @@ impl FromStr for Virtfs {
                             }
                             readonly = Some(true);
                         }
-                        "max_xattr" => max_xattr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                        "max_xattr" => max_xattr = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                         other => return Err(format!("unsupported virtfs synth option: {other}")),
                     }
                 }

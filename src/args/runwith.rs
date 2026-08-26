@@ -21,7 +21,7 @@ const KEY_USER: &str = "user=";
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum UserOrIds {
     User(ShellString),
-    Id { uid: usize, gid: usize },
+    Id { uid: u64, gid: u64 },
 }
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct RunWith {

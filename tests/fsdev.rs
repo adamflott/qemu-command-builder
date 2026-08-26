@@ -50,3 +50,9 @@ fn fsdev_round_trips_qemu_11_1_max_xattr() {
     assert_eq!("local,id=fs0,path=/exports/share,security_model=none,max_xattr=256", local.to_args()[0]);
     assert_eq!("synth,id=s0,max_xattr=0", synth.to_args()[0]);
 }
+
+#[test]
+fn fsdev_uses_fixed_width_u64_quantities() {
+    let value = "local,id=fs0,path=/exports/share,security_model=none,throttling.bps-total=5000000000";
+    assert_eq!(value, FsDev::from_str(value).unwrap().to_args()[0]);
+}

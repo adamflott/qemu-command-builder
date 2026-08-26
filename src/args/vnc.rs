@@ -11,8 +11,8 @@ use std::str::FromStr;
 /// A VNC server endpoint for `-vnc`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum VNCDisplay {
-    To(usize),
-    Network { host: Option<String>, display: usize },
+    To(u64),
+    Network { host: Option<String>, display: u64 },
     Unix(PathBuf),
     None,
 }
@@ -174,7 +174,7 @@ pub struct VNC {
     /// up and not lose events in case events are arriving in bulk.
     /// Possible causes for the latter are flaky network connections, or
     /// scripts for automated testing.
-    key_delay_ms: Option<usize>,
+    key_delay_ms: Option<u64>,
 
     /// Use the specified audiodev when the VNC client requests audio
     /// transmission. When not using an -audiodev argument, this option
@@ -285,7 +285,7 @@ impl FromStr for VNC {
                 "lossy" => value.lossy = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid lossy value: {raw}"))?),
                 "non-adaptive" => value.non_adaptive = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid non-adaptive value: {raw}"))?),
                 "share" => value.share = Some(parse_share(raw)?),
-                "key-delay-ms" => value.key_delay_ms = Some(raw.parse::<usize>().map_err(|e| e.to_string())?),
+                "key-delay-ms" => value.key_delay_ms = Some(raw.parse::<u64>().map_err(|e| e.to_string())?),
                 "audiodev" => value.audiodev = Some(raw.to_string()),
                 "power-control" => value.power_control = Some(raw.parse::<OnOff>().map_err(|_| format!("invalid power-control value: {raw}"))?),
                 other => return Err(format!("unsupported -vnc option: {other}")),
@@ -297,7 +297,7 @@ impl FromStr for VNC {
 
 fn parse_display(value: &str) -> Result<VNCDisplay, String> {
     if let Some(limit) = value.strip_prefix("to=") {
-        return Ok(VNCDisplay::To(limit.parse::<usize>().map_err(|e| e.to_string())?));
+        return Ok(VNCDisplay::To(limit.parse::<u64>().map_err(|e| e.to_string())?));
     }
     if let Some(path) = value.strip_prefix("unix:") {
         return Ok(VNCDisplay::Unix(PathBuf::from(path)));
@@ -306,7 +306,7 @@ fn parse_display(value: &str) -> Result<VNCDisplay, String> {
         return Ok(VNCDisplay::None);
     }
     if let Some((host, display)) = value.rsplit_once(':') {
-        let display = display.parse::<usize>().map_err(|e| e.to_string())?;
+        let display = display.parse::<u64>().map_err(|e| e.to_string())?;
         let host = if host.is_empty() { None } else { Some(host.to_string()) };
         return Ok(VNCDisplay::Network { host, display });
     }

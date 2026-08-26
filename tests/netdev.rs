@@ -158,3 +158,9 @@ fn netdev_l2tpv3_round_trips() {
     assert_eq!(value, parsed.to_args()[0]);
     assert_eq!(parsed, NetDev::from_str(&parsed.to_args()[0]).unwrap());
 }
+
+#[test]
+fn netdev_preserves_json() {
+    let json = r#"{"type":"user","id":"net0","hostfwd":[{"str":"tcp::2222-:22"}]}"#;
+    assert_eq!(json, NetDev::from_str(json).unwrap().to_args()[0]);
+}

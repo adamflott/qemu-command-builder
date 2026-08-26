@@ -35,7 +35,7 @@ pub struct CharSocketTcp {
     wait: Option<OnOff>,
     telnet: Option<OnOff>,
     websocket: Option<OnOff>,
-    reconnect_ms: Option<usize>,
+    reconnect_ms: Option<u64>,
     mux: Option<OnOff>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
@@ -52,7 +52,7 @@ pub struct CharSocketUds {
     wait: Option<OnOff>,
     telnet: Option<OnOff>,
     websocket: Option<OnOff>,
-    reconnect_ms: Option<usize>,
+    reconnect_ms: Option<u64>,
     mux: Option<OnOff>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
@@ -91,15 +91,15 @@ pub struct CharMsMouse {
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharHub {
     id: String,
-    chardevs: Option<Vec<(usize, String)>>,
+    chardevs: Option<Vec<(u64, String)>>,
 }
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharVc {
     id: String,
-    width: Option<usize>,
-    height: Option<usize>,
-    cols: Option<usize>,
-    rows: Option<usize>,
+    width: Option<u64>,
+    height: Option<u64>,
+    cols: Option<u64>,
+    rows: Option<u64>,
     mux: Option<OnOff>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
@@ -137,7 +137,7 @@ impl FromStr for CharVcEncoding {
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
 pub struct CharRingBuf {
     id: String,
-    size: Option<usize>,
+    size: Option<u64>,
     logfile: Option<PathBuf>,
     logappend: Option<OnOff>,
 }
@@ -781,7 +781,7 @@ fn parse_socket_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
             "wait" => wait = Some(value.parse::<OnOff>().map_err(|_| format!("invalid wait value: {value}"))?),
             "telnet" => telnet = Some(value.parse::<OnOff>().map_err(|_| format!("invalid telnet value: {value}"))?),
             "websocket" => websocket = Some(value.parse::<OnOff>().map_err(|_| format!("invalid websocket value: {value}"))?),
-            "reconnect-ms" => reconnect_ms = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "reconnect-ms" => reconnect_ms = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
             "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
             "logfile" => logfile = Some(PathBuf::from(value)),
             "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
@@ -909,7 +909,7 @@ fn parse_hub_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
         if key == "id" {
             id = Some(value.to_string());
         } else if let Some(index) = key.strip_prefix("chardevs.") {
-            chardevs.push((index.parse::<usize>().map_err(|e| e.to_string())?, value.to_string()));
+            chardevs.push((index.parse::<u64>().map_err(|e| e.to_string())?, value.to_string()));
         } else {
             return Err(format!("unsupported chardev hub option: {key}"));
         }
@@ -937,10 +937,10 @@ fn parse_vc_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
         let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev vc option: {part}"))?;
         match key {
             "id" => id = Some(value.to_string()),
-            "width" => width = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "height" => height = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "cols" => cols = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "rows" => rows = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "width" => width = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "height" => height = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "cols" => cols = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "rows" => rows = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
             "mux" => mux = Some(value.parse::<OnOff>().map_err(|_| format!("invalid mux value: {value}"))?),
             "logfile" => logfile = Some(PathBuf::from(value)),
             "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
@@ -998,7 +998,7 @@ fn parse_ringbuf_chardev(parts: Vec<&str>) -> Result<CharDev, String> {
         let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid chardev ringbuf option: {part}"))?;
         match key {
             "id" => id = Some(value.to_string()),
-            "size" => size = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "size" => size = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
             "logfile" => logfile = Some(PathBuf::from(value)),
             "logappend" => logappend = Some(value.parse::<OnOff>().map_err(|_| format!("invalid logappend value: {value}"))?),
             other => return Err(format!("unsupported chardev ringbuf option: {other}")),

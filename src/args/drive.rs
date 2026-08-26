@@ -294,8 +294,8 @@ pub struct Drive {
 
     /// These options define where is connected the drive by defining
     /// the bus number and the unit id.
-    pub bus: Option<usize>,
-    pub unit: Option<usize>,
+    pub bus: Option<u64>,
+    pub unit: Option<u64>,
 
     /// This option defines where the drive is connected by using an
     /// index in the list of available connectors of a given interface
@@ -391,34 +391,34 @@ pub struct Drive {
     /// for all request types or for reads or writes only. Small values
     /// can lead to timeouts or hangs inside the guest. A safe minimum
     /// for disks is 2 MB/s.
-    pub bps: Option<usize>,
-    pub bps_rd: Option<usize>,
-    pub bps_wr: Option<usize>,
+    pub bps: Option<u64>,
+    pub bps_rd: Option<u64>,
+    pub bps_wr: Option<u64>,
 
     /// Specify bursts in bytes per second, either for all request types
     /// or for reads or writes only. Bursts allow the guest I/O to spike
     /// above the limit temporarily.
-    pub bps_max: Option<usize>,
-    pub bps_rd_max: Option<usize>,
-    pub bps_wr_max: Option<usize>,
+    pub bps_max: Option<u64>,
+    pub bps_rd_max: Option<u64>,
+    pub bps_wr_max: Option<u64>,
 
     /// Specify request rate limits in requests per second, either for
     /// all request types or for reads or writes only.
-    pub iops: Option<usize>,
-    pub iops_rd: Option<usize>,
-    pub iops_wr: Option<usize>,
+    pub iops: Option<u64>,
+    pub iops_rd: Option<u64>,
+    pub iops_wr: Option<u64>,
 
     /// Specify bursts in requests per second, either for all request
     /// types or for reads or writes only. Bursts allow the guest I/O to
     /// spike above the limit temporarily.
-    pub iops_max: Option<usize>,
-    pub iops_rd_max: Option<usize>,
-    pub iops_wr_max: Option<usize>,
+    pub iops_max: Option<u64>,
+    pub iops_rd_max: Option<u64>,
+    pub iops_wr_max: Option<u64>,
 
     /// Let every is bytes of a request count as a new request for iops
     /// throttling purposes. Use this option to prevent guests from
     /// circumventing iops limits by sending fewer but larger requests.
-    pub iops_size: Option<usize>,
+    pub iops_size: Option<u64>,
 
     /// Join a throttling quota group with given name g. All drives that
     /// are members of the same group are accounted for together. Use
@@ -427,12 +427,12 @@ pub struct Drive {
     /// disk.
     pub group: Option<ShellString>,
 
-    pub throttling_bps_total: Option<usize>,
-    pub throttling_bps_total_max: Option<usize>,
-    pub throttling_bps_total_max_length: Option<usize>,
-    pub throttling_iops_total: Option<usize>,
-    pub throttling_iops_total_max: Option<usize>,
-    pub throttling_iops_total_max_length: Option<usize>,
+    pub throttling_bps_total: Option<u64>,
+    pub throttling_bps_total_max: Option<u64>,
+    pub throttling_bps_total_max_length: Option<u64>,
+    pub throttling_iops_total: Option<u64>,
+    pub throttling_iops_total_max: Option<u64>,
+    pub throttling_iops_total_max_length: Option<u64>,
 }
 
 impl ToCommand for Drive {
@@ -556,8 +556,8 @@ impl FromStr for Drive {
             match key {
                 "file" => drive.file = Some(ShellPath::from(value)),
                 "if" => drive.interface = Some(value.parse::<DriveInterface>().map_err(|_| format!("invalid if value: {value}"))?),
-                "bus" => drive.bus = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "unit" => drive.unit = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "bus" => drive.bus = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "unit" => drive.unit = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 "index" => drive.index = Some(ShellString::from_str(value)?),
                 "media" => drive.media = Some(value.parse::<DriveMedia>().map_err(|_| format!("invalid media value: {value}"))?),
                 "snapshot" => drive.snapshot = Some(value.parse::<OnOff>().map_err(|_| format!("invalid snapshot value: {value}"))?),
@@ -575,26 +575,26 @@ impl FromStr for Drive {
                 "copy-on-read" => drive.copy_on_read = Some(value.parse::<OnOff>().map_err(|_| format!("invalid copy-on-read value: {value}"))?),
                 "discard" => drive.discard = Some(value.parse::<IgnoreUnmap>().map_err(|_| format!("invalid discard value: {value}"))?),
                 "detect-zeroes" => drive.detect_zeroes = Some(value.parse::<OnOffUnmap>().map_err(|_| format!("invalid detect-zeroes value: {value}"))?),
-                "bps" => drive.bps = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "bps_rd" => drive.bps_rd = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "bps_wr" => drive.bps_wr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "bps_max" => drive.bps_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "bps_rd_max" => drive.bps_rd_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "bps_wr_max" => drive.bps_wr_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "iops" => drive.iops = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "iops_rd" => drive.iops_rd = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "iops_wr" => drive.iops_wr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "iops_max" => drive.iops_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "iops_rd_max" => drive.iops_rd_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "iops_wr_max" => drive.iops_wr_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "iops_size" => drive.iops_size = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "bps" => drive.bps = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "bps_rd" => drive.bps_rd = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "bps_wr" => drive.bps_wr = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "bps_max" => drive.bps_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "bps_rd_max" => drive.bps_rd_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "bps_wr_max" => drive.bps_wr_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "iops" => drive.iops = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "iops_rd" => drive.iops_rd = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "iops_wr" => drive.iops_wr = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "iops_max" => drive.iops_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "iops_rd_max" => drive.iops_rd_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "iops_wr_max" => drive.iops_wr_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "iops_size" => drive.iops_size = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 "group" => drive.group = Some(ShellString::from_str(value)?),
-                "throttling.bps-total" => drive.throttling_bps_total = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "throttling.bps-total-max" => drive.throttling_bps_total_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "throttling.bps-total-max-length" => drive.throttling_bps_total_max_length = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "throttling.iops-total" => drive.throttling_iops_total = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "throttling.iops-total-max" => drive.throttling_iops_total_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "throttling.iops-total-max-length" => drive.throttling_iops_total_max_length = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "throttling.bps-total" => drive.throttling_bps_total = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "throttling.bps-total-max" => drive.throttling_bps_total_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "throttling.bps-total-max-length" => drive.throttling_bps_total_max_length = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "throttling.iops-total" => drive.throttling_iops_total = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "throttling.iops-total-max" => drive.throttling_iops_total_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "throttling.iops-total-max-length" => drive.throttling_iops_total_max_length = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 other => return Err(format!("unsupported drive option: {other}")),
             }
         }

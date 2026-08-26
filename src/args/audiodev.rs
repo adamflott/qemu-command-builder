@@ -27,6 +27,7 @@ pub struct AudioDev {
     driver: String,
     /// Generic backend/global properties in canonical output order.
     props: Vec<AudioDevProperty>,
+    json: Option<String>,
 }
 
 impl AudioDev {
@@ -34,7 +35,20 @@ impl AudioDev {
         Self {
             driver: driver.into(),
             props: Vec::new(),
+            json: None,
         }
+    }
+    /// Creates an audio backend from QEMU's JSON command-line form.
+    pub fn from_json(json: impl Into<String>) -> Result<Self, String> {
+        let json = json.into();
+        if !json.trim().starts_with('{') || !json.trim().ends_with('}') {
+            return Err("-audiodev JSON must be a JSON object".to_string());
+        }
+        Ok(Self {
+            driver: String::new(),
+            props: Vec::new(),
+            json: Some(json),
+        })
     }
 
     pub fn add_prop(&mut self, key: impl Into<String>, value: impl Into<String>) -> &mut Self {
@@ -56,6 +70,9 @@ impl ToCommand for AudioDev {
         ARG_AUDIODEV.to_string()
     }
     fn to_args(&self) -> Vec<String> {
+        if let Some(json) = &self.json {
+            return vec![json.clone()];
+        }
         let mut args = vec![self.driver.clone()];
 
         for prop in &self.props {
@@ -73,6 +90,9 @@ impl FromStr for AudioDev {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().starts_with('{') {
+            return Self::from_json(s);
+        }
         let mut parts = s.split(DELIM_COMMA);
         let first = parts.next().ok_or_else(|| "empty -audiodev argument".to_string())?;
 
@@ -101,6 +121,6 @@ impl FromStr for AudioDev {
             return Err("-audiodev requires id=".to_string());
         }
 
-        Ok(Self { driver, props })
+        Ok(Self { driver, props, json: None })
     }
 }

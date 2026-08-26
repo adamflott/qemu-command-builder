@@ -18,10 +18,10 @@ pub struct AddFd {
     /// This option defines the file descriptor of which a duplicate is
     /// added to fd set. The file descriptor cannot be stdin, stdout, or
     /// stderr.
-    pub fd: usize,
+    pub fd: u64,
     /// This option defines the ID of the fd set to add the file
     /// descriptor to.
-    pub set: usize,
+    pub set: u64,
     /// This option defines a free-form string that can be used to
     /// describe fd.
     pub opaque: Option<ShellString>,
@@ -29,7 +29,7 @@ pub struct AddFd {
 
 impl AddFd {
     /// Creates an `-add-fd` mapping from a host file descriptor to a QEMU fd set.
-    pub fn new(fd: usize, set: usize) -> Self {
+    pub fn new(fd: u64, set: u64) -> Self {
         Self { fd, set, opaque: None }
     }
 }
@@ -61,8 +61,8 @@ impl FromStr for AddFd {
         for part in s.split(DELIM_COMMA) {
             let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid add-fd option: {part}"))?;
             match key {
-                "fd" => fd = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-                "set" => set = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+                "fd" => fd = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+                "set" => set = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
                 "opaque" => opaque = Some(ShellString::from_str(value)?),
                 other => return Err(format!("unsupported add-fd option: {other}")),
             }

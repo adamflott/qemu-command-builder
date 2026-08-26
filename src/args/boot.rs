@@ -58,8 +58,8 @@ pub struct Boot {
     once: Option<ShellString>,
     menu: Option<OnOff>,
     splash: Option<ShellString>,
-    splash_time: Option<usize>,
-    reboot_timeout: Option<usize>,
+    splash_time: Option<u64>,
+    reboot_timeout: Option<u64>,
     strict: Option<OnOff>,
 }
 
@@ -96,7 +96,29 @@ impl FromStr for Boot {
     type Err = ShellStringError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        boot.parse(s).map_err(|e| ShellStringError::from_parse(e))
+        let mut value = Self {
+            order: None,
+            once: None,
+            menu: None,
+            splash: None,
+            splash_time: None,
+            reboot_timeout: None,
+            strict: None,
+        };
+        for part in s.split(DELIM_COMMA) {
+            let (key, raw) = part.split_once('=').ok_or_else(|| ShellStringError::new(format!("invalid -boot option: {part}")))?;
+            match key {
+                "order" => value.order = Some(raw.parse::<ShellString>().map_err(ShellStringError::new)?),
+                "once" => value.once = Some(raw.parse::<ShellString>().map_err(ShellStringError::new)?),
+                "menu" => value.menu = Some(raw.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid menu value: {raw}")))?),
+                "splash" => value.splash = Some(raw.parse::<ShellString>().map_err(ShellStringError::new)?),
+                "splash-time" => value.splash_time = Some(raw.parse::<u64>().map_err(|e| ShellStringError::new(e.to_string()))?),
+                "reboot-timeout" => value.reboot_timeout = Some(raw.parse::<u64>().map_err(|e| ShellStringError::new(e.to_string()))?),
+                "strict" => value.strict = Some(raw.parse::<OnOff>().map_err(|_| ShellStringError::new(format!("invalid strict value: {raw}")))?),
+                other => return Err(ShellStringError::new(format!("unsupported -boot option: {other}"))),
+            }
+        }
+        Ok(value)
     }
 }
 
@@ -104,8 +126,8 @@ pco0!(order, shell_string_until_comma, ShellString, KEY_ORDER);
 pco0!(once, shell_string_until_comma, ShellString, KEY_ONCE);
 pco0!(menu, alphanumeric1, OnOff, KEY_MENU);
 pco0!(splash, shell_string_until_comma, ShellString, KEY_SPLASH);
-ppo0!(splash_time, dec_uint, usize, KEY_SPLASH_TIME);
-ppo0!(reboot_timeout, dec_uint, usize, KEY_REBOOT_TIMEOUT);
+ppo0!(splash_time, dec_uint, u64, KEY_SPLASH_TIME);
+ppo0!(reboot_timeout, dec_uint, u64, KEY_REBOOT_TIMEOUT);
 pco0!(strict, alphanumeric1, OnOff, KEY_STRICT);
 
 pub fn boot(s: &mut &str) -> ModalResult<Boot> {

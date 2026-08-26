@@ -40,6 +40,20 @@ fn object_uses_object_command_and_round_trips() {
 }
 
 #[test]
+fn object_preserves_nested_json_and_exposes_qemu_11_1_helpers() {
+    let json = r#"{"qom-type":"tdx-guest","id":"tdx","quote-generation-socket":{"type":"unix","path":"/run/qgs.sock"}}"#;
+    let object = Object::from_str(json).unwrap();
+    assert_eq!(json, object.to_args()[0]);
+
+    assert_eq!("monitor-hmp,id=hmp0,chardev=char0", Object::monitor_hmp("hmp0", "char0").to_args()[0]);
+    assert_eq!("monitor-qmp,id=qmp0,chardev=char1", Object::monitor_qmp("qmp0", "char1").to_args()[0]);
+    assert_eq!("tdx-guest,id=tdx0", Object::tdx_guest("tdx0").to_args()[0]);
+    let mut iothread = Object::iothread("io0");
+    iothread.add_prop("poll-weight", "3");
+    assert_eq!("iothread,id=io0,poll-weight=3", iothread.to_args()[0]);
+}
+
+#[test]
 fn qemu_instance_parses_confidential_guest_support_with_sev_object() {
     let cmd = "/usr/bin/qemu-system-x86_64 -machine q35,confidential-guest-support=sev0 -object sev-guest,id=sev0,cbitpos=47,reduced-phys-bits=1";
     let parsed = QemuInstanceForX86_64::from_str(cmd).unwrap();

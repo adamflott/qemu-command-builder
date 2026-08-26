@@ -96,6 +96,7 @@ pub struct BlockDev {
     /// These are emitted after the generic blockdev options in sorted key
     /// order so parsing and formatting remain stable.
     pub driver_opts: Option<BTreeMap<String, String>>,
+    json: Option<String>,
 }
 
 impl BlockDev {
@@ -112,7 +113,18 @@ impl BlockDev {
             force_share: None,
             detect_zeroes: None,
             driver_opts: None,
+            json: None,
         }
+    }
+    /// Creates a block node from QEMU's JSON command-line form.
+    pub fn from_json(json: impl Into<String>) -> Result<Self, String> {
+        let json = json.into();
+        if !json.trim().starts_with('{') || !json.trim().ends_with('}') {
+            return Err("-blockdev JSON must be a JSON object".to_string());
+        }
+        let mut value = Self::new(String::new());
+        value.json = Some(json);
+        Ok(value)
     }
 
     /// Adds a driver-specific `key=value` option.
@@ -127,6 +139,9 @@ impl ToCommand for BlockDev {
         ARG_BLOCKDEV.to_string()
     }
     fn to_args(&self) -> Vec<String> {
+        if let Some(json) = &self.json {
+            return vec![json.clone()];
+        }
         let mut args = vec![];
 
         args.push(format!("driver={}", self.driver));
@@ -168,6 +183,9 @@ impl FromStr for BlockDev {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.trim().starts_with('{') {
+            return Self::from_json(s);
+        }
         let mut parts = s.split(',');
         let first = parts.next().ok_or_else(|| "empty blockdev argument".to_string())?;
         let driver = first.strip_prefix("driver=").unwrap_or(first).to_string();

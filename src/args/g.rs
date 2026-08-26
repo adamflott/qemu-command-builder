@@ -12,9 +12,9 @@ use std::str::FromStr;
 /// `1024x768x24`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct G {
-    pub width: usize,
-    pub height: usize,
-    pub depth: Option<usize>,
+    pub width: u64,
+    pub height: u64,
+    pub depth: Option<u64>,
 }
 
 impl Display for G {
@@ -62,12 +62,12 @@ fn parse_g(s: &str) -> Result<G, String> {
     Ok(G { width, height, depth })
 }
 
-fn parse_dimension(value: Option<&str>, name: &str) -> Result<usize, String> {
+fn parse_dimension(value: Option<&str>, name: &str) -> Result<u64, String> {
     let value = value.ok_or_else(|| format!("missing -g {name}"))?;
     if value.is_empty() {
         return Err(format!("empty -g {name}"));
     }
-    let parsed = value.parse::<usize>().map_err(|e| format!("invalid -g {name}: {e}"))?;
+    let parsed = value.parse::<u64>().map_err(|e| format!("invalid -g {name}: {e}"))?;
     if parsed == 0 {
         return Err(format!("-g {name} must be greater than zero"));
     }

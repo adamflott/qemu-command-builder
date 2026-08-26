@@ -10,7 +10,7 @@ use crate::to_command::{ToArg, ToCommand};
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Shift {
-    N(usize),
+    N(u64),
     Auto,
 }
 
@@ -101,7 +101,7 @@ impl FromStr for Icount {
                     shift = Some(if value == "auto" {
                         Shift::Auto
                     } else {
-                        Shift::N(value.parse::<usize>().map_err(|e| e.to_string())?)
+                        Shift::N(value.parse::<u64>().map_err(|e| e.to_string())?)
                     })
                 }
                 "align" => align = Some(value.parse::<OnOff>().map_err(|_| format!("invalid align value: {value}"))?),

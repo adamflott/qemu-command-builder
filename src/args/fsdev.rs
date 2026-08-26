@@ -66,30 +66,30 @@ pub struct FsDevLocal {
     dmode: Option<String>,
 
     /// Maximum number of concurrent extended-attribute FIDs (zero is unlimited).
-    max_xattr: Option<usize>,
+    max_xattr: Option<u64>,
 
     /// Throttling limits in bytes per second.
-    throttling_bps_total: Option<usize>,
-    throttling_bps_read: Option<usize>,
-    throttling_bps_write: Option<usize>,
+    throttling_bps_total: Option<u64>,
+    throttling_bps_read: Option<u64>,
+    throttling_bps_write: Option<u64>,
 
     /// Bursts in bytes per second.
-    throttling_bps_total_max: Option<usize>,
-    bps_read_max: Option<usize>,
-    bps_write_max: Option<usize>,
+    throttling_bps_total_max: Option<u64>,
+    bps_read_max: Option<u64>,
+    bps_write_max: Option<u64>,
 
     /// Request rate limits in requests per second.
-    throttling_iops_total: Option<usize>,
-    throttling_iops_read: Option<usize>,
-    throttling_iops_write: Option<usize>,
+    throttling_iops_total: Option<u64>,
+    throttling_iops_read: Option<u64>,
+    throttling_iops_write: Option<u64>,
 
     /// Bursts in requests per second.
-    throttling_iops_total_max: Option<usize>,
-    throttling_iops_read_max: Option<usize>,
-    throttling_iops_write_max: Option<usize>,
+    throttling_iops_total_max: Option<u64>,
+    throttling_iops_read_max: Option<u64>,
+    throttling_iops_write_max: Option<u64>,
 
     /// Request size for IOPS throttling accounting.
-    throttling_iops_size: Option<usize>,
+    throttling_iops_size: Option<u64>,
 }
 
 /// A synthetic `-fsdev synth,...` backend used by QTests.
@@ -100,7 +100,7 @@ pub struct FsDevSynth {
     /// Emit `readonly=on` when enabled.
     readonly: Option<()>,
     /// Maximum number of concurrent extended-attribute FIDs (zero is unlimited).
-    max_xattr: Option<usize>,
+    max_xattr: Option<u64>,
 }
 
 /// Define a new QEMU file system device.
@@ -252,20 +252,20 @@ fn parse_local_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
             }
             "fmode" => fmode = Some(value.to_string()),
             "dmode" => dmode = Some(value.to_string()),
-            "max_xattr" => max_xattr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.bps-total" => throttling_bps_total = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.bps-read" => throttling_bps_read = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.bps-write" => throttling_bps_write = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.bps-total-max" => throttling_bps_total_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.bps-read-max" => bps_read_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.bps-write-max" => bps_write_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.iops-total" => throttling_iops_total = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.iops-read" => throttling_iops_read = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.iops-write" => throttling_iops_write = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.iops-total-max" => throttling_iops_total_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.iops-read-max" => throttling_iops_read_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.iops-write-max" => throttling_iops_write_max = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
-            "throttling.iops-size" => throttling_iops_size = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "max_xattr" => max_xattr = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.bps-total" => throttling_bps_total = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.bps-read" => throttling_bps_read = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.bps-write" => throttling_bps_write = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.bps-total-max" => throttling_bps_total_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.bps-read-max" => bps_read_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.bps-write-max" => bps_write_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.iops-total" => throttling_iops_total = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.iops-read" => throttling_iops_read = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.iops-write" => throttling_iops_write = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.iops-total-max" => throttling_iops_total_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.iops-read-max" => throttling_iops_read_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.iops-write-max" => throttling_iops_write_max = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
+            "throttling.iops-size" => throttling_iops_size = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
             other => return Err(format!("unsupported fsdev local option: {other}")),
         }
     }
@@ -310,7 +310,7 @@ fn parse_synth_fsdev(parts: Vec<&str>) -> Result<FsDev, String> {
                 }
                 readonly = Some(());
             }
-            "max_xattr" => max_xattr = Some(value.parse::<usize>().map_err(|e| e.to_string())?),
+            "max_xattr" => max_xattr = Some(value.parse::<u64>().map_err(|e| e.to_string())?),
             other => return Err(format!("unsupported fsdev synth option: {other}")),
         }
     }
