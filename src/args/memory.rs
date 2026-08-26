@@ -128,5 +128,9 @@ fn parse_memory(s: &str) -> Result<Memory, String> {
         }
     }
 
+    if slots.is_some() != maxmem.is_some() {
+        return Err("slots= and maxmem= must be specified together".to_string());
+    }
+
     Ok(Memory { mem, slots, maxmem })
 }
