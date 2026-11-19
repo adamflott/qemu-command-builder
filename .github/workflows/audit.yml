@@ -13,6 +13,12 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write         # Needed to publish check runs / annotations
+      issues: write         # Needed if the action opens issues for advisories
+      pull-requests: write  # Needed if the action comments on PRs
+      security-events: write # Needed if uploading SARIF/code scanning results
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
