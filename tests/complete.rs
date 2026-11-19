@@ -206,7 +206,7 @@ fn full_command_line() {
         "-smbios",
         "type=2,serial=",
         "-netdev",
-        "tap,id=net0,ifname=tap0,script=no,downscript=no,vhost=on,queues=8",
+        "tap,id=net0,ifname=tap0,script=,downscript=,vhost=on,queues=8",
         "-chardev",
         "socket,id=charmonitor,path=/qemumon.sock,server=on,wait=off,logfile=/run/qemumon.log,logappend=off",
         "-chardev",

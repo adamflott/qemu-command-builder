@@ -27,7 +27,7 @@ use crate::args::blockdev::BlockDev;
 use crate::args::boot::Boot;
 use crate::args::chardev::CharDev;
 use crate::args::compact::Compact;
-use crate::args::cpu::{CpuAarch64, CpuX86};
+use crate::args::cpu::{CpuAarch64, CpuHexagon, CpuS390x, CpuX86};
 use crate::args::device::Device;
 use crate::args::display::QemuDisplay;
 use crate::args::drive::Drive;
@@ -39,6 +39,8 @@ use crate::args::icount::Icount;
 use crate::args::incoming::Incoming;
 use crate::args::iscsi::Iscsi;
 use crate::args::machine::{MachineAarch64, MachineX86_64};
+use crate::args::machine_hexagon::MachineHexagon;
+use crate::args::machine_s390x::MachineS390x;
 use crate::args::memory::Memory;
 use crate::args::mon::Mon;
 use crate::args::msg::Msg;
@@ -82,6 +84,12 @@ const QEMU_BIN_X86_64: &str = "qemu-system-x86_64";
 
 /// QEMU binary name for aarch64
 const QEMU_BIN_AARCH64: &str = "qemu-system-aarch64";
+
+/// QEMU binary name for s390x
+const QEMU_BIN_S390X: &str = "qemu-system-s390x";
+
+/// QEMU binary name for Hexagon
+const QEMU_BIN_HEXAGON: &str = "qemu-system-hexagon";
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct QemuInstanceBase<Machine, Cpu> {
@@ -191,6 +199,8 @@ pub struct QemuInstanceBase<Machine, Cpu> {
     pub no_user_config: Option<bool>,
     pub trace: Option<Trace>,
     pub plugin: Option<Vec<Plugin>>,
+    /// Enable semihosting on ARM, M68K, Xtensa, MIPS, RISC-V or Hexagon
+    /// (Hexagon requires QEMU 11.2 or newer).
     pub semihosting: Option<bool>,
     pub semihosting_config: Option<SemihostingConfig>,
     pub qtest: Option<String>,
@@ -720,11 +730,15 @@ where
 
 pub type QemuInstanceForX86_64 = QemuInstanceBase<MachineX86_64, CpuX86>;
 pub type QemuInstanceForAarch64 = QemuInstanceBase<MachineAarch64, CpuAarch64>;
+pub type QemuInstanceForS390x = QemuInstanceBase<MachineS390x, CpuS390x>;
+pub type QemuInstanceForHexagon = QemuInstanceBase<MachineHexagon, CpuHexagon>;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum QemuCommand {
     X86_64(QemuInstanceBase<MachineX86_64, CpuX86>),
     Aarch64(QemuInstanceBase<MachineAarch64, CpuAarch64>),
+    S390x(QemuInstanceBase<MachineS390x, CpuS390x>),
+    Hexagon(QemuInstanceBase<MachineHexagon, CpuHexagon>),
 }
 
 impl ToCommand for QemuCommand {
@@ -732,6 +746,8 @@ impl ToCommand for QemuCommand {
         match self {
             QemuCommand::X86_64(instance) => instance.to_args(),
             QemuCommand::Aarch64(instance) => instance.to_args(),
+            QemuCommand::S390x(instance) => instance.to_args(),
+            QemuCommand::Hexagon(instance) => instance.to_args(),
         }
     }
 
@@ -739,6 +755,8 @@ impl ToCommand for QemuCommand {
         match self {
             QemuCommand::X86_64(instance) => instance.to_command(),
             QemuCommand::Aarch64(instance) => instance.to_command(),
+            QemuCommand::S390x(instance) => instance.to_command(),
+            QemuCommand::Hexagon(instance) => instance.to_command(),
         }
     }
 }

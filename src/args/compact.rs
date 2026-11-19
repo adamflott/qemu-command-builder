@@ -9,11 +9,15 @@ use crate::to_command::ToArg;
 use crate::to_command::ToCommand;
 
 /// Input policy values for `-compat` compatibility knobs.
+///
+/// The type name is retained for compatibility; QEMU 11.2 also accepts `warn`.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum AcceptRejectCrash {
     Accept,
     Reject,
     Crash,
+    /// Accept the input and issue repeated warnings on stderr.
+    Warn,
 }
 
 impl ToArg for AcceptRejectCrash {
@@ -22,6 +26,7 @@ impl ToArg for AcceptRejectCrash {
             AcceptRejectCrash::Accept => "accept",
             AcceptRejectCrash::Reject => "reject",
             AcceptRejectCrash::Crash => "crash",
+            AcceptRejectCrash::Warn => "warn",
         }
     }
 }
@@ -54,11 +59,25 @@ pub struct UnstableInput {
     unstable_output: AcceptHide,
 }
 
+/// Independently selectable `-compat` policies, including QEMU 11.2's
+/// `insecure-input`. Omitted policies retain QEMU's defaults.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Default, Builder, Arbitrary)]
+pub struct CompatPolicies {
+    deprecated_input: Option<AcceptRejectCrash>,
+    deprecated_output: Option<AcceptHide>,
+    unstable_input: Option<AcceptRejectCrash>,
+    unstable_output: Option<AcceptHide>,
+    /// Controls explicitly created device, machine and accelerator QOM types
+    /// that do not provide a security boundary for untrusted input.
+    insecure_input: Option<AcceptRejectCrash>,
+}
+
 /// A QEMU `-compat` definition.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum Compact {
     DeprecatedInput(DeprecatedInput),
     UnstableInput(UnstableInput),
+    Policies(CompatPolicies),
 }
 
 impl ToCommand for Compact {
@@ -80,6 +99,21 @@ impl ToCommand for Compact {
                 args.push(format!("unstable-output={}", unstable_input.unstable_output.to_arg()));
                 vec![args.join(DELIM_COMMA)]
             }
+            Compact::Policies(policies) => {
+                let mut args = Vec::new();
+                for (key, policy) in [
+                    ("deprecated-input", policies.deprecated_input.as_ref().map(ToArg::to_arg)),
+                    ("deprecated-output", policies.deprecated_output.as_ref().map(ToArg::to_arg)),
+                    ("unstable-input", policies.unstable_input.as_ref().map(ToArg::to_arg)),
+                    ("unstable-output", policies.unstable_output.as_ref().map(ToArg::to_arg)),
+                    ("insecure-input", policies.insecure_input.as_ref().map(ToArg::to_arg)),
+                ] {
+                    if let Some(policy) = policy {
+                        args.push(format!("{key}={policy}"));
+                    }
+                }
+                vec![args.join(DELIM_COMMA)]
+            }
         }
     }
 }
@@ -92,6 +126,7 @@ impl FromStr for Compact {
         let mut deprecated_output = None;
         let mut unstable_input = None;
         let mut unstable_output = None;
+        let mut insecure_input = None;
 
         for part in s.split(DELIM_COMMA).filter(|part| !part.is_empty()) {
             let (key, value) = part.split_once('=').ok_or_else(|| format!("invalid -compat option: {part}"))?;
@@ -108,23 +143,30 @@ impl FromStr for Compact {
                 "unstable-output" => {
                     unstable_output = Some(parse_accept_hide(value)?);
                 }
+                "insecure-input" => {
+                    insecure_input = Some(parse_accept_reject_crash(value)?);
+                }
                 other => return Err(format!("unsupported -compat option: {other}")),
             }
         }
 
-        match (deprecated_input, deprecated_output, unstable_input, unstable_output) {
-            (Some(input), Some(output), None, None) => Ok(Self::DeprecatedInput(DeprecatedInput {
+        match (deprecated_input, deprecated_output, unstable_input, unstable_output, insecure_input) {
+            (Some(input), Some(output), None, None, None) => Ok(Self::DeprecatedInput(DeprecatedInput {
                 deprecated_input: input,
                 deprecated_output: output,
             })),
-            (None, None, Some(input), Some(output)) => Ok(Self::UnstableInput(UnstableInput {
+            (None, None, Some(input), Some(output), None) => Ok(Self::UnstableInput(UnstableInput {
                 unstable_input: input,
                 unstable_output: output,
             })),
-            (Some(_), None, None, None) | (None, Some(_), None, None) => Err("both deprecated-input and deprecated-output are required together".to_string()),
-            (None, None, Some(_), None) | (None, None, None, Some(_)) => Err("both unstable-input and unstable-output are required together".to_string()),
-            (None, None, None, None) => Err("empty -compat argument".to_string()),
-            _ => Err("cannot mix deprecated-* and unstable-* compat policies in one Compact value".to_string()),
+            (None, None, None, None, None) => Err("empty -compat argument".to_string()),
+            (deprecated_input, deprecated_output, unstable_input, unstable_output, insecure_input) => Ok(Self::Policies(CompatPolicies {
+                deprecated_input,
+                deprecated_output,
+                unstable_input,
+                unstable_output,
+                insecure_input,
+            })),
         }
     }
 }
@@ -134,6 +176,7 @@ fn parse_accept_reject_crash(value: &str) -> Result<AcceptRejectCrash, String> {
         "accept" => Ok(AcceptRejectCrash::Accept),
         "reject" => Ok(AcceptRejectCrash::Reject),
         "crash" => Ok(AcceptRejectCrash::Crash),
+        "warn" => Ok(AcceptRejectCrash::Warn),
         _ => Err(format!("invalid compat input policy: {value}")),
     }
 }

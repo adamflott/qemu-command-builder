@@ -90,7 +90,7 @@ fn netdev_tap_still_round_trips() {
     );
 
     let rendered = netdev.to_args()[0].clone();
-    assert_eq!("tap,id=net0,ifname=tap0,script=no,downscript=no,vhost=on,queues=8", rendered);
+    assert_eq!("tap,id=net0,ifname=tap0,script=,downscript=,vhost=on,queues=8", rendered);
     assert_eq!(netdev, NetDev::from_str(&rendered).unwrap());
 }
 

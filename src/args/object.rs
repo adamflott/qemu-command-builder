@@ -69,6 +69,23 @@ impl Object {
         value.add_prop("id", id.as_ref());
         value
     }
+
+    /// Creates an IGVM configuration object. QEMU 11.2's optional `cmdline`
+    /// can be supplied verbatim with [`Object::add_prop`]:
+    ///
+    /// ```
+    /// use qemu_command_builder::args::object::Object;
+    /// let mut igvm = Object::igvm_cfg("igvm0", "/firmware/guest.igvm");
+    /// igvm.add_prop("cmdline", "console=ttyS0 root=/dev/vda");
+    /// ```
+    ///
+    /// The loaded software defines the command-line format and must request
+    /// the command line in the IGVM file for it to take effect.
+    pub fn igvm_cfg(id: impl AsRef<str>, file: impl AsRef<str>) -> Self {
+        let mut value = Self::new("igvm-cfg");
+        value.add_prop("id", id.as_ref()).add_prop("file", file.as_ref());
+        value
+    }
 }
 
 impl ToCommand for Object {
@@ -82,7 +99,8 @@ impl ToCommand for Object {
         let mut args = vec![self.typename.clone()];
 
         for (prop_key, prop_value) in &self.properties {
-            args.push(format!("{}={}", prop_key, prop_value));
+            // QEMU's keyval syntax escapes a literal comma by doubling it.
+            args.push(format!("{}={}", prop_key, prop_value.replace(',', ",,")));
         }
         vec![args.join(DELIM_COMMA)]
     }
@@ -95,7 +113,8 @@ impl FromStr for Object {
         if s.trim().starts_with('{') {
             return Self::from_json(s);
         }
-        let mut parts = s.split(DELIM_COMMA);
+        let parts = split_object_properties(s);
+        let mut parts = parts.iter();
         let typename = parts.next().ok_or_else(|| "empty -object argument".to_string())?.to_string();
 
         let mut properties = Vec::new();
@@ -106,4 +125,25 @@ impl FromStr for Object {
 
         Ok(Self { typename, properties, json: None })
     }
+}
+
+// Split QEMU keyval properties while retaining doubled commas in values.
+fn split_object_properties(value: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut part = String::new();
+    let mut chars = value.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == ',' {
+            if chars.peek() == Some(&',') {
+                chars.next();
+                part.push(',');
+            } else {
+                parts.push(std::mem::take(&mut part));
+            }
+        } else {
+            part.push(ch);
+        }
+    }
+    parts.push(part);
+    parts
 }

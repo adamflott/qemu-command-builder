@@ -34,6 +34,7 @@ pub enum TcpUdp {
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum ScriptOrNot {
     Script(PathBuf),
+    /// Disable script execution with an empty value (`script=` or `downscript=`).
     None,
 }
 
@@ -44,7 +45,7 @@ impl ToCommand for ScriptOrNot {
                 vec![path.display().to_string()]
             }
             ScriptOrNot::None => {
-                vec!["no".to_string()]
+                vec![String::new()]
             }
         }
     }
@@ -54,7 +55,9 @@ impl FromStr for ScriptOrNot {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s == "no" { Ok(Self::None) } else { Ok(Self::Script(PathBuf::from(s))) }
+        // QEMU 11.2 still accepts `no`, but deprecates it in favor of an empty
+        // value. Normalize legacy commands to the new spelling when rendering.
+        if s.is_empty() || s == "no" { Ok(Self::None) } else { Ok(Self::Script(PathBuf::from(s))) }
     }
 }
 
@@ -280,7 +283,9 @@ pub struct Tap {
     fd: Option<String>,
     fds: Option<Vec<String>>,
     ifname: Option<String>,
+    /// Setup script; omission uses QEMU's build-time sysconfdir/qemu-ifup.
     script: Option<ScriptOrNot>,
+    /// Teardown script; omission uses QEMU's build-time sysconfdir/qemu-ifdown.
     downscript: Option<ScriptOrNot>,
     br: Option<String>,
     helper: Option<String>,
@@ -307,10 +312,10 @@ impl ToCommand for Tap {
             args.push(format!("ifname={}", ifname));
         }
         if let Some(script) = &self.script {
-            args.push(format!("script={}", script.to_command().join("")));
+            args.push(format!("script={}", script.to_args().join("")));
         }
         if let Some(downscript) = &self.downscript {
-            args.push(format!("downscript={}", downscript.to_command().join("")));
+            args.push(format!("downscript={}", downscript.to_args().join("")));
         }
         if let Some(br) = &self.br {
             args.push(format!("br={}", br));

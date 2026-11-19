@@ -55,7 +55,10 @@ use crate::parsers::{
 };
 use crate::parsers::{ARG_MIGRATE_MODE_ENABLE, ARG_NO_HPET, ARG_ONLY_CPR_CAPABLE};
 use crate::shell_string::ShellString;
-use crate::{QEMU_BIN_AARCH64, QEMU_BIN_X86_64, QUuid, QemuCommand, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForX86_64};
+use crate::{
+    QEMU_BIN_AARCH64, QEMU_BIN_HEXAGON, QEMU_BIN_S390X, QEMU_BIN_X86_64, QUuid, QemuCommand, QemuInstanceBase, QemuInstanceForAarch64, QemuInstanceForHexagon, QemuInstanceForS390x,
+    QemuInstanceForX86_64,
+};
 use std::path::PathBuf;
 use std::str::FromStr;
 use winnow::Result;
@@ -282,6 +285,26 @@ impl FromStr for QemuInstanceForAarch64 {
     }
 }
 
+impl FromStr for QemuInstanceForS390x {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut q = QemuInstanceBase::builder().qemu_binary(PathBuf::from("")).build();
+        _parse_qemu_command_line(QEMU_BIN_S390X, s, &mut q)?;
+        Ok(q)
+    }
+}
+
+impl FromStr for QemuInstanceForHexagon {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut q = QemuInstanceBase::builder().qemu_binary(PathBuf::from("")).build();
+        _parse_qemu_command_line(QEMU_BIN_HEXAGON, s, &mut q)?;
+        Ok(q)
+    }
+}
+
 pub fn parse_qemu_command_line(cmd: &str) -> Result<QemuCommand, String> {
     match cmd.split_once(" ") {
         None => Err(String::from("No next token for determining binary name")),
@@ -291,6 +314,12 @@ pub fn parse_qemu_command_line(cmd: &str) -> Result<QemuCommand, String> {
             }
             if bin.ends_with(QEMU_BIN_X86_64) {
                 return QemuInstanceForX86_64::from_str(cmd).map(QemuCommand::X86_64);
+            }
+            if bin.ends_with(QEMU_BIN_S390X) {
+                return QemuInstanceForS390x::from_str(cmd).map(QemuCommand::S390x);
+            }
+            if bin.ends_with(QEMU_BIN_HEXAGON) {
+                return QemuInstanceForHexagon::from_str(cmd).map(QemuCommand::Hexagon);
             }
             Err(format!("binary {} is an unsupported architecture", bin))
         }

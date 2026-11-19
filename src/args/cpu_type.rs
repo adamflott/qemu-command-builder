@@ -247,7 +247,7 @@ pub enum CpuTypeX86_64 {
     CascadelakeServernoTSX,
     /// Intel Xeon Processor (Cascadelake)
     CascadelakeServerV1,
-    /// Intel Xeon Processor (Cascadelake) [ARCH_CAPABILITIES]
+    /// Intel Xeon Processor (Cascadelake) \[ARCH_CAPABILITIES\]
     CascadelakeServerV2,
     /// Intel Xeon Processor (Cascadelake) [ARCH_CAPABILITIES, no TSX]
     CascadelakeServerV3,
@@ -267,7 +267,7 @@ pub enum CpuTypeX86_64 {
     Cooperlake,
     /// Intel Xeon Processor (Cooperlake)
     CooperlakeV1,
-    /// Intel Xeon Processor (Cooperlake) [XSAVES]
+    /// Intel Xeon Processor (Cooperlake) \[XSAVES\]
     CooperlakeV2,
     /// (alias configured by machine type)
     Denverton,
@@ -281,7 +281,7 @@ pub enum CpuTypeX86_64 {
     Dhyana,
     /// Hygon Dhyana Processor
     DhyanaV1,
-    /// Hygon Dhyana Processor [XSAVES]
+    /// Hygon Dhyana Processor \[XSAVES\]
     DhyanaV2,
     /// (alias configured by machine type)
     EPYC,
@@ -363,7 +363,7 @@ pub enum CpuTypeX86_64 {
     IcelakeServerV3,
     /// Intel Xeon Processor (Icelake)
     IcelakeServerV4,
-    /// Intel Xeon Processor (Icelake) [XSAVES]
+    /// Intel Xeon Processor (Icelake) \[XSAVES\]
     IcelakeServerV5,
     /// Intel Xeon Processor (Icelake) [5-level EPT]
     IcelakeServerV6,

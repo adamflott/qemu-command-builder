@@ -19,7 +19,7 @@ const KEY_PRETTY: &str = "pretty=";
 /// Supported QEMU monitor protocol modes.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Arbitrary)]
 pub enum ReadlineControl {
-    /// Human Monitor Protocol.
+    /// Human Monitor Protocol. Requires QEMU to be built with HMP support.
     Readline,
     /// QEMU Monitor Protocol.
     Control,

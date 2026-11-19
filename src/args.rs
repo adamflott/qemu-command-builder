@@ -22,6 +22,8 @@ pub mod icount;
 pub mod incoming;
 pub mod iscsi;
 pub mod machine;
+pub mod machine_hexagon;
+pub mod machine_s390x;
 pub mod machine_type;
 pub mod memory;
 pub mod mon;

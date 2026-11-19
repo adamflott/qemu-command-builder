@@ -16,6 +16,59 @@ use crate::{ToArg, ToCommand, qao};
 
 const KEY_MIGRATABLE: &str = "migratable=";
 
+/// A CPU model name and its machine-dependent feature properties.
+/// Used for targets without a dedicated CPU-model enum.
+#[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
+pub struct CpuModel {
+    /// CPU model name, as accepted by the target's `-cpu help`.
+    #[builder(into)]
+    cpu_type: String,
+    #[builder(default)]
+    properties: Vec<(String, String)>,
+}
+
+/// An s390x CPU model (for example `host`, `max` or `qemu`).
+pub type CpuS390x = CpuModel;
+
+/// A Hexagon CPU model (for example `v68`).
+pub type CpuHexagon = CpuModel;
+
+impl ToCommand for CpuModel {
+    fn command(&self) -> String {
+        ARG_CPU.to_string()
+    }
+
+    fn to_args(&self) -> Vec<String> {
+        let mut parts = vec![self.cpu_type.clone()];
+        parts.extend(self.properties.iter().map(|(key, value)| format!("{key}={value}")));
+        vec![parts.join(DELIM_COMMA)]
+    }
+}
+
+impl FromStr for CpuModel {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let mut parts = value.split(DELIM_COMMA);
+        let cpu_type = parts.next().filter(|model| !model.is_empty()).ok_or_else(|| "CPU model is required".to_string())?.to_string();
+        let mut properties = Vec::new();
+        for part in parts {
+            let (key, value) = if let Some(key) = part.strip_prefix('+') {
+                (key, "on")
+            } else if let Some(key) = part.strip_prefix('-') {
+                (key, "off")
+            } else {
+                part.split_once('=').ok_or_else(|| format!("invalid CPU property: {part}"))?
+            };
+            if key.is_empty() {
+                return Err(format!("invalid CPU property: {part}"));
+            }
+            properties.push((key.to_string(), value.to_string()));
+        }
+        Ok(Self { cpu_type, properties })
+    }
+}
+
 /// An x86 `-cpu` argument.
 ///
 /// QEMU accepts a CPU model followed by comma-separated feature modifiers such

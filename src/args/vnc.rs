@@ -72,10 +72,10 @@ pub struct VNC {
     /// The password must be set separately using the ``set_password``
     /// command in the :ref:`QEMU monitor`. The
     /// syntax to change your password is:
-    /// ``set_password <protocol> <password>`` where <protocol> could be
+    /// ``set_password <protocol> <password>`` where `<protocol>` could be
     /// either "vnc" or "spice".
     ///
-    /// If you would like to change <protocol> password expiration, you
+    /// If you would like to change `<protocol>` password expiration, you
     /// should use ``expire_password <protocol> <expiration-time>``
     /// where expiration time could be one of the following options:
     ///     now, never, +seconds or UNIX time of expiration, e.g. +60 to
@@ -84,7 +84,7 @@ pub struct VNC {
     /// this date and time).
     ///
     /// You can also use keywords "now" or "never" for the expiration
-    /// time to allow <protocol> password to expire immediately or never
+    /// time to allow `<protocol>` password to expire immediately or never
     /// expire.
     password: Option<OnOff>,
 

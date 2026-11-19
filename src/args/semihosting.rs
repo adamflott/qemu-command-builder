@@ -35,6 +35,8 @@ impl FromStr for SemihostingTarget {
     }
 }
 
+/// Semihosting configuration for ARM, M68K, Xtensa, MIPS, RISC-V and
+/// (since QEMU 11.2) Hexagon targets.
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq, Builder, Arbitrary)]
 pub struct SemihostingConfig {
     enable: Option<OnOff>,

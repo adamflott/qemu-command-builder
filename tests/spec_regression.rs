@@ -76,8 +76,8 @@ fn comma_valued_options_remain_single_argv_entries() {
 }
 
 #[test]
-fn every_qemu_11_1_top_level_option_is_declared_in_the_parser_catalog() {
-    let spec = include_str!("../spec/qemu-options-11.1.0.hx");
+fn every_qemu_11_2_top_level_option_is_declared_in_the_parser_catalog() {
+    let spec = include_str!("../spec/qemu-options-11.2.0-rc0.hx");
     let parser_catalog = include_str!("../src/parsers.rs");
     let mut missing = Vec::new();
 
