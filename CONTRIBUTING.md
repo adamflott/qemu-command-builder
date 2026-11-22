@@ -37,6 +37,8 @@ If the required subsection does not exist yet under **Unreleased**, create it!
 
 ## Developing
 
+Maintainers: see [RELEASING.md](RELEASING.md) for the release process.
+
 ### Set up
 
 This is no different than other Rust projects.

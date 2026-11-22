@@ -1,0 +1,14 @@
+allow-branch = ["master"]
+publish = false # The tag-triggered CD workflow is the only crates.io publisher.
+push-remote = "origin"
+tag-name = "v{{version}}"
+tag-message = "Release {{version}}"
+consolidate-commits = false
+pre-release-commit-message = "Release {{version}}"
+
+[[pre-release-replacements]]
+file = "CHANGELOG.md"
+search = '(?m)^## \[Unreleased\]$'
+replace = "## [Unreleased]\n\n## [{{version}}] - {{date}}"
+exactly = 1
+prerelease = true # Existing QEMU-version-N releases are SemVer prereleases.
