@@ -37,14 +37,10 @@ cargo install cargo-release --version 1.1.5 --locked
    in CHANGELOG.md. Use Added, Changed, Fixed, or other existing categories.
 2. Check out `master`, pull with `git pull --ff-only`, and start with a clean working
    tree. Check that the new version has not already been published or tagged.
-3. Run the same checks as CI:
+3. Run all checks with one command (also used by the CD workflow):
 
    ```sh
-   cargo fmt --all --check
-   cargo clippy --locked --all-targets --all-features --workspace -- -D warnings
-   cargo test --locked --all-features --workspace
-   RUSTDOCFLAGS="-D warnings" cargo doc --locked --no-deps --document-private-items --all-features --workspace --examples
-   cargo package --locked
+   ./scripts/check
    ```
 
 4. Preview with the chosen version (this example is not a release decision):
@@ -59,13 +55,19 @@ cargo install cargo-release --version 1.1.5 --locked
 
 ## Publish
 
-After reviewing the preview, run the same command with `--execute`:
+To check and release with one command, pass the chosen version:
 
 ```sh
-cargo release 11.1.0-2 --execute
+./scripts/release 11.1.0-2
 ```
 
-This creates the release commit and `v11.1.0-2` tag and pushes them to `origin`.
+The script requires a clean working tree, runs formatting, Clippy, tests,
+documentation, and package verification, then runs the cargo-release preview.
+Any failure stops the script before execution. If everything passes, it runs
+`cargo release VERSION --execute`, retaining cargo-release's interactive
+confirmation. It creates the release commit and `v11.1.0-2` tag and pushes them
+to `origin`. Choose a new, unpublished version; the version above is an example.
+The scripts require a POSIX shell (use Git Bash on Windows).
 GitHub must allow the maintainer to push the release commit to `master`; follow
 repository branch rules before running this command. CI requires an existing
 `CARGO_REGISTRY_TOKEN` secret with permission to publish this crate. GitHub release
