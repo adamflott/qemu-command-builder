@@ -466,7 +466,7 @@ dependencies = [
 
 [[package]]
 name = "qemu-command-builder"
-version = "11.2.0-rc0"
+version = "11.2.0-rc0-1"
 dependencies = [
  "annotate-snippets",
  "bon",
