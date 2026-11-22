@@ -6,6 +6,8 @@ Historical entries were reconstructed from Git history and published versions.
 
 ## [Unreleased]
 
+## [11.2.0-rc0] - 2026-11-22
+
 ### Added
 
 - QEMU 11.2 `-compat` input policy `warn` and `insecure-input`, with independently
