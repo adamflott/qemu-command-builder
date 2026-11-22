@@ -4,8 +4,7 @@ use crate::shell_string::ShellStringError;
 use crate::to_command::{ToArg, ToCommand};
 use crate::{QDateTime, qao};
 use bon::Builder;
-use chrono::NaiveDate;
-use chrono::NaiveDateTime;
+use jiff::civil::{Date, DateTime};
 use proptest_derive::Arbitrary;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -36,7 +35,7 @@ impl Display for RtcBase {
                 write!(f, "{}{}", KEY_BASE, KEY_BASE_LOCALTIME)
             }
             RtcBase::Datetime(dt) => {
-                let formatted = format!("{}{}", KEY_BASE, dt.0.format("%Y-%m-%dT%H:%M:%S"));
+                let formatted = format!("{}{}", KEY_BASE, dt.0.strftime("%Y-%m-%dT%H:%M:%S"));
                 write!(f, "{}", formatted)
             }
         }
@@ -49,13 +48,10 @@ impl FromStr for RtcBase {
         match s {
             KEY_BASE_UTC => Ok(RtcBase::Utc),
             KEY_BASE_LOCALTIME => Ok(RtcBase::Localtime),
-            maybe_dt => match NaiveDateTime::parse_from_str(maybe_dt, "%Y-%m-%dT%H:%M:%S") {
-                Ok(dt) => Ok(RtcBase::Datetime(QDateTime(dt.and_utc()))),
-                Err(_) => match NaiveDate::parse_from_str(maybe_dt, "%Y-%m-%d") {
-                    Ok(date) => Ok(RtcBase::Datetime(QDateTime(date.and_hms_opt(0, 0, 0).unwrap().and_utc()))),
-                    Err(_) => Err(()),
-                },
-            },
+            maybe_dt => DateTime::strptime("%Y-%m-%dT%H:%M:%S", maybe_dt)
+                .or_else(|_| Date::strptime("%Y-%m-%d", maybe_dt).map(|date| date.at(0, 0, 0, 0)))
+                .map(|dt| RtcBase::Datetime(QDateTime(dt)))
+                .map_err(|_| ()),
         }
     }
 }

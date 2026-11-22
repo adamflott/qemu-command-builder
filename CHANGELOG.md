@@ -6,6 +6,11 @@ Historical entries were reconstructed from Git history and published versions.
 
 ## [Unreleased]
 
+### Changed
+
+- Replace the unmaintained `chrono` dependency with `jiff` for RTC date parsing
+  and formatting (issue #25).
+
 ## [11.2.0-rc0] - 2026-11-22
 
 ### Added

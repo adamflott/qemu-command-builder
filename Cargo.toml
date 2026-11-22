@@ -13,7 +13,7 @@ description = "Type safe command line builder for qemu"
 [dependencies]
 annotate-snippets = "0.12.18"
 bon = "3.10.3"
-chrono = {  version = "0.4.45", features = [ "arbitrary"] }
+jiff = { version = "1.0.1", default-features = false, features = ["std"] }
 ipnet = "2.12.2"
 newtype-uuid = { version = "1.4.0", features = ["proptest1", "v4"]}
 proptest = "1.12.0"

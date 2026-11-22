@@ -12,7 +12,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use bon::Builder;
-use chrono::{DateTime, TimeZone, Utc};
+use jiff::civil::DateTime;
 use newtype_uuid::{TypedUuidKind, TypedUuidTag};
 use proptest::prelude::{Arbitrary, Just};
 use proptest_derive::Arbitrary;
@@ -782,12 +782,15 @@ impl TypedUuidKind for QUuid {
 }
 
 #[derive(Debug, Clone, Hash, Ord, PartialOrd, Eq, PartialEq)]
-pub struct QDateTime(DateTime<Utc>);
+/// A UTC date and time used by QEMU RTC options.
+///
+/// Stored as civil time because QEMU accepts no offset or time zone here.
+pub struct QDateTime(DateTime);
 
 impl Arbitrary for QDateTime {
     type Parameters = ();
     fn arbitrary_with(_: Self::Parameters) -> Self::Strategy {
-        let dt = Utc.with_ymd_and_hms(1984, 10, 22, 0, 1, 5).unwrap();
+        let dt = jiff::civil::date(1984, 10, 22).at(0, 1, 5, 0);
         Just(QDateTime(dt))
     }
 
